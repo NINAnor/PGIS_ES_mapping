@@ -1,0 +1,3 @@
+This module represents a questionnaire to assess general questions about each participant. 
+-Living location generalized (polygon raster, and click)
+-age, gender, education ...
