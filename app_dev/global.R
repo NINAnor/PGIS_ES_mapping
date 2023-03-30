@@ -6,10 +6,12 @@ library(dplyr)
 library(rgee)
 library(DT)
 library(shinycssloaders)
+library(leafem)
 
 
 map <- leaflet() %>% 
   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)
+
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
 
 geometry <- ee$Geometry$Rectangle(
@@ -19,8 +21,18 @@ geometry <- ee$Geometry$Rectangle(
 )
 
 
-bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level1")$
-  filter(ee$Filter$eq("ADM1_CODE",2257))
+bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
+
+
+sf_bound <- ee_as_sf(x = bound_reg)
+
+
+## make a grid over region
+grd<-st_make_grid(sf_bound, cellsize = c(diff(st_bbox(sf_bound)[c(1, 3)]), diff(st_bbox(sf_bound)[c(2,
+                                                                                                    4)]))/60, offset = st_bbox(sf_bound)[1:2],  what = "polygons")
+
+
 
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
 lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)

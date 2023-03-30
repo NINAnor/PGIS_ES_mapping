@@ -3,11 +3,13 @@ navbarPage('Test leaflet rgee
                  ',id = "inTabset",
                  tabPanel(title = "gen questions", value = "p1",
                           textInput("userID","enter user id"),
-                          actionButton('sub1', 'submit')),
+                          actionButton('sub1', 'submit answers'),
+                          mainPanel(selectModUI("map_living"))
+                          ),
                  tabPanel(title = paste0("es mapping of ",sel_es_full), value = "p2", 
-                          actionButton('sub2', 'submit'),
+                          actionButton('sub2', 'submit selection'),
                           
-                          mainPanel(editModUI("map"),
+                          mainPanel(editModUI("map_training"),
                                     DTOutput(
                                       "my_datatable"
                                     ))),

@@ -29,17 +29,48 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p3")
   })
+  
+
+  
+  liv_pol <- callModule(selectMod, "map_living", 
+                        leaflet() %>% 
+                          addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
+                          addFeatures(st_sf(grd), layerId = ~seq_len(length(grd)))
+                        
+                        
+  )
+  
+  
+observeEvent(input$sub1, { 
+     gs<-liv_pol()
+     
+     a<-st_sf(
+       grd[as.numeric(gs[which(gs$selected==TRUE),"id"])]
+     )
+
+    cent<-st_centroid(a)
+    time_sub<-Sys.time()
+    userID = input$userID
+    
+    ## write user data to file
+    data <- data.frame(time=time_sub, userID=userID, user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2])
+    write.csv(data,
+              "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/PGIS_ES_mapping/test_user_out/user_dat.csv", 
+              row.names = T)
+    
+    })
+  
   ## save map results and send it to gee
   
-  edits <- callModule(
+  training_pol <- callModule(
     editMod,
     leafmap = map,
-    id = "map"
+    id = "map_training"
   )
   
   ## create gee polygon as soon as submit button 2 is pressed
   gee_poly<-eventReactive(input$sub2, {
-    geom <- edits()$finished
+    geom <- training_pol()$finished
     
     # if (!is.null(geom)) {
     #   assign('user_geom', geom, envir = .GlobalEnv)
@@ -63,7 +94,7 @@ function(input, output, session) {
   
   output$my_datatable <- renderDT({
     
-    edits()$finished %>% 
+    training_pol()$finished %>% 
       datatable()
     
     
