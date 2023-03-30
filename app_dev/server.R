@@ -51,9 +51,10 @@ observeEvent(input$sub1, {
     cent<-st_centroid(a)
     time_sub<-Sys.time()
     userID = input$userID
+    age= input$age
     
     ## write user data to file
-    data <- data.frame(time=time_sub, userID=userID, user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2])
+    data <- data.frame(time=time_sub, userID=userID, age=age, user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2])
     write.csv(data,
               "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/PGIS_ES_mapping/test_user_out/user_dat.csv", 
               row.names = T)

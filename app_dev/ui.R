@@ -3,6 +3,7 @@ navbarPage('Test leaflet rgee
                  ',id = "inTabset",
                  tabPanel(title = "gen questions", value = "p1",
                           textInput("userID","enter user id"),
+                          numericInput("age","your age",NULL,min=12,max=110,step=1),
                           actionButton('sub1', 'submit answers'),
                           mainPanel(selectModUI("map_living"))
                           ),
