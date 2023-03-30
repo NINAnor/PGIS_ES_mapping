@@ -19,8 +19,8 @@ map <- leaflet()%>%
   setView(10.42,63.44,10)
 
 # create regular poly grid 200x200m
-bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level1")$
-  filter(ee$Filter$eq("ADM1_CODE",2257))
+bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
 
 
 sf_bound <- ee_as_sf(x = bound_reg)
