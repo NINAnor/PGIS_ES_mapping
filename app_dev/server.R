@@ -70,8 +70,7 @@ observeEvent(input$sub1, {
     
     ## write user data to file
     data <- data.frame(time=time_sub, userID=userID, age=age, user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2])
-    write.csv(data,
-              "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/PGIS_ES_mapping/test_user_out/user_dat.csv", 
+    write.csv(data,"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/test_user_out/user_dat.csv",
               row.names = T)
     
     })
