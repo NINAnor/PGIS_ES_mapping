@@ -2,6 +2,7 @@ function(input, output, session) {
   ## hiding all tabs but not start
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
+  hideTab(inputId = "inTabset", target = "p4")
   ## submit, switch and remove tab one
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
@@ -30,6 +31,23 @@ function(input, output, session) {
             target = "p3")
   })
   
+  
+  ## submit switch to tab 4 and remove others
+  observeEvent(input$sub3, {
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p4")
+  })
+  observeEvent(input$sub3, {
+    hideTab(inputId = "inTabset",
+            target = "p3")
+  })
+  observeEvent(input$sub3, {
+    showTab(inputId= "inTabset",
+            target = "p4")
+  })
+  
+  
+  
 
   
   liv_pol <- callModule(selectMod, "map_living", 
@@ -40,15 +58,12 @@ function(input, output, session) {
                         
   )
   
-  
+##select poly of living 
 observeEvent(input$sub1, { 
      gs<-liv_pol()
-     
-     a<-st_sf(
-       grd[as.numeric(gs[which(gs$selected==TRUE),"id"])]
-     )
+     gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
 
-    cent<-st_centroid(a)
+    cent<-st_centroid(gs)
     time_sub<-Sys.time()
     userID = input$userID
     age= input$age
@@ -60,17 +75,47 @@ observeEvent(input$sub1, {
               row.names = T)
     
     })
-  
-  ## save map results and send it to gee
-  
+
+
   training_pol <- callModule(
     editMod,
-    leafmap = map,
-    id = "map_training"
+    leafmap = mapview(map.types = "CartoDB.Positron")@map %>% leafem::addFeatures(data = data_copy,
+                                                                                  layerId = data_copy$leaf_id,
+                                                                                  group = 'editLayer',
+                                                                                  popup = leafpop::popupTable(data_copy)),
+    id = "map",
+    targetLayerId = 'editLayer',
+    sf = TRUE,
+    editorOptions = list(editOptions = leaflet.extras::editToolbarOptions(edit = TRUE)),
   )
   
-  ## create gee polygon as soon as submit button 2 is pressed
-  gee_poly<-eventReactive(input$sub2, {
+  table_edit <- eventReactive(input$sub2,{
+    training_pol<-training_pol()$finished
+    training_pol<-as.data.frame(training_pol)
+    training_pol$ES_ranking<-rep(0,nrow(training_pol))
+    training_pol$Comments<-rep(0,nrow(training_pol))
+    training_pol$confidence<-rep(0,nrow(training_pol))
+    training_pol<-st_as_sf(training_pol)
+    
+  
+
+  })
+
+  output$tbl <- renderDT(
+    table_edit()
+)
+
+  
+
+output$map2<-renderLeaflet(
+  leaflet(training_pol()$finished)%>%addProviderTiles("CartoDB.Positron")%>%
+    addPolygons(color = "green", label = training_pol()$finished$leaf_id)
+)
+  
+ 
+
+  ## create gee polygon as soon as submit button 3 is pressed
+  gee_poly<-eventReactive(input$sub3, {
     geom <- training_pol()$finished
     
     # if (!is.null(geom)) {
@@ -85,7 +130,7 @@ observeEvent(input$sub1, {
     geom<-as.data.frame(geom)
     
     geom<-st_as_sf(geom)
-    geom$rec_val<-c(1,2,3)
+    # geom$rec_val<-c(1,2,3)
     gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
     
     
@@ -93,16 +138,10 @@ observeEvent(input$sub1, {
   
   
   
-  output$my_datatable <- renderDT({
-    
-    training_pol()$finished %>% 
-      datatable()
-    
-    
-  })
+ 
   
   
-  prediction <- eventReactive(input$sub2, {
+  prediction <- eventReactive(input$sub3, {
     gee_poly<-gee_poly()
     bands <- c("landcover","be75","landcover_count","slope","slope_mean","aspect")
     
@@ -113,7 +152,7 @@ observeEvent(input$sub1, {
     
     classifier <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION")$train(
       features=poly_pts,
-      classProperty= "rec_val",
+      classProperty= "ES_value",
       inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
     )
     
@@ -122,7 +161,7 @@ observeEvent(input$sub1, {
     
   })
   
-  observeEvent(input$sub2, {
+  observeEvent(input$sub3, {
     
     prediction<-prediction()
     userid <- input$userID
@@ -139,7 +178,7 @@ observeEvent(input$sub1, {
     
   })
   
-  map2 <- eventReactive(input$sub2,{
+  map3 <- eventReactive(input$sub3,{
     prediction<-prediction()
     gee_poly <- gee_poly()
     Map$setCenter(10.38649, 63.40271,10)
@@ -155,7 +194,7 @@ observeEvent(input$sub1, {
   
   
   output$gee_map <- renderLeaflet({
-    map2()
+    map3()
   })
   
   

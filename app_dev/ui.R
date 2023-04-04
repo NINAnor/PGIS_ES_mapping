@@ -10,11 +10,14 @@ navbarPage('Test leaflet rgee
                  tabPanel(title = paste0("es mapping of ",sel_es_full), value = "p2", 
                           actionButton('sub2', 'submit selection'),
                           
-                          mainPanel(editModUI("map_training"),
-                                    DTOutput(
-                                      "my_datatable"
-                                    ))),
-                 tabPanel(title = paste0("your extrapolated map of ",sel_es_full), value = "p3",
+                          mainPanel(editModUI("map"),
+                                    )),
+                 tabPanel(title = paste0("Indicate your ranking of ",sel_es_full), value = "p3",
+                          leafletOutput(outputId = "map2"),
+                          DTOutput("tbl"),
+                          actionButton('sub3', 'calculate extrapolation'),),
+           
+                 tabPanel(title = paste0("your extrapolated map of ",sel_es_full), value = "p4",
                           mainPanel(
                             leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1")
                           ))

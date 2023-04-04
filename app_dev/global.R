@@ -7,7 +7,25 @@ library(rgee)
 library(DT)
 library(shinycssloaders)
 library(leafem)
+library(tibble)
+library(leafpop)
+library(mapview)
 
+
+render_dt = function(data, editable = 'cell', server = TRUE, ...) {
+  renderDT(data, selection = 'none', server = server, editable = editable, ...)
+}
+
+dat = data.frame(value = 'CHANGE ME', comments = 'ADD COMMENTS...') %>% mutate(leaf_id = 1)
+APP_CRS <- 4326
+
+# accept list of sf data.frames with multiple geom types
+original_sf <- NULL
+
+dat <- dat %>% mutate(leaf_id = 1:nrow(dat))
+data_copy <- sf::st_as_sf(
+  dat,
+  geometry = sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_point()}))) %>% sf::st_set_crs(APP_CRS)
 
 map <- leaflet() %>% 
   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)
@@ -77,3 +95,18 @@ es_ind<-c(1,2,3)
 sel_es<-sample(es_ind,1)
 sel_es_full<-es[sel_es]
 sel_es_ab<-es_ab[sel_es]
+
+
+dat <- data.frame(ES_value = 'CHANGE ME',confidence="how confident are you?", comments = 'ADD COMMENTS...') %>% mutate(leaf_id = 1)
+
+
+original_sf <- NULL
+
+APP_CRS <- 4326
+
+dat <- dat %>% mutate(leaf_id = 1:nrow(dat))
+data_copy <- sf::st_as_sf(
+  dat,
+  geometry = sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_point()}))
+) %>% sf::st_set_crs(APP_CRS)
+
