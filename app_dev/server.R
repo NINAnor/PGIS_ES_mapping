@@ -1,4 +1,6 @@
 function(input, output, session) {
+  
+  
   ## hiding all tabs but not start
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
@@ -48,7 +50,7 @@ function(input, output, session) {
   
   
   
-
+  renderSurvey()
   
   liv_pol <- callModule(selectMod, "map_living", 
                         leaflet() %>% 
@@ -60,17 +62,30 @@ function(input, output, session) {
   
 ##select poly of living 
 observeEvent(input$sub1, { 
+    
      gs<-liv_pol()
      gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
 
+     # print(input$matInput)
     cent<-st_centroid(gs)
-    time_sub<-Sys.time()
+    time_sub1<-Sys.time()
     userID = input$userID
     age= input$age
+    gender= input$gender
+    education = input$edu
+    es1=input$matInput$ES1[1]
+    es2=input$matInput$ES2[1]
+    es3=input$matInput$ES3[1]
+    nep1 = input$matInput2$NEP1[1]
+    nep2 = input$matInput2$NEP2[1]
+    nep3 = input$matInput2$NEP3[1]
     
     ## write user data to file
-    data <- data.frame(time=time_sub, userID=userID, age=age, user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2])
-    write.csv(data,"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/test_user_out/user_dat.csv",
+    data <- data.frame(time=time_sub1, userID=userID, age=age,gender=gender,  education = education,
+                       user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2],
+                       es1 = es1, es2 = es2, es3 = es3,
+                       nep1 = nep1, nep2 = nep2, nep3 = nep3)
+    write.csv(data,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/Questionnaire/shiny_output/user_dat.csv",
               row.names = T)
     
     })
@@ -87,6 +102,25 @@ observeEvent(input$sub1, {
     sf = TRUE,
     editorOptions = list(editOptions = leaflet.extras::editToolbarOptions(edit = TRUE)),
   )
+  
+  observeEvent(input$sub2, { 
+    
+    ## save info per ES and per user
+    userID = input$userID
+    ES <-sel_es_ab
+    impnat<-input$nat
+    implulc<-input$lulc
+    impacc<-input$access
+    #selected area
+    training_pol<-training_pol()$finished
+    area<-sum(st_area(training_pol))
+    
+    ## it would be intersting to keep the time for each es mapping...
+    # time_sub2<-Sys.time()
+    # print(time_sub2-time_sub1)
+
+    
+    })
   
   table_edit <- eventReactive(input$sub2,{
     training_pol<-training_pol()$finished

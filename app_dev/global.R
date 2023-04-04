@@ -10,6 +10,8 @@ library(leafem)
 library(tibble)
 library(leafpop)
 library(mapview)
+library(shinyRadioMatrix)
+
 
 
 render_dt = function(data, editable = 'cell', server = TRUE, ...) {
