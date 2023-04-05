@@ -1,5 +1,7 @@
 function(input, output, session) {
   
+  track_usage(storage_mode = store_rds(path = "logs/"))
+  quest_data<-reactiveValues(t1=NULL, t2=NULL, cent_lng=NULL, cen_lat=NULL )
   
   ## hiding all tabs but not start
   hideTab(inputId = "inTabset", target = "p2")
@@ -15,6 +17,7 @@ function(input, output, session) {
   })
   observeEvent(input$sub1, {
     showTab(inputId = "inTabset", target = "p2")
+    quest_data$t1<-Sys.time()
     
   })
   
@@ -31,6 +34,7 @@ function(input, output, session) {
   observeEvent(input$sub2, {
     showTab(inputId= "inTabset",
             target = "p3")
+    quest_data$t2<-Sys.time()
   })
   
   
@@ -50,7 +54,7 @@ function(input, output, session) {
   
   
   
-  renderSurvey()
+ 
   
   liv_pol <- callModule(selectMod, "map_living", 
                         leaflet() %>% 
@@ -62,29 +66,19 @@ function(input, output, session) {
   
 ##select poly of living 
 observeEvent(input$sub1, { 
-    
-     gs<-liv_pol()
-     gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
-
-     # print(input$matInput)
+    #calculate center of selected living polygon
+    gs<-liv_pol()
+    gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
     cent<-st_centroid(gs)
-    time_sub1<-Sys.time()
-    userID = input$userID
-    age= input$age
-    gender= input$gender
-    education = input$edu
-    es1=input$matInput$ES1[1]
-    es2=input$matInput$ES2[1]
-    es3=input$matInput$ES3[1]
-    nep1 = input$matInput2$NEP1[1]
-    nep2 = input$matInput2$NEP2[1]
-    nep3 = input$matInput2$NEP3[1]
-    
+    quest_data$cent_lng<-st_coordinates(cent)[1]
+    quest_data$cent_lat<-st_coordinates(cent)[2]
+
     ## write user data to file
-    data <- data.frame(time=time_sub1, userID=userID, age=age,gender=gender,  education = education,
-                       user_live_lng =st_coordinates(cent)[1], user_live_lat = st_coordinates(cent)[2],
-                       es1 = es1, es2 = es2, es3 = es3,
-                       nep1 = nep1, nep2 = nep2, nep3 = nep3)
+    data <- data.frame(time=v$t1, userID=input$userID, age=input$age,gender=input$gender,  education = input$edu,
+                       user_live_lng =quest_data$cent_lng, user_live_lat = quest_data$cent_lat,
+                       es1 = input$matInput$ES1[1], es2 = input$matInput$ES2[1], es3 = input$matInput$ES3[1],
+                       nep1 = input$matInput2$NEP1[1], nep2 = input$matInput2$NEP2[1], nep3 = input$matInput2$NEP3[1])
+    
     write.csv(data,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/Questionnaire/shiny_output/user_dat.csv",
               row.names = T)
     
@@ -104,22 +98,17 @@ observeEvent(input$sub1, {
   )
   
   observeEvent(input$sub2, { 
-    
     ## save info per ES and per user
-    userID = input$userID
-    ES <-sel_es_ab
-    impnat<-input$nat
-    implulc<-input$lulc
-    impacc<-input$access
     #selected area
     training_pol<-training_pol()$finished
     area<-sum(st_area(training_pol))
     
-    ## it would be intersting to keep the time for each es mapping...
-    # time_sub2<-Sys.time()
-    # print(time_sub2-time_sub1)
-
+    ## it would be interesting to keep the time for each ES assessment (diff betw. sub 1 and sub 2)
     
+    data_es <- data.frame(userID=input$userID, ES=sel_es_ab, impnat=input$nat,implulc=input$lulc,impacc = input$access,
+                       ES_area =area, t_diff = quest_data$t2 - quest_data$t1)
+    write.csv(data_es,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/Questionnaire/shiny_output/es_dat.csv",
+              row.names = T)
     })
   
   table_edit <- eventReactive(input$sub2,{
@@ -136,32 +125,21 @@ observeEvent(input$sub1, {
 
   output$tbl <- renderDT(
     table_edit()
-)
+  )
 
   
 
-output$map2<-renderLeaflet(
-  leaflet(training_pol()$finished)%>%addProviderTiles("CartoDB.Positron")%>%
-    addPolygons(color = "green", label = training_pol()$finished$leaf_id)
-)
+  output$map2<-renderLeaflet(
+    leaflet(training_pol()$finished)%>%addProviderTiles("CartoDB.Positron")%>%
+      addPolygons(color = "green", label = training_pol()$finished$leaf_id)
+  )
   
  
 
   ## create gee polygon as soon as submit button 3 is pressed
   gee_poly<-eventReactive(input$sub3, {
     geom <- training_pol()$finished
-    
-    # if (!is.null(geom)) {
-    #   assign('user_geom', geom, envir = .GlobalEnv)
-    #   sf::write_sf(
-    #     geom,
-    #     'user_geom.geojson',
-    #     delete_layer = T,
-    #     delete_dsn = T
-    #   )
-    # }
     geom<-as.data.frame(geom)
-    
     geom<-st_as_sf(geom)
     # geom$rec_val<-c(1,2,3)
     gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
