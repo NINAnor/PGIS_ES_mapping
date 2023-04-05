@@ -21,7 +21,6 @@ function(input, output, session) {
     
   })
   
-  
   ## submit switch to tab 3 and remove others
   observeEvent(input$sub2, {
     updateTabsetPanel(session, "inTabset",
@@ -36,7 +35,6 @@ function(input, output, session) {
             target = "p3")
     quest_data$t2<-Sys.time()
   })
-  
   
   ## submit switch to tab 4 and remove others
   observeEvent(input$sub3, {
@@ -64,8 +62,8 @@ function(input, output, session) {
                         
   )
   
-##select poly of living 
-observeEvent(input$sub1, { 
+##select poly ES
+  observeEvent(input$sub1, { 
     #calculate center of selected living polygon
     gs<-liv_pol()
     gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
@@ -74,7 +72,7 @@ observeEvent(input$sub1, {
     quest_data$cent_lat<-st_coordinates(cent)[2]
 
     ## write user data to file
-    data <- data.frame(time=v$t1, userID=input$userID, age=input$age,gender=input$gender,  education = input$edu,
+    data <- data.frame(time=quest_data$t1, userID=input$userID, age=input$age,gender=input$gender,  education = input$edu,
                        user_live_lng =quest_data$cent_lng, user_live_lat = quest_data$cent_lat,
                        es1 = input$matInput$ES1[1], es2 = input$matInput$ES2[1], es3 = input$matInput$ES3[1],
                        nep1 = input$matInput2$NEP1[1], nep2 = input$matInput2$NEP2[1], nep3 = input$matInput2$NEP3[1])
@@ -105,8 +103,8 @@ observeEvent(input$sub1, {
     
     ## it would be interesting to keep the time for each ES assessment (diff betw. sub 1 and sub 2)
     
-    data_es <- data.frame(userID=input$userID, ES=sel_es_ab, impnat=input$nat,implulc=input$lulc,impacc = input$access,
-                       ES_area =area, t_diff = quest_data$t2 - quest_data$t1)
+    data_es <- data.frame(userID= input$userID, ES=sel_es_ab, impnat=input$nat,implulc=input$lulc,impacc = input$access,
+                       ES_area = area,imp_own=input$imp_own,imp_other = input$imp_other,descri = input$es_desc, t_diff = quest_data$t2 - quest_data$t1)
     write.csv(data_es,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/Questionnaire/shiny_output/es_dat.csv",
               row.names = T)
     })

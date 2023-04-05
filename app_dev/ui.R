@@ -48,6 +48,7 @@ navbarPage('POC PGIS ES
                           
                           
                           mainPanel(editModUI("map"),
+                                    
                                    
                                     sliderInput("access", "Accessibility",
                                                 min = 0, max = 5, value = 3
@@ -58,6 +59,14 @@ navbarPage('POC PGIS ES
                                     sliderInput("lulc", "Landcover",
                                                 min = 0, max = 5, value = 3
                                     ),
+                                    sliderInput("imp_own", paste0("How important is ",sel_es_full,  " for you personally in this area?"),
+                                                min = 0, max = 5, value = 3
+                                    ),
+                                    sliderInput("imp_other", paste0("How important is ",sel_es_full,  " for others and the society in this area?"),
+                                                min = 0, max = 5, value = 3
+                                    ),
+                                    textInput("es_desc",paste0("Can you describe in a few words what you understand by ",sel_es_full, " as an ES?")),
+                                    
                                    
                                     actionButton('sub2', 'submit mapping')
                                     )),
