@@ -11,6 +11,7 @@ library(tibble)
 library(leafpop)
 library(mapview)
 library(shinyRadioMatrix)
+library(shinylogs)
 
 
 
