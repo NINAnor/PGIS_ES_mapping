@@ -62,7 +62,7 @@ function(input, output, session) {
                         
   )
   
-##select poly ES
+##as soon as submit page 1 write users answers to general question into DB (xls up to now)
   observeEvent(input$sub1, { 
     #calculate center of selected living polygon
     gs<-liv_pol()
@@ -95,6 +95,7 @@ function(input, output, session) {
     editorOptions = list(editOptions = leaflet.extras::editToolbarOptions(edit = TRUE)),
   )
   
+  # as soon as submit 2 is pressed store ESn specific values into DB (xls up to now)
   observeEvent(input$sub2, { 
     ## save info per ES and per user
     #selected area
