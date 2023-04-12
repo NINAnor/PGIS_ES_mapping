@@ -12,9 +12,11 @@ library(leafpop)
 library(mapview)
 library(shinyRadioMatrix)
 library(shinylogs)
+library(leaflet.extras)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/trainingmap_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/selection_module.R")
 # 
 # 
 # render_dt = function(data, editable = 'cell', server = TRUE, ...) {
@@ -102,16 +104,33 @@ sel_es_full<-es[sel_es]
 sel_es_ab<-es_ab[sel_es]
 # 
 # 
-dat <- data.frame(ES_value = 'CHANGE ME',confidence="how confident are you?", comments = 'ADD COMMENTS...') %>% mutate(leaf_id = 1)
-
-
-original_sf <- NULL
 
 APP_CRS <- 4326
+# Need to parse out spatial objects if input data is spatial type <- c('sf', 'SpatVector') 
+le = TRUE 
+
+
+user_crs <- APP_CRS
+zoomto = "Trondheim"
+zoomto_area <- tmaptools::geocode_OSM(zoomto) 
+zoomto <- sf::st_as_sfc(zoomto_area$bbox) %>% sf::st_sf() %>%
+  sf::st_set_crs(APP_CRS)
+
+
+dat <- data.frame(ES_value = 0) 
+# dat <- data.frame(ES_value = 0, imp_access = 0, imp_naturalness = 0, imp_landcover = 0, further_comments = 'CHANGE ME',stringsAsFactors=FALSE) 
+
+dat%>% 
+  mutate(leaf_id = 1)
+
 
 dat <- dat %>% mutate(leaf_id = 1:nrow(dat))
 data_copy <- sf::st_as_sf(
   dat,
-  geometry = sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_point()}))
+  geometry = 
+    sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_polygon()}))
 ) %>% sf::st_set_crs(APP_CRS)
+
+
+
 

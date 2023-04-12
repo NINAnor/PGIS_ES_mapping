@@ -9,20 +9,23 @@ navbarPage('POC PGIS ES
            
            tabPanel(title = paste0("Mapping of ",sel_es_full), value = "p2", 
                     mainPanel(
-                      return_trainmap_UI("train_map"),
                       editModUI("map"),
-                      actionButton('sub2', 'submit mapping')
-                    ))
+                      DTOutput("tbl"),
+                      actionButton("sub2","save"),
+                      shiny::uiOutput('dyn_form')
+                      # editModUI("map"),
+                      # actionButton('sub2', 'submit mapping')
+                    )),
            # ,
            # tabPanel(title = paste0("Indicate your ranking of ",sel_es_full), value = "p3",
            #          leafletOutput(outputId = "map2"),
            #          DTOutput("tbl"),
            #          actionButton('sub3', 'calculate extrapolation'),),
            # 
-           # tabPanel(title = paste0("your extrapolated map of ",sel_es_full), value = "p4",
-           #          mainPanel(
-           #            leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1")
-           #          ))
+           tabPanel(title = paste0("your extrapolated map of ",sel_es_full), value = "p3",
+                    mainPanel(
+                      leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1")
+                    ))
 )
            
 
