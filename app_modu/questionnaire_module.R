@@ -44,26 +44,11 @@ return_quest_UI = function(id) {
 }
 
 
-return_quest_Server = function(input, output, session) {
-  # liv_pol <- callModule(selectMod, "map_living",
-  #                       leaflet() %>%
-  #                         addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
-  #                         addFeatures(st_sf(grd), layerId = ~seq_len(length(grd)))
-
-
-  # )
-
-  # gs<-liv_pol()
-  # gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
-  # cent<-st_centroid(gs)
-  
-  
+return_quest_Server = function(input, output, session, user_lat, user_lng) {
+  user_lng = user_lng
+  user_lat = user_lat
   
   quest <- reactive({
-    
-
-    ## write user data to file
-
     list(
       userID=input$userID,
       age=input$age,
@@ -74,13 +59,16 @@ return_quest_Server = function(input, output, session) {
       es3 = input$matInput$ES3[1],
       nep1 = input$matInput2$NEP1[1],
       nep2 = input$matInput2$NEP2[1],
-      nep3 = input$matInput2$NEP3[1]
-      # user_lng = st_coordinates(cent)[1],
-      # user_lat = st_coordinates(cent)[2]
+      nep3 = input$matInput2$NEP3[1],
+      user_lng = user_lng,
+      user_lat = user_lat
       
     )
-   
+
   })
-   return(quest)
+   # return(quest)
+  dat_quest<-as.data.frame(({ quest() }))
+  write.csv(dat_quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/user_dat.csv",
+            row.names = T)
   
 }
