@@ -60,25 +60,20 @@ function(input, output, session) {
 
   )
   # 
-  observeEvent(input$sub1, { 
-    quest <- callModule(return_quest_Server, "return_quest")
-    
-
+  dat_quest<-eventReactive(input$sub1, { 
+    ## extract centroid
     gs<-liv_pol()
     gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
     cent<-st_centroid(gs)
-    
+
+    quest<-callModule(ESmoduleServer, "return_quest",st_coordinates(cent)[2],st_coordinates(cent)[1])
     dat_quest<-as.data.frame(({ quest() }))
-    dat_quest$user_lng = st_coordinates(cent)[1]
-    dat_quest$user_lat = st_coordinates(cent)[2]
-  
     write.csv(dat_quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/user_dat.csv",
-               row.names = T)
-    
+              row.names = T)
     })
   
   ########## 2. first ES selection
-  
+
   df <- shiny::reactiveValues(types = sapply(dat, class),
                               data = data_copy,
                               zoom_to = zoomto,
@@ -291,48 +286,28 @@ function(input, output, session) {
     
   })
   
+
+  
   # provide mechanism to return after all done
   gee_poly<-shiny::eventReactive(input$sub2, {
 
-          out <- sf::st_sf(df$data,crs=user_crs)
-
-    # out$user_ID<-rep(dat_quest$userID,nrow(out))
-    # out$ES<-rep(sel_es_ab,nrow(out))
-    # write.csv(out,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/train_param_dat.csv",
-    #        row.names = T)
+     out <- sf::st_sf(df$data,crs=user_crs)
+     
+     ### area and amount of polys
+     area <-sum(st_area(out))
+     ###
+     callModule(ESmoduleServer, "es_quest",area,nrow(out))
+     # dat_quest<-as.data.frame(({ quest() }))     
 
      geom<-as.data.frame(out)
+     # out$user_ID<-rep(dat_quest$userID,nrow(out))
+     # out$ES<-rep(sel_es_ab,nrow(out))
      geom<-st_as_sf(geom)    
      gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
     
   })
   
 
-
-#   
-#   # as soon as submit 2 is pressed store ESn specific values into DB (xls up to now)
-#   observeEvent(input$sub2, { 
-#     ## save info per ES and per user
-#     #selected area
-#     training_pol<-training_pol()$finished
-#     area<-sum(st_area(training_pol))
-#     
-#     ## it would be interesting to keep the time for each ES assessment (diff betw. sub 1 and sub 2)
-#     
-#     # data_es <- data.frame(userID= input$userID, ES=sel_es_ab, impnat=input$nat,implulc=input$lulc,impacc = input$access,
-#     #                    ES_area = area,imp_own=input$imp_own,imp_other = input$imp_other,descri = input$es_desc, 
-#     #                    # t_diff = quest_data$t2 - quest_data$t1
-#     #                    )
-#     # write.csv(data_es,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/Questionnaire/shiny_output/es_dat.csv",
-#     #           row.names = T)
-#     })
-#   
-#   
-# 
-#   })
-# 
-#  
-# 
 #   ## create gee polygon as soon as submit button 3 is pressed
   # gee_poly<-eventReactive(input$sub2, {
     # geom <- out
@@ -344,7 +319,7 @@ function(input, output, session) {
   # 
   # })
 #   
-#   
+  
 
   prediction <- eventReactive(input$sub2, {
     gee_poly<-gee_poly()
@@ -362,26 +337,36 @@ function(input, output, session) {
     )
 
     regression <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(classifier, "predicted")
-
+    
+    # assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',sel_es_ab,"/","abc")
+    # task_img <- ee_image_to_asset(
+    #   image = regression,
+    #   assetId = assetid,
+    #   overwrite = T,
+    #   region = geometry
+    # )
+    # 
+    # task_img$start()
 
   })
+  
   # 
   ##saving
-  # observeEvent(input$sub3, {
-  #   
+  # observeEvent(input$sub2, {
+  # 
   #   prediction<-prediction()
-  #   userid <- input$userID
-  #   assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',sel_es_ab,"/",userid)
+  #   # userid <- input$userID
+  #   assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',sel_es_ab,"/","abc")
   #   task_img <- ee_image_to_asset(
   #     image = prediction,
   #     assetId = assetid,
   #     overwrite = T,
   #     region = geometry
   #   )
-  #   
+  # 
   #   task_img$start()
-  #   
-  #   
+  # 
+  # 
   # })
   # 
   map3 <- eventReactive(input$sub2,{

@@ -9,6 +9,7 @@ navbarPage('POC PGIS ES
            
            tabPanel(title = paste0("Mapping of ",sel_es_full), value = "p2", 
                     mainPanel(
+                      ESmoduleUI("es_quest"),
                       editModUI("map"),
                       DTOutput("tbl"),
                       actionButton("sub2","save"),

@@ -15,8 +15,8 @@ library(shinylogs)
 library(leaflet.extras)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_module.R")
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/trainingmap_module.R")
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/selection_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")
+# source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/selection_module.R")
 # 
 # 
 # render_dt = function(data, editable = 'cell', server = TRUE, ...) {
@@ -39,12 +39,12 @@ source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/selection_module.R
 # 
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
 # 
-# geometry <- ee$Geometry$Rectangle(
-#   coords = c(10.32, 63.40, 10.46, 63.45),
-#   proj = "EPSG:4326",
-#   geodesic = FALSE
-# )
-# 
+geometry <- ee$Geometry$Rectangle(
+  coords = c(10.32, 63.40, 10.46, 63.45),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
 
 bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
   filter(ee$Filter$eq("ADM2_CODE",23463))

@@ -66,9 +66,8 @@ return_quest_Server = function(input, output, session, user_lat, user_lng) {
     )
 
   })
-   # return(quest)
-  dat_quest<-as.data.frame(({ quest() }))
-  write.csv(dat_quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/user_dat.csv",
-            row.names = T)
+
+  return(quest)
+
   
 }
