@@ -20,7 +20,7 @@ zoomto <- sf::st_as_sfc(zoomto_area$bbox) %>% sf::st_sf() %>%
   sf::st_set_crs(APP_CRS)
 
 
-dat <- data.frame(imp_access = 'CHANGE ME', imp_naturalness = 'CHANGE ME', imp_landcover = 'CHANGE ME', further_comments = 'CHANGE ME') %>% 
+dat <- data.frame(es_value = 0 , further_comments = 'CHANGE ME') %>% 
   mutate(leaf_id = 1)
 
 
@@ -28,7 +28,7 @@ dat <- dat %>% mutate(leaf_id = 1:nrow(dat))
 data_copy <- sf::st_as_sf(
   dat,
   geometry = 
-    sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_polygon()}))
+    sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_polygon(list(cbind(c(0,1,1,0,0), c(0,0,1,1,0))))}))
 ) %>% sf::st_set_crs(APP_CRS)
 
 
@@ -69,35 +69,29 @@ server<-function(input, output, session) {
   
   proxy_map <- leaflet::leafletProxy('map-map', session)
   # render new row form based on the existing data structure
+  
+  
   shiny::observe({
-
+    
     output$dyn_form <- shiny::renderUI({
-
+      
       shiny::tagList(
         lapply(1:length(df$types), function(n){
           name <- names(df$types[n])
           label <- paste0(names(df$types[n]), ' (', df$types[n], ')')
           if (df$types[n] == 'character') {
             shiny::textInput(name, label, width = '100%')
-          } else if (df$types[n] == 'factor') {
-            shiny::selectInput(name, label, width = '100%',
-                               choices = levels(dat[[names(df$types[n])]]),
-                               selected = NULL,
-                               selectize = TRUE)
-          } else if (df$types[n] %in% c('numeric','integer')) {
-            shiny::numericInput(name, label, width = '100%', value = NA)
-          } else if (df$types[n] == 'Date') {
-            shiny::dateInput(name, label, width = '100%', value = NA)
-          }
+          }  else if (df$types[n] %in% c('numeric','integer')) {
+            shiny::sliderInput(name, label,1,5,3,1, width = '100%')
+          } 
         }),
         # we don't want to see this element but it is needed to form data structure
         htmltools::tags$script("document.getElementById('leaf_id-label').hidden
 = true; document.getElementById('leaf_id').style.visibility = 'hidden';")
       )
-
+      
     })
   })
-  
   
   output$tbl <- DT::renderDataTable({
     
@@ -155,7 +149,7 @@ server<-function(input, output, session) {
               new_row[names(df$types[i])] <- input[[names(df$types[i])]]
             }
             
-            new_row <- sf::st_as_sf(new_row, geometry = 
+            new_row <- sf::st_as_sf(new_row, geometry =
                                       sf::st_sfc(sf::st_point()), crs = APP_CRS)
             
             suppressWarnings({
@@ -165,13 +159,14 @@ server<-function(input, output, session) {
             })
             
             # reset input table
-          
+            
           }
         })
   }
   
   addRowOrDrawObserve(EVT_ADD_ROW, id = NA)
   addRowOrDrawObserve(EVT_DRAW, id = 'map')
+  
   addDrawObserve <- function(event) {
     shiny::observeEvent(
       input[[nsm(event)]],
@@ -214,26 +209,26 @@ server<-function(input, output, session) {
         } else {
           
           # below determines whether to use 'row_add' or 'map_draw_feature' for adding geometries
-          if(!is.null(input$tbl_rows_selected)) {
-            selected <- shiny::isolate(input$tbl_rows_selected)
-          }  else if (event == EVT_DRAW){
-            selected <- length(input$tbl_rows_all) + 1
-          }
+          # if(!is.null(input$tbl_rows_selected)) {
+          #   selected <- shiny::isolate(input$tbl_rows_selected)
+          # }  else if (event == EVT_DRAW){
+          selected <- length(input$tbl_rows_all) + 1
+          # }
           
           skip = F
           
           # ignore if selected is null
-           if(is.null(selected)) {skip = TRUE}
+          if(is.null(selected)) {skip = TRUE}
           
           # replace if draw or edit
-           if(skip==FALSE) {
-             sf::st_geometry(df$data[selected,]) <- sf::st_geometry(
-               mapedit:::st_as_sfc.geo_list(evt))
-          
-          #adding the leaf_id when we draw or row_add
-          df$data[selected, 'leaf_id'] <- 
-          as.integer(evt$properties[['_leaflet_id']])
-          
+          if(skip==FALSE) {
+            sf::st_geometry(df$data[selected,]) <- sf::st_geometry(
+              mapedit:::st_as_sfc.geo_list(evt))
+            
+            #adding the leaf_id when we draw or row_add
+            df$data[selected, 'leaf_id'] <-
+              as.integer(evt$properties[['_leaflet_id']])
+            
           }
         }
       })
@@ -369,4 +364,3 @@ server<-function(input, output, session) {
   
 } 
 shinyApp(ui, server)
- 

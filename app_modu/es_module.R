@@ -25,16 +25,18 @@ ESmoduleUI = function(id) {
 }
 
 
-ESmoduleServer = function(input, output, session, area, n_polys) {
+ESmoduleServer = function(input, output, session, area, n_polys,blog) {
   area = area
   n_polys = n_polys
+  blog = blog
   # sel_es_full = sel_es_full
   # userID = userID
   
   train_param <- reactive({
     list(
-      # userID = userID(),
+      #userID = userID,
       # es_id = sel_es_full,
+      # argue = argue(),
       access=input$access,
       nat=input$nat,
       lulc = input$lulc,
@@ -42,7 +44,8 @@ ESmoduleServer = function(input, output, session, area, n_polys) {
       imp_other = input$imp_other,
       es_desc = input$es_desc,
       area = area,
-      n_polys = n_polys
+      n_polys = n_polys,
+      blog = blog
     )
    
   })

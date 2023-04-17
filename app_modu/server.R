@@ -103,6 +103,8 @@ function(input, output, session) {
   
   proxy_map <- leaflet::leafletProxy('map-map', session)
   # render new row form based on the existing data structure
+  
+  
   shiny::observe({
     
     output$dyn_form <- shiny::renderUI({
@@ -113,15 +115,8 @@ function(input, output, session) {
           label <- paste0(names(df$types[n]), ' (', df$types[n], ')')
           if (df$types[n] == 'character') {
             shiny::textInput(name, label, width = '100%')
-          } else if (df$types[n] == 'factor') {
-            shiny::selectInput(name, label, width = '100%',
-                               choices = levels(dat[[names(df$types[n])]]),
-                               selected = NULL,
-                               selectize = TRUE)
-          } else if (df$types[n] %in% c('numeric','integer')) {
-            shiny::numericInput(name, label, width = '100%', value = NA)
-          } else if (df$types[n] == 'Date') {
-            shiny::dateInput(name, label, width = '100%', value = NA)
+          }  else if (df$types[n] %in% c('numeric','integer')) {
+            shiny::sliderInput(name, label,1,5,3,1, width = '100%')
           }
         }),
         # we don't want to see this element but it is needed to form data structure
@@ -131,6 +126,10 @@ function(input, output, session) {
       
     })
   })
+  
+  
+  
+  
   
   
   output$tbl <- DT::renderDataTable({
@@ -189,7 +188,7 @@ function(input, output, session) {
               new_row[names(df$types[i])] <- input[[names(df$types[i])]]
             }
             
-            new_row <- sf::st_as_sf(new_row, geometry = 
+            new_row <- sf::st_as_sf(new_row, geometry =
                                       sf::st_sfc(sf::st_point()), crs = APP_CRS)
             
             suppressWarnings({
@@ -206,10 +205,12 @@ function(input, output, session) {
   
   addRowOrDrawObserve(EVT_ADD_ROW, id = NA)
   addRowOrDrawObserve(EVT_DRAW, id = 'map')
+  
   addDrawObserve <- function(event) {
     shiny::observeEvent(
       input[[nsm(event)]],
       {
+        
         evt <- input[[nsm(event)]]
         
         # this allows the user to edit geometries or delete and then save without selecting row.
@@ -248,11 +249,11 @@ function(input, output, session) {
         } else {
           
           # below determines whether to use 'row_add' or 'map_draw_feature' for adding geometries
-          if(!is.null(input$tbl_rows_selected)) {
-            selected <- shiny::isolate(input$tbl_rows_selected)
-          }  else if (event == EVT_DRAW){
-            selected <- length(input$tbl_rows_all) + 1
-          }
+          # if(!is.null(input$tbl_rows_selected)) {
+          #   selected <- shiny::isolate(input$tbl_rows_selected)
+          # }  else if (event == EVT_DRAW){
+          selected <- length(input$tbl_rows_all) + 1
+          # }
           
           skip = F
           
@@ -265,18 +266,22 @@ function(input, output, session) {
               mapedit:::st_as_sfc.geo_list(evt))
             
             #adding the leaf_id when we draw or row_add
-            df$data[selected, 'leaf_id'] <- 
+            df$data[selected, 'leaf_id'] <-
               as.integer(evt$properties[['_leaflet_id']])
             
           }
         }
       })
+    
   }
   
   addDrawObserve(EVT_DRAW)
   addDrawObserve(EVT_EDIT)
   addDrawObserve(EVT_DELETE)
-
+  
+  
+  
+  
   # update table cells with double click on cell
   shiny::observeEvent(input$tbl_cell_edit, {
     
@@ -295,8 +300,9 @@ function(input, output, session) {
      
      ### area and amount of polys
      area <-sum(st_area(out))
+     blog <-input$argue
      ###
-     callModule(ESmoduleServer, "es_quest",area,nrow(out))
+     callModule(ESmoduleServer, "es_quest",area,nrow(out),blog)
      # dat_quest<-as.data.frame(({ quest() }))     
 
      geom<-as.data.frame(out)
