@@ -44,9 +44,8 @@ return_quest_UI = function(id) {
 }
 
 
-return_quest_Server = function(input, output, session, user_lat, user_lng) {
-  user_lng = user_lng
-  user_lat = user_lat
+return_quest_Server = function(input, output, session) {
+
   
   quest <- reactive({
     list(
@@ -59,9 +58,7 @@ return_quest_Server = function(input, output, session, user_lat, user_lng) {
       es3 = input$matInput$ES3[1],
       nep1 = input$matInput2$NEP1[1],
       nep2 = input$matInput2$NEP2[1],
-      nep3 = input$matInput2$NEP3[1],
-      user_lng = user_lng,
-      user_lat = user_lat
+      nep3 = input$matInput2$NEP3[1]
       
     )
 
