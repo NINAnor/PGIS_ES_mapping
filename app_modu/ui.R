@@ -26,9 +26,9 @@ navbarPage('POC PGIS ES
            #          actionButton('sub3', 'calculate extrapolation'),),
            # 
            tabPanel(title = paste0("your extrapolated map of ",sel_es_full), value = "p3",
-                    mainPanel(
+                      # geeUI("map_extra")
                       leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1")
-                    ))
+                    )
 )
            
 

@@ -13,10 +13,11 @@ library(mapview)
 library(shinyRadioMatrix)
 library(shinylogs)
 library(leaflet.extras)
+library(leaflet.extras2)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")
-# source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/selection_module.R")
+# source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/gee_module.R")
 # 
 # 
 # render_dt = function(data, editable = 'cell', server = TRUE, ...) {
