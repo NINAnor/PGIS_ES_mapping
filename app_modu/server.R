@@ -3,10 +3,44 @@ function(input, output, session) {
   #track_usage(storage_mode = store_rds(path = "logs/"))
   
   ## hiding all tabs but not start
+  hideTab(inputId = "inTabset", target = "p1")
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
-  hideTab(inputId = "inTabset", target = "p4")
+  # hideTab(inputId = "inTabset", target = "p4")
   ## submit, switch and remove tab one
+  observeEvent(input$sub0, {
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p1")
+  })
+  observeEvent(input$sub0, {
+    hideTab(inputId = "inTabset", target = "p0")
+  })
+  observeEvent(input$sub0, {
+    showTab(inputId = "inTabset", target = "p1")
+  })
+  userID<-eventReactive(input$sub0, {
+    UID_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/UID.rds")
+    #select first
+    UID_part<-UID_all%>%filter(row_number()==1)
+    #remove from list
+    UID_all<-UID_all%>%anti_join(UID_part, by="UID")
+    ## save new RDS
+    saveRDS(UID_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/UID.rds")
+    if(is.null(input$email)){
+      email<-"not_provided"
+    } else {
+      email = input$email}
+    
+    user_conf<-data.frame(email = email,UID = UID_part)
+    ### save user conf
+    user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
+    user_all<-rbind(user_all,user_conf)
+    saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
+    rm(user_conf,user_all,UID_all)
+    userID<-as.character(UID_part)
+    return(userID)
+  })
+
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
@@ -16,9 +50,10 @@ function(input, output, session) {
   })
   observeEvent(input$sub1, {
     showTab(inputId = "inTabset", target = "p2")
-
-
+    
+    
   })
+  
 
   ## submit switch to tab 3 and remove others
   observeEvent(input$sub2, {
@@ -60,23 +95,33 @@ function(input, output, session) {
 
   )
   # 
-  dat_quest<-eventReactive(input$sub1, { 
+ observeEvent(input$sub1, { 
     ## extract centroid
+    userID<-userID()
     gs<-liv_pol()
     gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
     cent<-st_centroid(gs)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]
 
-    quest<-callModule(ESmoduleServer, "return_quest")
-    dat_quest<-as.data.frame(({ quest() }))
-    dat_quest<-cbind(dat_quest,user_lat,user_lng)
-    write.csv(dat_quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/user_dat.csv",
-              row.names = T)
+    callModule(return_quest_Server, "return_quest", userID, user_lat, user_lng)
+    # dat_quest<-as.data.frame(({ quest() }))
+    #quest<-rbind(quest,dat_quest)
+
+    
+    # write.csv(dat_quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/user_data/user_dat.csv",
+    #           row.names = T)
     })
   
-  ########## 2. first ES selection
+  
+  ### random sel es of all es
+  rand_es_sel<-eventReactive(input$sub1,{
+    rand_ind<-sample(es_descr$es_ind,1)
+    rand_es_sel<-es_descr%>%filter(es_ind %in% rand_ind)
+    return(rand_es_sel)
+  })
 
+  ########## 2. first ES selection
   df <- shiny::reactiveValues(types = sapply(dat, class),
                               data = data_copy,
                               zoom_to = zoomto,
@@ -291,38 +336,29 @@ function(input, output, session) {
 
   # provide mechanism to return after all done
   gee_poly<-shiny::eventReactive(input$sub2, {
-
+     user_es <- rand_es_sel()
+     userID <- userID()
      out <- sf::st_sf(df$data,crs=user_crs)
      
      ### area and amount of polys
      area <-sum(st_area(out))
      blog <-input$argue
      ###
-     callModule(ESmoduleServer, "es_quest",area,nrow(out),blog)
+     callModule(ESmoduleServer, "es_quest",area,nrow(out),blog, userID, user_es$es_id)
      # dat_quest<-as.data.frame(({ quest() }))     
 
      ##remove first col since this is the training dat
      geom<-as.data.frame(out)[-1,]
+     geom$userID<-rep(input$userID,nrow(geom))
      # out$user_ID<-rep(dat_quest$userID,nrow(out))
      # out$ES<-rep(sel_es_ab,nrow(out))
      geom<-st_as_sf(geom)    
+     pol_path <- "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_polys_R1"
+     st_write(geom, paste0(pol_path, "/",userID,"_",user_es$es_id, ".shp"), delete_layer = TRUE)
      gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
      # callModule(gee_Server,"map_extra",gee_poly,"recr")
     
   })
-  
-
-#   ## create gee polygon as soon as submit button 3 is pressed
-# gee_poly<-eventReactive(input$sub2, {
-# geom <- out
-# geom<-as.data.frame(geom)
-# geom<-st_as_sf(geom)
-#   # geom$rec_val<-c(1,2,3)
-#   gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
-# 
-# 
-# })
-
   
 
   prediction <- eventReactive(input$sub2, {
@@ -345,58 +381,70 @@ function(input, output, session) {
 
 
   })
-  # 
-  # # 
+
   # ##saving
   observeEvent(input$sub2, {
-
+  
+    rand_es_sel <- rand_es_sel()
+    es_ak<-rand_es_sel$es_id
+    userID <- userID()
     prediction<-prediction()
-    # userid <- input$userID
-    assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',sel_es_ab,"/","abc1")
+    assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',es_ak,"/", userID)
     task_img <- ee_image_to_asset(
       image = prediction,
       assetId = assetid,
-      overwrite = T,
+      overwrite = F,
       region = geometry
     )
 
     task_img$start()
-    
-    # 
-    
-
-    # mean_food<- mean_food_prov$mean()
-    # mean_recr<-  individual_R1_recr$mean()
-    # mean_recr<- individual_R1_water_stor$mean()
-
 
   })
   # # 
   map_ind <- eventReactive(input$sub2,{
     prediction<-prediction()
+    prediction<-ee$Image(prediction)
     gee_poly <- gee_poly()
-    col = ee$ImageCollection('users/SPRETO/rgee/individual_R1_recr')
-    stats = col$reduce(ee$Reducer$mean())
+    user_es <- rand_es_sel()
+    col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
+    # col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_water_stor'))
+    # 
+    # a<-ee$Image("users/SPRETO/rgee/individual_R1_water_stor/Jyz5pk2E")
+    stats <- col$reduce(ee$Reducer$mean())
+    diff <- prediction$subtract(stats)
+
     
     Map$setCenter(10.38649, 63.40271,10)
     m1<-Map$addLayer(
       eeObject = prediction,
-      list(min = 1, max=3),
-      name = "prediction ee"
+      list(min = 1, max=5),
+      name = "your prediction"
     ) +Map$addLayer(gee_poly, list(color = "red"), "colored")
     m2<-Map$addLayer(
+      eeObject = diff,
+      list(min = 0, max=-5),
+      name = "diff"
+    )+Map$addLayer(
       eeObject = stats,
-      list(min = 1, max=3),
-      name = "testn ee"
-    )+Map$addLayer(gee_poly, list(color = "red"), "colored")
-    m2  | m1
+      list(min = 1, max=5),
+      name = "mean"
+    )
+      
+      Map$addLayer(gee_poly, list(color = "red"), "colored")
+    m1  | m2
   },
   ignoreNULL = FALSE
   )
 
-
-
   output$gee_map <- renderLeaflet({
     map_ind()
+  })
+  
+  output$n_img <-renderText({
+    user_es <- rand_es_sel()
+    col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
+    n_img<-length(col$getInfo()$features)
+    paste0("The crowd map is absed on ", n_img," other participants")
+    
   })
 }
