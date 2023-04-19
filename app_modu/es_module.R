@@ -12,31 +12,31 @@ ESmoduleUI = function(id) {
                 sliderInput(ns("lulc"), "Landcover",
                             min = 0, max = 5, value = 3
                 ),
-                sliderInput(ns("imp_own"), paste0("How important is ",sel_es_full,  " for you personally in this area?"),
+                sliderInput(ns("imp_own"), paste0("How important is for you personally in this area?"),
                             min = 0, max = 5, value = 3
                 ),
-                sliderInput(ns("imp_other"), paste0("How important is ",sel_es_full,  " for others and the society in this area?"),
+                sliderInput(ns("imp_other"), paste0("How important is for others and the society in this area?"),
                             min = 0, max = 5, value = 3
                 ),
-                textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by ",sel_es_full, " as an ES?"))
+                textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by as an ES?"))
     )
       
   
 }
 
 
-ESmoduleServer = function(input, output, session, area, n_polys,blog) {
+ESmoduleServer = function(input, output, session, area, n_polys,blog,userID, es_id) {
+  userID = userID
   area = area
   n_polys = n_polys
   blog = blog
-  # sel_es_full = sel_es_full
-  # userID = userID
+  es_id = es_id
+
   
   train_param <- reactive({
     list(
-      #userID = userID,
-      # es_id = sel_es_full,
-      # argue = argue(),
+      userID = userID,
+      es_id = es_id,
       access=input$access,
       nat=input$nat,
       lulc = input$lulc,
@@ -51,6 +51,10 @@ ESmoduleServer = function(input, output, session, area, n_polys,blog) {
   })
    # return(train_param)
   train_param<-as.data.frame(({ train_param() }))
-  write.csv(train_param,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/Questionnaire/shiny_output/train_param_dat.csv",
-  row.names = T)
+  ## load es_user data
+  es_user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
+  es_user<-rbind(es_user,train_param)
+  # write.csv(train_param,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_para_R1/train_param_dat.csv",
+  # row.names = T)
+  saveRDS(es_user,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
 }
