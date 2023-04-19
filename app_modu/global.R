@@ -19,29 +19,11 @@ source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_modu
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")
 # source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/gee_module.R")
 # 
-# 
-# render_dt = function(data, editable = 'cell', server = TRUE, ...) {
-#   renderDT(data, selection = 'none', server = server, editable = editable, ...)
-# }
-# 
-# dat = data.frame(value = 'CHANGE ME', comments = 'ADD COMMENTS...') %>% mutate(leaf_id = 1)
-# APP_CRS <- 4326
-# 
-# # accept list of sf data.frames with multiple geom types
-# original_sf <- NULL
-# 
-# dat <- dat %>% mutate(leaf_id = 1:nrow(dat))
-# data_copy <- sf::st_as_sf(
-#   dat,
-#   geometry = sf::st_sfc(lapply(seq_len(nrow(dat)),function(i){sf::st_point()}))) %>% sf::st_set_crs(APP_CRS)
-# 
-# map <- leaflet() %>% 
-#   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)
-# 
+
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
 # 
 geometry <- ee$Geometry$Rectangle(
-  coords = c(10.32, 63.40, 10.46, 63.45),
+  coords = c(10.30, 63.35, 10.50, 63.5),
   proj = "EPSG:4326",
   geodesic = FALSE
 )
@@ -66,7 +48,7 @@ lulc<-lulc$clip(bound_reg)
 
 dem <- ee$Image('USGS/GMTED2010')$select("be75")
 dem<-dem$clip(bound_reg)
-Map$addLayer(dem)
+
 
 
 ## besides single value at point loc from 3 raster, calc zonal stats with moving window for each pts test:
@@ -97,14 +79,14 @@ asp<-ee$Terrain$aspect(dem)
 comb<-ee$Image$cat(lulc,dem,count_lc,slope,mean_slope,elev_mean,asp)
 # 
 # ### es samples
-es<-c("recreation in nature","provision of food (plants)","water resources")
-es_ab<-c("recr","food_prov","water_stor")
-es_ind<-c(1,2,3)
-sel_es<-sample(es_ind,1)
-sel_es_full<-es[sel_es]
-sel_es_ab<-es_ab[sel_es]
-# 
-# 
+
+
+### load es descr
+es_descr<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
+
+
+## load user data
+user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user.rds")
 
 APP_CRS <- 4326
 # Need to parse out spatial objects if input data is spatial type <- c('sf', 'SpatVector') 
