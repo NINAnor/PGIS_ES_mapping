@@ -3,7 +3,7 @@ return_quest_UI = function(id) {
   ns <- NS(id)
   
   tagList(
-    mainPanel(textInput(ns("userID"),"enter user id"),
+    mainPanel(
               numericInput(ns("age"),"What's your age?",NULL,min=12,max=110,step=1),
               selectInput(ns("gender"),"Which best describes your gender?",c("Female" ="f",
                                                                          "Male" = "m",
@@ -44,27 +44,38 @@ return_quest_UI = function(id) {
 }
 
 
-return_quest_Server = function(input, output, session) {
-
+return_quest_Server = function(input, output, session, userID, user_lat, user_lng) {
+  ## load questionnaire
+  quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
+  
+  userID = userID
+  user_lat = user_lat
+  user_lng = user_lng
   
   quest <- reactive({
+
+
     list(
-      userID=input$userID,
+
+      userID=userID,
       age=input$age,
       gender = input$gender,
       education = input$edu,
+      familiarity = input$fam,
       es1 = input$matInput$ES1[1],
       es2 = input$matInput$ES2[1],
       es3 = input$matInput$ES3[1],
       nep1 = input$matInput2$NEP1[1],
       nep2 = input$matInput2$NEP2[1],
-      nep3 = input$matInput2$NEP3[1]
+      nep3 = input$matInput2$NEP3[1],
+      user_lat = user_lat,
+      user_lng = user_lng
       
     )
 
   })
-
-  return(quest)
-
+  quest<-as.data.frame(({ quest() }))
+  quest_all<-rbind(quest_all,quest)
+  saveRDS(quest_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
   
 }
