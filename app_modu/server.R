@@ -20,13 +20,8 @@ function(input, output, session) {
     showTab(inputId = "inTabset", target = "p1")
   })
   userID<-eventReactive(input$sub0, {
-    UID_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/UID.rds")
-    #select first
-    UID_part<-UID_all%>%filter(row_number()==1)
-    #remove from list
-    UID_all<-UID_all%>%anti_join(UID_part, by="UID")
-    ## save new RDS
-    saveRDS(UID_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/UID.rds")
+    # create random large string
+    UID_part<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
     if(is.null(input$email)){
       email<-"not_provided"
     } else {
@@ -35,6 +30,9 @@ function(input, output, session) {
     user_conf<-data.frame(email = email,UID = UID_part)
     ### save user conf
     user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
+    ###here it might be wise to double check if the UID is unique
+    ####
+    
     user_all<-rbind(user_all,user_conf)
     saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
     rm(user_conf,user_all,UID_all)
