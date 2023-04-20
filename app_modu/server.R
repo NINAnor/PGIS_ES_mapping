@@ -6,8 +6,9 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p1")
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
-  # hideTab(inputId = "inTabset", target = "p4")
-  ## submit, switch and remove tab one
+  hideTab(inputId = "inTabset", target = "p4")
+  
+  ## submit mail, switch and remove tab one
   observeEvent(input$sub0, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p1")
@@ -41,6 +42,7 @@ function(input, output, session) {
     return(userID)
   })
 
+  ## submit questionnaire and switch to expl
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
@@ -55,34 +57,34 @@ function(input, output, session) {
   })
   
 
-  ## submit switch to tab 3 and remove others
-  observeEvent(input$sub2, {
+  ## confirm expl switch to tab mapping
+  observeEvent(input$sub3, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p3")
   })
-  observeEvent(input$sub2, {
+  observeEvent(input$sub3, {
     hideTab(inputId = "inTabset",
             target = "p2")
   })
-  observeEvent(input$sub2, {
+  observeEvent(input$sub3, {
     showTab(inputId= "inTabset",
             target = "p3")
     # quest_data$t2<-Sys.time()
   })
 
-  ## submit switch to tab 4 and remove others
-  # observeEvent(input$sub3, {
-  #   updateTabsetPanel(session, "inTabset",
-  #                     selected = "p4")
-  # })
-  # observeEvent(input$sub3, {
-  #   hideTab(inputId = "inTabset",
-  #           target = "p3")
-  # })
-  # observeEvent(input$sub3, {
-  #   showTab(inputId= "inTabset",
-  #           target = "p4")
-  # })
+  ## confirm mapping switch to view map
+  observeEvent(input$sub2, {
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p4")
+  })
+  observeEvent(input$sub2, {
+    hideTab(inputId = "inTabset",
+            target = "p3")
+  })
+  observeEvent(input$sub2, {
+    showTab(inputId= "inTabset",
+            target = "p4")
+  })
 
   
   ########## 1. Questionnaire and living map
