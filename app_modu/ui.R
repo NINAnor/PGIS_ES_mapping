@@ -18,12 +18,15 @@ navbarPage('POC PGIS ES
                           actionButton('sub1', 'submit answers')
                           ),
           tabPanel(title = "Your Task", value = "p2",
-                   h4("This explains what you are are asked to to in the following task"),
+                   h5("This explains what you are are asked to to in the following task"),
                    actionButton('sub3', 'go to task')
           ),
            
           tabPanel(title = "Mapping of ecosystem services", value = "p3", 
                     mainPanel(
+                      h3(textOutput("es_title")),
+                      textOutput("es_descr"),
+                      br(),
                       ESmoduleUI("es_quest"),
                       editModUI("map"),
                       DTOutput("tbl"),

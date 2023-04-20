@@ -97,7 +97,7 @@ function(input, output, session) {
 
   )
   # 
- observeEvent(input$sub1, { 
+  observeEvent(input$sub1, { 
     ## extract centroid
     userID<-userID()
     gs<-liv_pol()
@@ -116,14 +116,24 @@ function(input, output, session) {
     })
   
   
-  ### random sel es of all es
+  ####### 2. select a random ES as soon as we press sub1 button on second page
   rand_es_sel<-eventReactive(input$sub1,{
     rand_ind<-sample(es_descr$es_ind,1)
     rand_es_sel<-es_descr%>%filter(es_ind %in% rand_ind)
+
     return(rand_es_sel)
   })
+  
+  observeEvent(input$sub3, {
+    rand_es_sel<-rand_es_sel()
+    output$es_title<-renderText(rand_es_sel$es_name_long)
+    output$es_descr<-renderText(rand_es_sel$description)
+  })
+  
+ 
+  
 
-  ########## 2. first ES selection
+  ########## 3. first ES selection
   df <- shiny::reactiveValues(types = sapply(dat, class),
                               data = data_copy,
                               zoom_to = zoomto,
