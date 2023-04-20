@@ -14,6 +14,7 @@ library(shinyRadioMatrix)
 library(shinylogs)
 library(leaflet.extras)
 library(leaflet.extras2)
+library(stringi)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")

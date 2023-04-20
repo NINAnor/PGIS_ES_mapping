@@ -35,7 +35,7 @@ function(input, output, session) {
     
     user_all<-rbind(user_all,user_conf)
     saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
-    rm(user_conf,user_all,UID_all)
+    rm(user_conf,user_all)
     userID<-as.character(UID_part)
     return(userID)
   })
