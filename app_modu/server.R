@@ -116,7 +116,7 @@ function(input, output, session) {
     })
   
   
-  ####### 2. select a random ES as soon as we press sub1 button on second page
+  ####### 2. select a random ES as soon as we press sub1 button on second page show it on page 4 as plain text
   rand_es_sel<-eventReactive(input$sub1,{
     rand_ind<-sample(es_descr$es_ind,1)
     rand_es_sel<-es_descr%>%filter(es_ind %in% rand_ind)
@@ -365,8 +365,8 @@ function(input, output, session) {
      # out$user_ID<-rep(dat_quest$userID,nrow(out))
      # out$ES<-rep(sel_es_ab,nrow(out))
      geom<-st_as_sf(geom)    
-     pol_path <- "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_polys_R1"
-     st_write(geom, paste0(pol_path, "/",userID,"_",user_es$es_id, ".shp"), delete_layer = TRUE)
+     # pol_path <- "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_polys_R1"
+     # st_write(geom, paste0(pol_path, "/",userID,"_",user_es$es_id, ".shp"), delete_layer = TRUE)
      gee_poly<-rgee::sf_as_ee(geom, via = "getInfo")
      # callModule(gee_Server,"map_extra",gee_poly,"recr")
     
@@ -412,37 +412,39 @@ function(input, output, session) {
     task_img$start()
 
   })
-  # # 
+  ####### 4. show map with own prediction, mean and diff map
   map_ind <- eventReactive(input$sub2,{
     prediction<-prediction()
     prediction<-ee$Image(prediction)
     gee_poly <- gee_poly()
     user_es <- rand_es_sel()
-    col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
+    collection <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
     # col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_water_stor'))
     # 
     # a<-ee$Image("users/SPRETO/rgee/individual_R1_water_stor/Jyz5pk2E")
-    stats <- col$reduce(ee$Reducer$mean())
-    diff <- prediction$subtract(stats)
+    mean <- collection$reduce(ee$Reducer$mean())
+    diff <- prediction$subtract(mean)
 
+    
+    ## vis params in global
     
     Map$setCenter(10.38649, 63.40271,10)
     m1<-Map$addLayer(
       eeObject = prediction,
-      list(min = 1, max=5),
-      name = "your prediction"
-    ) +Map$addLayer(gee_poly, list(color = "red"), "colored")
+      vis_qc,
+      opacity = 0.4
+    ) +Map$addLegend(vis_qc,name = "prediction", color_mapping = "character") +
+      Map$addLayer(gee_poly, list(color = "blue"), "colored")
     m2<-Map$addLayer(
-      eeObject = diff,
-      list(min = 0, max=-5),
-      name = "diff"
-    )+Map$addLayer(
-      eeObject = stats,
-      list(min = 1, max=5),
-      name = "mean"
-    )
-      
-      Map$addLayer(gee_poly, list(color = "red"), "colored")
+      eeObject = mean,
+      vis_qc,
+      opacity = 0.4
+    ) +Map$addLayer(
+        eeObject = diff,
+        vis_diff,
+        opacity = 0.4
+      ) +Map$addLegend(vis_diff,name = "difference", color_mapping = "character")+
+        Map$addLayer(gee_poly, list(color = "blue"), "colored")
     m1  | m2
   },
   ignoreNULL = FALSE
@@ -460,3 +462,45 @@ function(input, output, session) {
     
   })
 }
+
+
+#### play
+# 
+# a<-ee$Image("users/SPRETO/rgee/individual_R1_water_stor/Jyz5pk2E")
+# ## masking 1 values
+# # a = a$updateMask(a$neq(1))
+# # pal <- list(min = 1, max = 5, palette = c("#e80909", "#25a827"))
+# 
+# 
+# labels <- c("low", "moderate", "intermediate", "high","very high")
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# vis_qc <- list(min = 1, max = 5, palette = cols, values = labels)
+# # 
+# # stats <- col$reduce(ee$Reducer$mean())
+# # diff <- prediction$subtract(stats)
+# 
+# 
+# Map$setCenter(10.38649, 63.40271,10)
+# Map$addLayer(
+#   eeObject = a,
+#   vis_qc,
+#   opacity = 0.4
+# ) +Map$addLegend(vis_qc,name = "your prediction", color_mapping = "character")
+# 
+# 
+# col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_water_stor'))
+# stats <- col$reduce(ee$Reducer$mean())
+# 
+# 
+# diff <- a$subtract(stats)
+# 
+# labels_diff <- c("low", "moderate", "intermediate", "high","very high")
+# cols_diff<-c("#81ab1f","#c4f25a", "#d8e03f", "#fc8803","#e80909")
+# vis_diff <- list(min = 0, max = -4, palette = cols_diff,  values = labels_diff)
+# 
+# Map$setCenter(10.38649, 63.40271,10)
+# Map$addLayer(
+#   eeObject = diff,
+#   vis_diff,
+#   opacity = 0.4
+# ) +Map$addLegend(vis_diff,name = "difference", color_mapping = "character")
