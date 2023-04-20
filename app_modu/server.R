@@ -90,7 +90,7 @@ function(input, output, session) {
   liv_pol <- callModule(selectMod, "map_living",
                         leaflet() %>%
                           addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
-                          addFeatures(st_sf(grd), layerId = ~seq_len(length(grd)))
+                          addFeatures(st_sf(plz), layerId = ~seq_len(length(plz)))
 
 
   )
@@ -99,7 +99,7 @@ function(input, output, session) {
     ## extract centroid
     userID<-userID()
     gs<-liv_pol()
-    gs<-st_sf(grd[as.numeric(gs[which(gs$selected==TRUE),"id"])])
+    gs<-st_sf(plz[as.numeric(gs[which(gs$selected==TRUE),"id"])])
     cent<-st_centroid(gs)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]

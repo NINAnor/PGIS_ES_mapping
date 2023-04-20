@@ -38,10 +38,12 @@ sf_bound <- ee_as_sf(x = bound_reg)
 
 
 ## make a grid over region
-grd<-st_make_grid(sf_bound, cellsize = c(diff(st_bbox(sf_bound)[c(1, 3)]), diff(st_bbox(sf_bound)[c(2,
-                                                                                                    4)]))/60, offset = st_bbox(sf_bound)[1:2],  what = "polygons")
-# 
-# 
+# grd<-st_make_grid(sf_bound, cellsize = c(diff(st_bbox(sf_bound)[c(1, 3)]), diff(st_bbox(sf_bound)[c(2,
+#                                                                                                     4)]))/60, offset = st_bbox(sf_bound)[1:2],  what = "polygons")
+
+
+plz<-sf::st_read("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/postnummeromrade_wgs.shp")
+plz<-st_as_sfc(plz)
 
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
 lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)
