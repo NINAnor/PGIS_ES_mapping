@@ -1,5 +1,5 @@
 dashboardPage(
-  dashboardHeader(title = "APP", titleWidth = 330),
+  dashboardHeader(title = "Spatial Delphi II", titleWidth = 330),
   dashboardSidebar(
     sidebarMenu(id="tabs",
                 menuItem("login",tabName="login"),
@@ -29,17 +29,36 @@ dashboardPage(
       ),
       tabItem("es",
               selectInput("es_individual","recr","recr"),
-              actionButton("sub1","see map"),
+              #actionButton("sub1","see results"),
               fluidRow(
                 box(h3("here is the ES description"))
               ),
-              #imp stats
-             box(plotlyOutput("importance")),
-              #blog
-             box(DTOutput("blog")),
-              # map
-             box(leafletOutput("es_maps"))
-   
+              br(),
+              fluidRow(
+                box(
+                  title = "ES map", width = 8, status = "primary",
+                  leafletOutput("es_maps")%>% withSpinner(color="#0dc5c1")
+                ),
+                box(
+                  title = span( icon("twitter"), "Reasoning Blog"), status = "warning", width = 4,
+                  DTOutput("blog")
+                )
+              ),
+              fluidRow(
+                box(
+                  title = "General importance of ES",
+                  width = 4,
+                  plotlyOutput("importance")
+                ),
+                box(
+                  title = "determination parameters",
+                  width = 4
+                ),
+                box(title = "ES comparing to wind energy production",
+                    width = 4)
+              )
+
+
       )
       
     )

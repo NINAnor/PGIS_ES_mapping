@@ -79,19 +79,71 @@ function(input, output) {
     
   })
   
-  observeEvent(input$sub1,{
-    userID<-userID()
+#blog
+  observeEvent(input$es_individual, {
     
-    imgpath<-paste0(ee_get_assethome(), '/rgee/individual_R1_',input$es_individual,"/", userID)
-    
-  })
-  
-  blog_data<-eventReactive(input$sub1, {
-    blog_data<-es_user_data%>%filter(es_id == input$es_individual)%>%select(userID,blog)
+    blog_data<-es_user_data%>%filter(es_id == input$es_individual)%>%select(blog)
     #only keep non empty blog entries
     blog_data<-blog_data%>%filter(blog !="")
     blog_data$username<-rep("USER_",nrow(blog_data))
+    blog_data$username<-paste0(blog_data$username,as.numeric(rownames(blog_data)), ": ",blog_data$blog)
+    blog_data<-blog_data%>%select(username)
+    output$blog<-renderDT(blog_data,rownames= FALSE, colnames="Blog entries")
+
   })
+# map  
+  map<-eventReactive(input$es_individual,{
+    userID<-userID()
+    imgpath<-paste0(ee_get_assethome(), '/rgee/individual_R1_',input$es_individual,"/", userID)
+    colpath<-paste0(ee_get_assethome(), '/rgee/individual_R1_',input$es_individual)
+    img_ind<-ee$Image(imgpath)
+    
+    mean_col<-ee$ImageCollection(colpath)
+    mean_col <- mean_col$reduce(ee$Reducer$mean())
+    diff <- img_ind$subtract(mean_col)
+    #ind_poly<-sf::st_read(paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_polys_R1/",userID,"_",input$es_individual,".shp"))
+    
+    # gee_poly<-rgee::sf_as_ee(ind_poly, via = "getInfo")
+    
+    Map$setCenter(10.38649, 63.40271,10)
+    m1<-Map$addLayer(
+      eeObject = img_ind,
+      vis_qc,
+      opacity = 0.4
+    ) +Map$addLegend(vis_qc,name = "your predicted ES", color_mapping = "character")
+    m2<-Map$addLayer(
+      eeObject = mean_col,
+      vis_qc,
+      opacity = 0.4
+    ) +Map$addLayer(
+      eeObject = diff,
+      vis_diff,
+      opacity = 0.4
+    ) +Map$addLegend(vis_diff,name = "diff", color_mapping = "character")
+    m1  | m2
+  },
+  ignoreNULL = FALSE
+  )
+# render map  
+  output$es_maps <- renderLeaflet({
+    map()
+  })
+
+# importance
+  bar_plot<-eventReactive(input$es_individual,{
+    userID2 <- userID()
+    es_sel<-es_user_data%>%filter(es_id == input$es_individual)
+    ind_imp<-es_user_data%>%filter(es_id == input$es_individual & userID == userID2)%>%select(imp_own,imp_other)
+    
+    bar_plot<-plot_ly(es_sel, y =~mean(imp_own), type = "bar", name = "mean own importance for people",color = "red")%>%
+      add_bars(es_sel, y =~mean(imp_other), type = "bar", name = "mean imp society",color = "blue")%>%
+      add_segments(x = -0.5, xend = 0, y = ind_imp$imp_own, yend = ind_imp$imp_own, color="black",name = "your value") %>%
+      add_segments(x = 0, xend = 0.5, y = ind_imp$imp_other, yend = ind_imp$imp_other, color="black",name = "your value")
+
+  })
+  
+  output$importance<-renderPlotly(bar_plot())
+
   
 
   }
