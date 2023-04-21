@@ -22,20 +22,34 @@ navbarPage('POC PGIS ES
                    actionButton('sub3', 'go to task')
           ),
            
-          tabPanel(title = "Mapping of ecosystem services", value = "p3", 
+          tabPanel(title = "Mapping of ecosystem services I", value = "p3", 
                     mainPanel(
                       h3(textOutput("es_title")),
                       textOutput("es_descr"),
                       br(),
                       ESmoduleUI("es_quest"),
+                      # trainingUI("es_train"),
                       editModUI("map"),
                       DTOutput("tbl"),
                       shiny::uiOutput('dyn_form'),
                       textInput("argue","please provide us a short (100 char max), anonymous post where you explain why you choose your site."),
                       actionButton("sub2","save")
                     )),
+          tabPanel(title = "Mapping of ecosystem services II", value = "p4", 
+                   mainPanel(
+                     h3(textOutput("es_title2")),
+                     textOutput("es_descr2"),
+                     # br(),
+                     # ESmoduleUI("es_quest2"),
+                     # editModUI("map2"),
+                     # DTOutput("tbl2"),
+                     # shiny::uiOutput('dyn_form2'),
+                     textInput("argue2","please provide us a short (100 char max), anonymous post where you explain why you choose your site."),
+                     actionButton("sub4","show results")
+                   )),
+  
 
-           tabPanel(title = paste0("your extrapolated map of "), value = "p4",
+           tabPanel(title = paste0("your extrapolated map of "), value = "p5",
                       leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1"),
                       textOutput("n_img")
                     )
