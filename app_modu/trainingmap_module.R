@@ -7,21 +7,22 @@ trainingUI = function(id) {
   tagList(
     mainPanel(
       editModUI(ns("map")),
-      DTOutput(ns("tbl")),
-      shiny::uiOutput(ns('dyn_form')),
+      dataTableOutput(ns("tbl")),
+      shiny::uiOutput(ns('dyn_form'))
     )
   )
   
 }
 
 
-training_Server = function(input, output, session, data_copy) {
-  
+training_Server = function(input, output, session, dat,data_copy) {
+  # ns <- session$ns
+
   df <- shiny::reactiveValues(types = sapply(dat, class),
                               data = data_copy,
                               zoom_to = zoomto,
                               edit_logic = le)
-
+  
   shiny::observe({
     edits  <- callModule(
       module = editMod,
@@ -37,7 +38,7 @@ training_Server = function(input, output, session, data_copy) {
       id = "map",
       targetLayerId = 'editLayer',
       sf = TRUE,
-
+      
     )
   })
   
@@ -220,12 +221,11 @@ training_Server = function(input, output, session, data_copy) {
   # update table cells with double click on cell
   shiny::observeEvent(input$tbl_cell_edit, {
     
-    df$data <- DT::editData(df$data, input$tbl_cell_edit, 'tbl', 
+    df$data <- DT::editData(df$data, input$tbl_cell_edit, 'tbl',
                             resetPaging = F)
     DT::replaceData(proxy, df$data, rownames = FALSE, resetPaging = FALSE)
     
-  })
-  
+  }) 
   
 }
 
