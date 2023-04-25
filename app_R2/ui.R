@@ -1,5 +1,5 @@
 dashboardPage(
-  dashboardHeader(title = "Spatial Delphi II", titleWidth = 330),
+  dashboardHeader(title = "POC Spatial Delphi II", titleWidth = 330),
   dashboardSidebar(
     sidebarMenu(id="tabs",
                 menuItem("login",tabName="login"),
