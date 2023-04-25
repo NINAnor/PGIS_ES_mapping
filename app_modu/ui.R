@@ -24,23 +24,21 @@ navbarPage('POC PGIS ES
            
           tabPanel(title = "Mapping of ecosystem services I", value = "p3", 
                     mainPanel(
-                      mappingUI("es_train1")
-                      
+                      mappingUI("es_train1"),
+                      actionButton("sub2","proceed")
                     )),
           tabPanel(title = "Mapping of ecosystem services II", value = "p4", 
                    mainPanel(
-                     h3(textOutput("es_title2")),
-                     textOutput("es_descr2"),
-                     br(),
-                     textInput("argue2","please provide us a short (100 char max), anonymous post where you explain why you choose your site."),
-                     actionButton("sub4","show results")
-                   )),
+                     mappingUI("es_train2"),
+                     actionButton("sub4","finish")
+                   ))
   
 
-           tabPanel(title = paste0("your extrapolated map of "), value = "p5",
-                      leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1"),
-                      textOutput("n_img")
-                    )
+           # tabPanel(title = paste0("your extrapolated maps "), value = "p5",
+           #            # selectInput("map_choice","choose your ES",choices = c("recr","water_stor")),
+           #            leafletOutput(outputId = "gee_map")%>% withSpinner(color="#0dc5c1"),
+           #            textOutput("n_img")
+           #          )
 )
            
 

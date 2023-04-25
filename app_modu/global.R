@@ -119,16 +119,6 @@ data_copy <- sf::st_as_sf(
 ) %>% sf::st_set_crs(APP_CRS)
 
 
-### vis parameter for img, mean
-labels <- c("low", "moderate", "intermediate", "high","very high")
-cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-vis_qc <- list(min = 1, max = 5, palette = cols, values = labels)
-
-### vis param for diff map
-labels_diff <- c("low", "moderate", "intermediate", "high","very high")
-cols_diff<-c("#81ab1f","#c4f25a", "#d8e03f", "#fc8803","#e80909")
-vis_diff <- list(min = 0, max = -4, palette = cols_diff,  values = labels_diff)
-
 
 
 

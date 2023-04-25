@@ -110,7 +110,7 @@ function(input, output, session) {
 
 
   )
-  # 
+  #1. call questionnaire module
   observeEvent(input$sub1, { 
     ## extract centroid
     userID<-userID()
@@ -124,7 +124,7 @@ function(input, output, session) {
     })
   
   
-  ####### 2. select a random ES as soon as we press sub1 button on second page show it on page 4 as plain text
+  ####### 2. select a first random ES based on the global es list
   rand_es_sel<-eventReactive(input$sub3,{
     rand_ind<-sample(es_descr$es_ind,1)
     rand_es_sel<-es_descr%>%filter(es_ind %in% rand_ind)
@@ -132,18 +132,19 @@ function(input, output, session) {
     return(rand_es_sel)
   })
   
-  observeEvent(input$sub3, {
-    userID<-userID()
+  ## 2.1 call the module to map the ES (needs user ID and first selected ES)
+  observeEvent(input$sub3,{
     rand_es_sel<-rand_es_sel()
-    callModule(mapping_server,"es_train1", rand_es_sel, userID,sf_bound, comb,geometry)
-
+    userID<-userID()
+    callModule(mapping_server,"es_train1", rand_es_sel, userID, sf_bound, comb, geometry)
   })
+  
 
   ###########
   ##backup here
   ###########
 
-
+  ####### 3. select a second random ES based on the global es list and exclude the first one...
     rand_es_sel2<-eventReactive(input$sub2,{
       rand_es_sel <- rand_es_sel()
       rand_es_sel2<-es_descr
@@ -157,69 +158,70 @@ function(input, output, session) {
       return(rand_es_sel2)
     })
     
+  #### 3.1 the second random selected ES
     observeEvent(input$sub2, {
       rand_es_sel2<-rand_es_sel2()
-      output$es_title2<-renderText(rand_es_sel2$es_name_long)
-      output$es_descr2<-renderText(rand_es_sel2$description)
+      userID<-userID()
+      callModule(mapping_server,"es_train2", rand_es_sel2, userID, sf_bound, comb, geometry)
     })
-    
+  
+    #### can be extended but not for POC, first draw....
 
   
   
-  ########################4. 2nd ES
-  ## new es not old one
+  ####### 4. Show maps of the random selected ES
   
-
-  
-
-  
-  ####### 5. show maps with own prediction, mean and diff map
-  map_ind <- eventReactive(input$sub4,{
-    prediction<-prediction()
-    prediction<-ee$Image(prediction)
-    gee_poly <- gee_poly()
-    user_es <- rand_es_sel()
-    collection <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
-    # col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_water_stor'))
-    # 
-    # a<-ee$Image("users/SPRETO/rgee/individual_R1_water_stor/Jyz5pk2E")
-    mean <- collection$reduce(ee$Reducer$mean())
-    diff <- prediction$subtract(mean)
-    
-    
-    ## vis params in global
-    
-    Map$setCenter(10.38649, 63.40271,10)
-    m1<-Map$addLayer(
-      eeObject = prediction,
-      vis_qc,
-      opacity = 0.4
-    ) +Map$addLegend(vis_qc,name = "prediction", color_mapping = "character") +
-      Map$addLayer(gee_poly, list(color = "blue"), "colored")
-    m2<-Map$addLayer(
-      eeObject = mean,
-      vis_qc,
-      opacity = 0.4
-    ) +Map$addLayer(
-      eeObject = diff,
-      vis_diff,
-      opacity = 0.4
-    ) +Map$addLegend(vis_diff,name = "difference", color_mapping = "character")+
-      Map$addLayer(gee_poly, list(color = "blue"), "colored")
-    m1  | m2
-  },
-  ignoreNULL = FALSE
-  )
-
-  output$gee_map <- renderLeaflet({
-    map_ind()
-  })
-  
-  output$n_img <-renderText({
-    user_es <- rand_es_sel()
-    col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
-    n_img<-length(col$getInfo()$features)
-    paste0("The crowd map is absed on ", n_img," other participants")
-    
-  })
+  # map_ind <- eventReactive(input$sub4,{
+  #   rand_es_sel<-rand_es_sel()
+  #   rand_es_sel2<-rand_es_sel2()
+  #   userID<-userID()
+  #   path1<-paste0('users/SPRETO/rgee/individual_R1_',rand_es_sel$es_id)
+  #   
+  #   #prediction<-ee$Image(prediction)
+  #   # gee_poly <- gee_poly()
+  # 
+  #   col_es_1 <- ee$ImageCollection(path1)
+  #   user_img_es_1<-ee$Image(paste0(path1,"/",userID))
+  # 
+  #   mean <- col_es_1$reduce(ee$Reducer$mean())
+  #   diff <- user_img_es_1$subtract(mean)
+  #   
+  #   
+  #   ## vis params in global
+  #   
+  #   Map$setCenter(10.38649, 63.40271,10)
+  #   m1<-Map$addLayer(
+  #     eeObject = user_img_es_1,
+  #     vis_qc,
+  #     opacity = 0.4
+  #   ) +Map$addLegend(vis_qc,name = "your map", color_mapping = "character") 
+  #   # +
+  #   #   Map$addLayer(gee_poly, list(color = "blue"), "colored")
+  #   m2<-Map$addLayer(
+  #     eeObject = mean,
+  #     vis_qc,
+  #     opacity = 0.4
+  #   ) +Map$addLayer(
+  #     eeObject = diff,
+  #     vis_diff,
+  #     opacity = 0.4
+  #   ) +Map$addLegend(vis_diff,name = "difference", color_mapping = "character")
+  #   m1  | m2
+  # },
+  # ignoreNULL = FALSE
+  # )
+  # 
+  # 
+  # 
+  # output$gee_map <- renderLeaflet({
+  #   map_ind()
+  # })
+  # 
+  # output$n_img <-renderText({
+  #   user_es <- rand_es_sel()
+  #   col <- ee$ImageCollection(paste0('users/SPRETO/rgee/individual_R1_',user_es$es_id))
+  #   n_img<-length(col$getInfo()$features)
+  #   paste0("The crowd map is absed on ", n_img," other participants")
+  #   
+  # })
 }
