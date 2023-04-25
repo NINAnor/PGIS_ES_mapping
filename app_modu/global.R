@@ -35,7 +35,7 @@ bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
 
 
 sf_bound <- ee_as_sf(x = bound_reg)
-
+# sf_bound <- st_crs(4326)
 
 ## make a grid over region
 # grd<-st_make_grid(sf_bound, cellsize = c(diff(st_bbox(sf_bound)[c(1, 3)]), diff(st_bbox(sf_bound)[c(2,
@@ -50,6 +50,7 @@ lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)
 lulc<-lulc$clip(bound_reg)
 
 dem <- ee$Image('USGS/GMTED2010')$select("be75")
+dem <-dem$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)
 dem<-dem$clip(bound_reg)
 
 
