@@ -18,7 +18,7 @@ library(stringi)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/questionnaire_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/trainingmap_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/map_mod.R")
 # 
 
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
