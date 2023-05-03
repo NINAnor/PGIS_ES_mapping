@@ -16,29 +16,46 @@ mapselectUI<- function(id, label = "selector") {
     ),
     textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by as an ES?")),
     br(),
-    h5("where do you find good spots of ESx?"),
-    editModUI(ns("map_sel")),
+    selectizeInput(ns("map_poss"),label="Are you able to map this ES?",choices = c("Yes","No"),options = list(
+      placeholder = 'Please select an option below',
+      onInitialize = I('function() { this.setValue(""); }')
+    )),
     br(),
-    ###initial button save map
-    actionButton(ns("savepoly"),"save polygons"),
-    leafletOutput(ns("map_res")),
-    uiOutput(ns("slider")),
-    br(),
-    h5("How important are the following aspects for ESx benefit?"),
-    sliderInput(ns("access"), "Accessibility",
-                min = 0, max = 5, value = 3
+    conditionalPanel(
+      condition = "input.map_poss == 'Yes'", ns = ns ,
+      h5("where do you find good spots of ESx?"),
+      editModUI(ns("map_sel")),
+      br(),
+      ###initial button save map
+      actionButton(ns("savepoly"),"save polygons"),
+      leafletOutput(ns("map_res")),
+      uiOutput(ns("slider")),
+      br(),
+      h5("How important are the following aspects for ESx benefit?"),
+      sliderInput(ns("access"), "Accessibility",
+                  min = 0, max = 5, value = 3
+      ),
+      sliderInput(ns("nat"), "Naturalness",
+                  min = 0, max = 5, value = 3
+      ),
+      sliderInput(ns("lulc"), "Landcover",
+                  min = 0, max = 5, value = 3
+      ),
+      textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
+      actionButton(ns("submit"),"show results"),
+      br(),
+      h5("Your ESx map"),
+      leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1")
+      
     ),
-    sliderInput(ns("nat"), "Naturalness",
-                min = 0, max = 5, value = 3
-    ),
-    sliderInput(ns("lulc"), "Landcover",
-                min = 0, max = 5, value = 3
-    ),
-    textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-    actionButton(ns("submit"),"save values"),
-    br(),
-    h5("Your ESx map"),
-    leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1")
+    conditionalPanel(
+      condition = "input.map_poss == 'No'", ns = ns ,
+      selectizeInput(ns("expert_map"),label="Would you trust an expert map",choices = c("Yes","No"),options = list(
+        placeholder = 'Please select an option below',
+        onInitialize = I('function() { this.setValue(""); }'))),
+      actionButton(ns("submit2"),"save"),
+      )
+    
   )
   
 }
@@ -53,12 +70,13 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
   moduleServer(
     id,
     function(input, output, session){
+      ns<-session$ns
       es_ak<-rand_es_sel$es_id
       output$title_es<-renderText(rand_es_sel$es_name_long)
       output$descr_es<-renderText(rand_es_sel$description)
       
       
-      map<-leaflet(sf_bound)%>%
+     map<-leaflet(sf_bound)%>%
         addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
                     opacity = 1.0, fillOpacity = 0)%>%
         addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 15))%>%
@@ -181,12 +199,12 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
             area = area,
             n_polys = n_polys,
             blog = input$blog
+            # expert = NA
           )
           train_param<-as.data.frame(train_param)
           ## write to rds file
           es_user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
           es_user<-rbind(es_user,train_param)
-          # write.csv(train_param,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_para_R1/train_param_dat.csv",
           # row.names = T)
           saveRDS(es_user,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
         
@@ -231,7 +249,6 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
         
       })
       
-      
       map_ind<-eventReactive(input$submit,{
         prediction<-prediction()
         gee_poly <- gee_poly()
@@ -248,6 +265,46 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
       output$gee_map <- renderLeaflet({
         map_ind()
       })
+      
+      observeEvent(input$submit2,{
+        train_param <- 
+          list(
+            userID = userID,
+            es_id = es_ak,
+            access=NA,
+            nat=NA,
+            lulc = NA,
+            imp_own = input$imp_own,
+            imp_other = input$imp_other,
+            es_desc = input$es_desc,
+            area = NA,
+            n_polys = NA,
+            blog = NA
+            # expert = input$expert_map
+          )
+        train_param<-as.data.frame(train_param)
+        ## write to rds file
+        es_user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
+        es_user<-rbind(es_user,train_param)
+        # write.csv(train_param,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/output/train_para_R1/train_param_dat.csv",
+        # row.names = T)
+        saveRDS(es_user,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
+        
+      })
+      
+      ret <- reactiveVal(0)
+      observeEvent(input$submit2,{
+        ret(ret()+1)
+        return(ret)
+      })
+      
+      observeEvent(input$submit,{
+        ret(ret()+1)
+        return(ret)
+      })
+      
+      
+
       
       
     }

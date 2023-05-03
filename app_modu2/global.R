@@ -44,6 +44,9 @@ sf_bound <- ee_as_sf(x = bound_reg)
 
 plz<-sf::st_read("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/postnummeromrade_wgs.shp")
 plz<-st_as_sfc(plz)
+map_liv<- leaflet() %>%
+  addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
+  addFeatures(st_sf(plz), layerId = ~seq_len(length(plz)))
 
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
 lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)
