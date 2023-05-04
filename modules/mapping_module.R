@@ -208,7 +208,13 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
           # row.names = T)
           saveRDS(es_user,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
         
-        gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
+          
+          polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/',es_ak,"_",userID,".shp")
+          ## save poly
+          st_write(polygon,polypath)
+          
+          gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
+          
         
       })
       
