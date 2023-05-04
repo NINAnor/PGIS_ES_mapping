@@ -42,7 +42,7 @@ mapselectUI<- function(id, label = "selector") {
                   min = 0, max = 5, value = 3
       ),
       textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-      actionButton(ns("submit"),"show results"),
+      actionButton(ns("submit"),"save values"),
       br(),
       h5("Your ESx map"),
       leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1")
@@ -53,7 +53,7 @@ mapselectUI<- function(id, label = "selector") {
       selectizeInput(ns("expert_map"),label="Would you trust an expert map",choices = c("Yes","No"),options = list(
         placeholder = 'Please select an option below',
         onInitialize = I('function() { this.setValue(""); }'))),
-      actionButton(ns("submit2"),"save"),
+      actionButton(ns("submit2"),"save")
       )
     
   )
@@ -292,17 +292,17 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
         
       })
       
-      ret <- reactiveVal(0)
-      observeEvent(input$submit2,{
-        ret(ret()+1)
-        return(ret)
-      })
-      
-      observeEvent(input$submit,{
-        ret(ret()+1)
-        return(ret)
-      })
-      
+      # a <- reactive({
+      #   input$submit
+      # })
+      # 
+      # b <- reactive({
+      #   input$submit2
+      # })
+      # 
+      # return(a)
+      # return(b)
+      # 
       
 
       

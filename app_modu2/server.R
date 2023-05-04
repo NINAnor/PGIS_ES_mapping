@@ -141,11 +141,9 @@ function(input, output, session) {
     v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel, userID, geometry, vis_qc)
     
     # output$cond_b3<-renderUI({
-    #   validate(
-    #     need(v$ret, '')
-    #     
-    #   )
-    #   actionButton('sub2', 'next ES')
+    #   if(v() == 1){
+    #     actionButton('sub2', 'next ES')
+    #   }
     # })
     
   })
@@ -164,7 +162,12 @@ function(input, output, session) {
             target = "p4")
     rand_es_sel2<-rand_es_sel2()
     userID<-userID()
-    mapselectServer("mapping2", sf_bound, comb, rand_es_sel2, userID, geometry, vis_qc)
+    w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel2, userID, geometry, vis_qc)
+    # output$cond_b4<-renderUI({
+    #   if(w() == 1){
+    #     actionButton("sub4","next ES")
+    #   }
+    # })
   })
   
   ## confirm mapping switch to tab mapping III
@@ -181,7 +184,13 @@ function(input, output, session) {
             target = "p5")
     rand_es_sel3<-rand_es_sel3()
     userID<-userID()
-    mapselectServer("mapping3", sf_bound, comb, rand_es_sel3, userID, geometry, vis_qc)
+    
+    u=mapselectServer("mapping3", sf_bound, comb, rand_es_sel3, userID, geometry, vis_qc)
+    # output$cond_b5<-renderUI({
+    #   if(u() == 1){
+    #     actionButton("sub5","end")
+    #   }
+    # })
   })
   
   

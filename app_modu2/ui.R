@@ -109,17 +109,22 @@ navbarPage('POC PGIS ES
                     mainPanel(
                       #selectInput("map_poss1",label="your choice:",choices = c("B","A")),
                       mapselectUI("mapping1", "map1 #1"),
-                      uiOutput("cond_b3")
+                      actionButton('sub2', 'next ES')
+                      # uiOutput("cond_b3")
                     )),
            tabPanel(title = "Mapping of ecosystem services II", value = "p4", 
                     mainPanel(
                       mapselectUI("mapping2", "map2"),
-                      actionButton("sub4","next ES")
+                      actionButton('sub4', 'next ES')
+                      # uiOutput("cond_b4")
+                      
                     )),
            tabPanel(title = "Mapping of ecosystem services III", value = "p5", 
                     mainPanel(
                       mapselectUI("mapping3", "map3"),
-                      actionButton("sub5","end")
+                      actionButton('sub5', 'end')
+                      # uiOutput("cond_b5")
+                      
                     ))
            
            
