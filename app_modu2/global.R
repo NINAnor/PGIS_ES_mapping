@@ -16,8 +16,6 @@ library(leaflet.extras)
 library(leaflet.extras2)
 library(stringi)
 
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/questionnaire_module.R")
-#source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/app_modu/es_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
 # 
 
@@ -88,11 +86,8 @@ comb<-ee$Image$cat(lulc,dem,count_lc,slope,mean_slope,elev_mean,asp)
 
 
 ### load es descr
-es_descr<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
+es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
 
-
-## load user data
-user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user.rds")
 
 APP_CRS <- 4326
 # Need to parse out spatial objects if input data is spatial type <- c('sf', 'SpatVector') 

@@ -14,7 +14,7 @@ mapselectUI<- function(id, label = "selector") {
     sliderInput(ns("imp_other"), paste0("How important is for others and the society in this area?"),
                 min = 0, max = 5, value = 3
     ),
-    textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by as an ES?")),
+    # textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by as an ES?")),
     br(),
     selectizeInput(ns("map_poss"),label="Are you able to map this ES?",choices = c("Yes","No"),options = list(
       placeholder = 'Please select an option below',
@@ -45,8 +45,10 @@ mapselectUI<- function(id, label = "selector") {
       actionButton(ns("submit"),"save values"),
       br(),
       h5("Your ESx map"),
-      leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1")
-      
+      leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1"),
+      br(),
+      h5("if you look at the map how important would you rate this ecosystem service compared to other ecosystem services, given there is no co existance between the two?"),
+      # uiOutput(ns("es_slider"))
     ),
     conditionalPanel(
       condition = "input.map_poss == 'No'", ns = ns ,
@@ -66,7 +68,7 @@ callback <- c(
   '});'
 )
 
-mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis_qc){
+mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis_qc, all_es){
   moduleServer(
     id,
     function(input, output, session){
@@ -195,11 +197,10 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
             lulc = input$lulc,
             imp_own = input$imp_own,
             imp_other = input$imp_other,
-            es_desc = input$es_desc,
             area = area,
             n_polys = n_polys,
-            blog = input$blog
-            # expert = NA
+            blog = input$blog,
+            expert = NA
           )
           train_param<-as.data.frame(train_param)
           ## write to rds file
@@ -216,6 +217,20 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
           gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
           
         
+      })
+      
+      observeEvent(input$submit,{
+        ## load all es
+        
+        ## remove current es
+        
+        ## select random 5 others
+        
+        ## render five sliders with 
+        output$es_slider<-renderUI({
+          ns <- session$ns
+          
+        })
       })
       
       prediction<-eventReactive(input$submit,{
@@ -240,7 +255,7 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
         es_ak<-es_ak
         userID <- userID
         # prediction<-prediction()
-        assetid <- paste0(ee_get_assethome(), '/rgee/individual_R1_',es_ak,"/", userID)
+        assetid <- paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",es_ak,"_", userID)
         print(assetid)
         start_time<-Sys.time()
         task_img <- ee_image_to_asset(
@@ -282,11 +297,10 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
             lulc = NA,
             imp_own = input$imp_own,
             imp_other = input$imp_other,
-            es_desc = input$es_desc,
             area = NA,
             n_polys = NA,
-            blog = NA
-            # expert = input$expert_map
+            blog = NA,
+            expert = input$expert_map
           )
         train_param<-as.data.frame(train_param)
         ## write to rds file

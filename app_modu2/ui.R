@@ -86,14 +86,22 @@ navbarPage('POC PGIS ES
                       # new environmental paradigm (NEP)
                       
                       radioMatrixInput("matInput2",
-                                       rowIDs = c("NEP1","NEP2","NEP3"),
-                                       rowLLabels =  c("We are approaching the limit of the number of people the Earth can support",
-                                                       "Humans have the right to modify the natural environment to suit their needs.",
-                                                       "When humans interfere with nature it often produces disastrous consequences."),
-                                       choices = c("strongly agree", "agree", "unsure","disagree","strongly disagree", "I don`t know"),
+                                       rowIDs = c("NEP1","NEP2","NEP3","NEP4"),
+                                       rowLLabels =  c("Naturen har en verdi i seg selv",
+                                                       "Jeg blir ofte trist når jeg ser større naturinngrep",
+                                                       "Naturens egenverdi er viktigere enn bruks- og nytteverdien",
+                                                       "Naturens tilstand sier noe om hvem vi er som samfunn og folk."),
+                                       choiceNames = c("1", "2", "3","4","5","99"),
                                        # selected = character(0),
-                                       selected = c("I don`t know","I don`t know","I don`t know"),
-                                       choiceNames = c("0", "1", "2","3","4","99")),
+                                       selected = c("I don`t know","I don`t know","I don`t know", "I don`t know"),
+                                       choices = c("strongly disagree", "agree", "unsure","disagree","strongly disagree", "I don`t know")),
+                      selectizeInput("land","If you could choose one of the following landscapes, which would you prefere",c("A well-ordered landscape, made by and for people" ="a",
+                                                                                                                             "A varied, park-like landscape. " = "b",
+                                                                                                                             "Untamed nature, with which one may have many interactions."="good",
+                                                                                                                             "A landscape in which one may experience the greatness and forces of nature." = "na"),options = list(
+                                                                                                                               placeholder = 'Please select an option below',
+                                                                                                                               onInitialize = I('function() { this.setValue(""); }')
+                                                                                                                             )),
                     # actionButton('sub1', 'submit answers')
                     uiOutput("cond_b1")
                     ),

@@ -22,7 +22,7 @@ function(input, output, session) {
     user_conf<-data.frame(email = email,UID = UID_part)
     ### save user conf
     user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
-    ###here it might be wise to double check if the UID is unique
+    ###here it might be wise to double check if the UID is unique but with DB solution no problem
     ####
     
     user_all<-rbind(user_all,user_conf)
@@ -46,6 +46,12 @@ function(input, output, session) {
    
   })
   
+  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffeled order)
+  rand_es_sel<-eventReactive(input$sub0,{
+    rand_es_sel<-es_all%>%slice_sample(n=4, replace = F)
+    return(rand_es_sel)
+  })
+  
 
   liv_pol <- callModule(module=selectMod, 
                         leafmap=map_liv,
@@ -59,7 +65,8 @@ function(input, output, session) {
       need(input$gender != '', 'Select a gender'),
       need(input$edu != '', 'Select an education'),
       need(input$work != '', 'Select a working industry'),
-      need(input$liv != '', 'provide the years you live in the study area')
+      need(input$liv != '', 'provide the years you live in the study area'),
+      need(input$land != '', 'provide a landscape type')
     )
     actionButton('sub1', 'submit answers')
   })
@@ -79,22 +86,13 @@ function(input, output, session) {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
   })
-  observeEvent(input$sub1, {
-    hideTab(inputId = "inTabset", target = "p1")
-    
-    # userID<-userID()
-    # gs<-liv_pol()
-    # gs<-st_sf(plz[as.numeric(gs[which(gs$selected==TRUE),"id"])])
-    # cent<-st_centroid(gs)
-    # user_lat <- st_coordinates(cent)[2]
-    # user_lng <- st_coordinates(cent)[1]
-    
-    
-  })
+
   observeEvent(input$sub1, {
     showTab(inputId = "inTabset", target = "p2")
     userID<-userID()
     liv_pol<-liv_pol()
+    rand_es_sel<-rand_es_sel()
+    es_order<-paste0(es_order[1],"_",es_order[2],"_",es_order[3],"_",es_order[4])
     
     quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
@@ -110,11 +108,14 @@ function(input, output, session) {
       work = input$work,
       living_time=input$liv,
       familiarity = input$fam,
-      nep1 = input$matInput2$NEP1[1],
-      nep2 = input$matInput2$NEP2[1],
-      nep3 = input$matInput2$NEP3[1],
+      NEP1 = input$matInput2$NEP1[1],
+      NEP2 = input$matInput2$NEP2[1],
+      NEP3 = input$matInput2$NEP3[1],
+      NEP4 = input$matInput2$NEP3[1],
+      land = input$land,
       user_lat = user_lat,
-      user_lng = user_lng
+      user_lng = user_lng,
+      es_order = es_order
     )
     quest<-rbind(quest_all,quest)
     saveRDS(quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
@@ -134,11 +135,12 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p3")
     rand_es_sel<-rand_es_sel()
+    #first col
+    rand_sel1<-rand_es_sel[1,]
     userID<-userID()
-    # output$es_title<-renderText(rand_es_sel$es_name_long)
-    # output$es_descr<-renderText(rand_es_sel$description)
+
     
-    v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel, userID, geometry, vis_qc)
+    v = mapselectServer("mapping1", sf_bound, comb, rand_sel1, userID, geometry, vis_qc)
     
     # output$cond_b3<-renderUI({
     #   if(v() == 1){
@@ -160,9 +162,12 @@ function(input, output, session) {
   observeEvent(input$sub2, {
     showTab(inputId= "inTabset",
             target = "p4")
-    rand_es_sel2<-rand_es_sel2()
+   
+    #2nd col
+    rand_es_sel<-rand_es_sel()
+    rand_sel2<-rand_es_sel[2,]
     userID<-userID()
-    w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel2, userID, geometry, vis_qc)
+    w=mapselectServer("mapping2", sf_bound, comb, rand_sel2, userID, geometry, vis_qc)
     # output$cond_b4<-renderUI({
     #   if(w() == 1){
     #     actionButton("sub4","next ES")
@@ -182,10 +187,12 @@ function(input, output, session) {
   observeEvent(input$sub4, {
     showTab(inputId= "inTabset",
             target = "p5")
-    rand_es_sel3<-rand_es_sel3()
+    #2nd col
+    rand_es_sel<-rand_es_sel()
+    rand_sel3<-rand_es_sel[3,]
     userID<-userID()
     
-    u=mapselectServer("mapping3", sf_bound, comb, rand_es_sel3, userID, geometry, vis_qc)
+    u=mapselectServer("mapping3", sf_bound, comb, rand_sel3, userID, geometry, vis_qc)
     # output$cond_b5<-renderUI({
     #   if(u() == 1){
     #     actionButton("sub5","end")
@@ -193,45 +200,6 @@ function(input, output, session) {
     # })
   })
   
-  
-  ##first random ES
-  rand_es_sel<-eventReactive(input$sub3,{
-    rand_ind<-sample(es_descr$es_ind,1)
-    rand_es_sel<-es_descr%>%filter(es_ind %in% rand_ind)
-    
-    return(rand_es_sel)
-  })
-  
-
-  ## 2nd random ES not old one
-  
-  rand_es_sel2<-eventReactive(input$sub2,{
-    rand_es_sel <- rand_es_sel()
-    rand_es_sel2<-es_descr
-    #remove the old value
-    rand_es_sel2<-rand_es_sel2%>%filter(es_id!=rand_es_sel$es_id)
-    #sampel another out of the rest
-    
-    rand_ind<-sample(rand_es_sel2$es_ind,1)
-    rand_es_sel2<-rand_es_sel2%>%filter(es_ind %in% rand_ind)
-    
-    return(rand_es_sel2)
-  })
-  
-### third random ES not other ones
-  rand_es_sel3<-eventReactive(input$sub4,{
-    rand_es_sel <- rand_es_sel()
-    rand_es_sel2 <- rand_es_sel2()
-    rand_es_sel3<-es_descr
-    #remove the old value
-    rand_es_sel3<-rand_es_sel3%>%filter(es_id!=rand_es_sel$es_id & es_id!=rand_es_sel2$es_id )
-    #sampel another out of the rest
-    
-    rand_ind<-sample(rand_es_sel3$es_ind,1)
-    rand_es_sel3<-rand_es_sel3%>%filter(es_ind %in% rand_ind)
-    
-    return(rand_es_sel3)
-  })
   
 ## terminate app
   observeEvent(input$sub5,{
