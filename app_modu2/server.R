@@ -52,6 +52,13 @@ function(input, output, session) {
     return(rand_es_sel)
   })
   
+  rand_es_nonSel<-eventReactive(input$sub0,{
+    rand_es_sel<-rand_es_sel()
+    rand_es_nonSel<-es_all%>%anti_join(rand_es_sel)
+    return(rand_es_nonSel)
+  })
+  
+
 
   liv_pol <- callModule(module=selectMod, 
                         leafmap=map_liv,
@@ -70,8 +77,7 @@ function(input, output, session) {
     )
     actionButton('sub1', 'submit answers')
   })
-  
-  
+
   output$cond_b2<-renderUI({
     validate(
       need(input$check, 'Please confirm')
@@ -80,19 +86,21 @@ function(input, output, session) {
     actionButton('sub3', 'go to task')
   })
   
-  
   ## submit questionnaire and switch to expl
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
   })
-
+  observeEvent(input$sub1, {
+    hideTab(inputId = "inTabset",
+            target = "p1")
+  })
   observeEvent(input$sub1, {
     showTab(inputId = "inTabset", target = "p2")
     userID<-userID()
     liv_pol<-liv_pol()
     rand_es_sel<-rand_es_sel()
-    es_order<-paste0(es_order[1],"_",es_order[2],"_",es_order[3],"_",es_order[4])
+    es_order<-paste0(rand_es_sel$es_ind[1],"_",rand_es_sel$es_ind[2],"_",rand_es_sel$es_ind[3],"_",rand_es_sel$es_ind[4])
     
     quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
@@ -135,12 +143,11 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p3")
     rand_es_sel<-rand_es_sel()
-    #first col
-    rand_sel1<-rand_es_sel[1,]
+    rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
 
     
-    v = mapselectServer("mapping1", sf_bound, comb, rand_sel1, userID, geometry, vis_qc)
+    v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel, rand_es_nonSel, 1, userID, geometry, vis_qc)
     
     # output$cond_b3<-renderUI({
     #   if(v() == 1){
@@ -165,9 +172,9 @@ function(input, output, session) {
    
     #2nd col
     rand_es_sel<-rand_es_sel()
-    rand_sel2<-rand_es_sel[2,]
+    rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
-    w=mapselectServer("mapping2", sf_bound, comb, rand_sel2, userID, geometry, vis_qc)
+    w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel, rand_es_nonSel, 2, userID, geometry, vis_qc)
     # output$cond_b4<-renderUI({
     #   if(w() == 1){
     #     actionButton("sub4","next ES")
@@ -189,10 +196,9 @@ function(input, output, session) {
             target = "p5")
     #2nd col
     rand_es_sel<-rand_es_sel()
-    rand_sel3<-rand_es_sel[3,]
+    rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
-    
-    u=mapselectServer("mapping3", sf_bound, comb, rand_sel3, userID, geometry, vis_qc)
+    w=mapselectServer("mapping3", sf_bound, comb, rand_es_sel, rand_es_nonSel, 3, userID, geometry, vis_qc)
     # output$cond_b5<-renderUI({
     #   if(u() == 1){
     #     actionButton("sub5","end")

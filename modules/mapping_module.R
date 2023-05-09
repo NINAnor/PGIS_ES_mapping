@@ -7,23 +7,24 @@ mapselectUI<- function(id, label = "selector") {
     br(),
     textOutput(ns("descr_es")),
     br(),
-    h5("Importance of ESx?"),
-    sliderInput(ns("imp_own"), paste0("How important is for you personally in this area?"),
+    textOutput(ns("text5")),
+    sliderInput(ns("imp_own"), paste0("... for you personally in this area?"),
                 min = 0, max = 5, value = 3
     ),
-    sliderInput(ns("imp_other"), paste0("How important is for others and the society in this area?"),
+    sliderInput(ns("imp_other"), paste0("... for others and the society in this area?"),
                 min = 0, max = 5, value = 3
     ),
-    # textInput(ns("es_desc"),paste0("Can you describe in a few words what you understand by as an ES?")),
     br(),
-    selectizeInput(ns("map_poss"),label="Are you able to map this ES?",choices = c("Yes","No"),options = list(
-      placeholder = 'Please select an option below',
-      onInitialize = I('function() { this.setValue(""); }')
-    )),
+    # selectizeInput(ns("map_poss"),label="Are you able to map this ES?",choices = c("Yes","No"),options = list(
+    #   placeholder = 'Please select an option below',
+    #   onInitialize = I('function() { this.setValue(""); }')
+    # )),
+    uiOutput(ns("map_poss")),
     br(),
     conditionalPanel(
       condition = "input.map_poss == 'Yes'", ns = ns ,
-      h5("where do you find good spots of ESx?"),
+      # h5("where do you find good spots of ESx?"),
+      textOutput(ns("text4")),
       editModUI(ns("map_sel")),
       br(),
       ###initial button save map
@@ -31,7 +32,7 @@ mapselectUI<- function(id, label = "selector") {
       leafletOutput(ns("map_res")),
       uiOutput(ns("slider")),
       br(),
-      h5("How important are the following aspects for ESx benefit?"),
+      textOutput(ns("text1")),
       sliderInput(ns("access"), "Accessibility",
                   min = 0, max = 5, value = 3
       ),
@@ -44,11 +45,12 @@ mapselectUI<- function(id, label = "selector") {
       textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
       actionButton(ns("submit"),"save values"),
       br(),
-      h5("Your ESx map"),
+      # h5("Your ESx map"),
+      textOutput(ns("text3")),
       leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1"),
       br(),
-      h5("if you look at the map how important would you rate this ecosystem service compared to other ecosystem services, given there is no co existance between the two?"),
-      # uiOutput(ns("es_slider"))
+      textOutput(ns("text2")),
+      ahpUI(ns("es_ahp"))
     ),
     conditionalPanel(
       condition = "input.map_poss == 'No'", ns = ns ,
@@ -68,15 +70,30 @@ callback <- c(
   '});'
 )
 
-mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis_qc, all_es){
+mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round, userID, geometry, vis_qc, all_es){
   moduleServer(
     id,
     function(input, output, session){
       ns<-session$ns
-      es_ak<-rand_es_sel$es_id
-      output$title_es<-renderText(rand_es_sel$es_name_long)
-      output$descr_es<-renderText(rand_es_sel$description)
       
+      es_ak<-rand_es_sel[round,]$es_id
+      output$title_es<-renderText(rand_es_sel[round,]$es_name_long)
+      output$descr_es<-renderText(rand_es_sel[round,]$description)
+      output$text1<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[round,]$es_name_long))
+      output$text2<-renderText(paste0("if you look at the map, how important would you rate ",rand_es_sel[round,]$es_name_long,"compared to other ecosystem services, given there is no co existance between the two?"))
+      output$text3<-renderText(paste0("Your personal map of ",rand_es_sel[round,]$es_name_long))
+      output$text4<-renderText(paste0("Where do you find good spots for ", rand_es_sel[round,]$es_name_long))
+      output$text5<-renderText(paste0("How important is ", rand_es_sel[round,]$es_name_long,"..."))
+      
+      output$map_poss<-renderUI({
+        lable <- paste0("Are you able to map ", rand_es_sel[round,]$es_name_long,"?")
+        selectizeInput(ns("map_poss"),label=lable,choices = c("Yes","No"),options = list(
+          placeholder = 'Please select an option below',
+          onInitialize = I('function() { this.setValue(""); }')
+        ))
+      })
+      
+
       
      map<-leaflet(sf_bound)%>%
         addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
@@ -220,17 +237,8 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
       })
       
       observeEvent(input$submit,{
-        ## load all es
-        
-        ## remove current es
-        
-        ## select random 5 others
-        
-        ## render five sliders with 
-        output$es_slider<-renderUI({
-          ns <- session$ns
-          
-        })
+        ## load ahp module
+        ahpServer("es_ahp", rand_es_sel, rand_es_nonSel, round, userID)
       })
       
       prediction<-eventReactive(input$submit,{
@@ -279,7 +287,7 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
           eeObject = prediction,
           vis_qc,
           opacity = 0.4
-        ) +Map$addLegend(vis_qc,name = "prediction", color_mapping = "character") +
+        ) +Map$addLegend(vis_qc,name = rand_es_sel[round,]$es_name_long, color_mapping = "character") +
           Map$addLayer(gee_poly, list(color = "blue"), "colored")
       })    
       
@@ -312,17 +320,7 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, userID, geometry, vis
         
       })
       
-      # a <- reactive({
-      #   input$submit
-      # })
-      # 
-      # b <- reactive({
-      #   input$submit2
-      # })
-      # 
-      # return(a)
-      # return(b)
-      # 
+
       
 
       

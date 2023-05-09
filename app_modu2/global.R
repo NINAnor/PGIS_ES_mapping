@@ -17,6 +17,7 @@ library(leaflet.extras2)
 library(stringi)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_module.R")
 # 
 
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
