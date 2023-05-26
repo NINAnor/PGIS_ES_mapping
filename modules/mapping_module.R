@@ -49,8 +49,9 @@ mapselectUI<- function(id, label = "selector") {
       textOutput(ns("text3")),
       leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1"),
       br(),
-      textOutput(ns("text2")),
-      ahpUI(ns("es_ahp"))
+      textOutput(ns("text2"))
+      # ,
+      # ahpUI(ns("es_ahp"))
     ),
     conditionalPanel(
       condition = "input.map_poss == 'No'", ns = ns ,
@@ -236,45 +237,100 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round
         
       })
       
-      observeEvent(input$submit,{
-        ## load ahp module
-        ahpServer("es_ahp", rand_es_sel, rand_es_nonSel, round, userID)
-      })
+      # observeEvent(input$submit,{
+      #   ## load ahp module
+      #   ahpServer("es_ahp", rand_es_sel, rand_es_nonSel, round, userID)
+      # })
       
       prediction<-eventReactive(input$submit,{
         gee_poly<-gee_poly()
         #### earth engine part
         bands <- c("landcover","be75","landcover_count","slope","slope_mean","aspect")
         
-        poly_pts = comb$select(bands)$sampleRegions(
-          collection= gee_poly,
-          geometries = T
+        poly_pts = comb$select(bands)$sampleRegions(collection= gee_poly,
+                                                    properties = list("es_value"),
+                                                    scale = 100,
+                                                    geometries = T
         )
         
-        classifier <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION")$train(
-          features=poly_pts,
+        poly_pts = poly_pts$randomColumn('random')
+        
+        #split data
+        training = poly_pts$filter(ee$Filter$gt('random',0.3)) # 70% training
+        validation = poly_pts$filter(ee$Filter$lte('random',0.3)) # 30% testing
+        
+        
+        rfReg <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION")$train(
+          features=training,
           classProperty= "es_value",
           inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
         )
         
-        regression <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(classifier, "predicted")
+        esPred <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfReg, "predicted")
         
         #rand_es_sel <- rand_es_sel()
         es_ak<-es_ak
         userID <- userID
+        
+        ## retrieve covariate importance
+        varImp = rfReg$explain()$get("importance")$getInfo()%>% #get importance
+          as_tibble()%>%#make tibble
+          pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
+          arrange(desc(value))%>% #sort decreasing values
+          slice(1:10)
+        varImp$rel<-varImp$value/sum(varImp$value)
+        varImp$es_ak<-rep(es_ak,nrow(varImp))
+        varImp$userID<-rep(userID,nrow(varImp))
+        
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
+        b<-rbind(b,varImp)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
+        
+        # retrieve model quality and
+        pred = validation$classify(rfReg, "predictions")$
+          select(c("es_value", "predictions"))
+        
+        
+        ### rmse of validation
+        #get residuals
+        addResid <- function(feature) {
+          res <- ee$Number(feature$get("es_value"))$ #subtract observed from predicted
+            subtract(ee$Number(feature$get("predictions")))
+          feature$set(list(res = res)) #create new feature in featureCollection
+        }
+        
+        #apply function to FeatureCollection for residuals
+        res = pred$map(addResid)
+        
+        #calculate RMSE
+        rmse = ee$Array(res$aggregate_array("res"))$
+          pow(2)$ #square it
+          reduce("mean", list(0))$ #get mean for the residuals
+          sqrt()
+        
+        #print RMSE
+        a<-as.data.frame(rmse$getInfo())
+        a$userID<-userID
+        a$es_ak<-es_ak
+        colnames(a)<-c("RMSE","userID","es_ak")
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
+        b<-rbind(b,a)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
+      
+        
         # prediction<-prediction()
         assetid <- paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",es_ak,"_", userID)
         print(assetid)
         start_time<-Sys.time()
         task_img <- ee_image_to_asset(
-          image = regression,
+          image = esPred,
           assetId = assetid,
           overwrite = F,
           region = geometry
         )
         
         task_img$start()
-        prediction<-regression
+        prediction<-esPred
         
       })
       

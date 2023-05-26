@@ -48,7 +48,7 @@ function(input, output, session) {
   
   ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffeled order)
   rand_es_sel<-eventReactive(input$sub0,{
-    rand_es_sel<-es_all%>%slice_sample(n=4, replace = F)
+    rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
     return(rand_es_sel)
   })
   

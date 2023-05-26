@@ -20,6 +20,10 @@ source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_module.R")
 # 
 
+#### number of ES part shoud see and pot. map:
+num_es<-4
+#######
+
 ee_Initialize(user = 'r.spielhofer@bluewin.ch')
 # 
 geometry <- ee$Geometry$Rectangle(
