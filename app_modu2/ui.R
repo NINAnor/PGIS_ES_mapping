@@ -130,8 +130,14 @@ navbarPage('POC PGIS ES
            tabPanel(title = "Mapping of ecosystem services III", value = "p5", 
                     mainPanel(
                       mapselectUI("mapping3", "map3"),
-                      actionButton('sub5', 'end')
+                      actionButton('sub5', 'next task')
                       # uiOutput("cond_b5")
+                      
+                    )),
+           tabPanel(title = "AHP section", value = "p6", 
+                    mainPanel(
+                      
+                      ahp_secUI("ahp_section", "ahp #1")
                       
                     ))
            

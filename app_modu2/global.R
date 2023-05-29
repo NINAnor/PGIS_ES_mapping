@@ -15,9 +15,11 @@ library(shinylogs)
 library(leaflet.extras)
 library(leaflet.extras2)
 library(stringi)
+library(shinyWidgets)
+library(tidyverse)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_section_module.R")
 # 
 
 #### number of ES part shoud see and pot. map:

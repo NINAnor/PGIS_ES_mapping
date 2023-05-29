@@ -8,6 +8,7 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p3")
   hideTab(inputId = "inTabset", target = "p4")
   hideTab(inputId = "inTabset", target = "p5")
+  hideTab(inputId = "inTabset", target = "p6")
   
   
   ####### generate user ID
@@ -206,9 +207,27 @@ function(input, output, session) {
     # })
   })
   
+  ## AHP section
+  observeEvent(input$sub5, {
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p6")
+  })
+  observeEvent(input$sub5, {
+    hideTab(inputId = "inTabset",
+            target = "p5")
+  })
+  observeEvent(input$sub5, {
+    showTab(inputId= "inTabset",
+            target = "p6")
+
+    userID<-userID()
+    ahp_secServer("ahp_section",  es_all, userID)
+
+  })
+  
   
 ## terminate app
-  observeEvent(input$sub5,{
+  observeEvent(input$sub6,{
     stopApp(returnValue = invisible())
   })
   
