@@ -50,8 +50,7 @@ mapselectUI<- function(id, label = "selector") {
       leafletOutput(ns("gee_map"))%>% withSpinner(color="#0dc5c1"),
       br(),
       textOutput(ns("text2"))
-      # ,
-      # ahpUI(ns("es_ahp"))
+
     ),
     conditionalPanel(
       condition = "input.map_poss == 'No'", ns = ns ,
@@ -237,10 +236,7 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round
         
       })
       
-      # observeEvent(input$submit,{
-      #   ## load ahp module
-      #   ahpServer("es_ahp", rand_es_sel, rand_es_nonSel, round, userID)
-      # })
+
       
       prediction<-eventReactive(input$submit,{
         gee_poly<-gee_poly()
