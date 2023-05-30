@@ -119,7 +119,7 @@ ahp_secServer<-function(id, es_all, userID){
         colnames(sec_comb)<-c("left","right","selection","recode_val","userID")
         all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
         all_ahp<-rbind(all_ahp,sec_comb)
-        saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_test2.RDS")
+        saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
       })
       
       
