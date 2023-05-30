@@ -145,13 +145,13 @@ ahpServer<-function(id, es_all, userID){
             pair_lable3<-paste0(es3[o,]$V1," - ",es3[o,]$V2)
             choice1<-paste0(es3[o,]$V1, " is overwhelmingly more important")
             choice2<-paste0(es3[o,]$V1, " is very strongly more important")
-            choice3<-paste0(es3[o]$V1, " is strongly more important")
+            choice3<-paste0(es3[o,]$V1, " is strongly more important")
             choice4<-paste0(es3[o,]$V1, " is moderately more important")
             
-            choice5<-paste0(es3[o]$V2, " is overwhelmingly more important")
-            choice6<-paste0(es3[o]$V2, " is very strongly more important")
-            choice7<-paste0(es3[o]$V2, " is strongly more important")
-            choice8<-paste0(es3[o]$V2, " is moderately more important")
+            choice5<-paste0(es3[o,]$V2, " is overwhelmingly more important")
+            choice6<-paste0(es3[o,]$V2, " is very strongly more important")
+            choice7<-paste0(es3[o,]$V2, " is strongly more important")
+            choice8<-paste0(es3[o,]$V2, " is moderately more important")
             
             
             
@@ -186,16 +186,16 @@ ahpServer<-function(id, es_all, userID){
         })
         comp_val1 <- unlist(res1)
         
-        res2<-lapply(1:nrow(es2),function(a){
-          var2<-paste0(es2[a,]$V1,"_",es2[a,]$V2)
-          val_list2[[a]]<-input[[var2]]
+        res2<-lapply(1:nrow(es2),function(b){
+          var2<-paste0(es2[b,]$V1,"_",es2[b,]$V2)
+          val_list2[[b]]<-input[[var2]]
           return(val_list2)
         })
         comp_val2 <- unlist(res2)
         
-        res3<-lapply(1:nrow(es3),function(a){
-          var3<-paste0(es3[a,]$V1,"_",es3[a,]$V2)
-          val_list3[[a]]<-input[[var3]]
+        res3<-lapply(1:nrow(es3),function(c){
+          var3<-paste0(es3[c,]$V1,"_",es3[c,]$V2)
+          val_list3[[c]]<-input[[var3]]
           return(val_list3)
         })
         comp_val3 <- unlist(res3)
@@ -212,13 +212,13 @@ ahpServer<-function(id, es_all, userID){
         n<-lapply(1:nrow(es),function(a){
           if(es[a,]$comp_val == "both are equally important"){
             es[a,]$recode <- 1
-          } else if(grepl("is overwhelmingly more important",es1[a,]$comp_val) == TRUE){
+          } else if(grepl("is overwhelmingly more important",es[a,]$comp_val) == TRUE){
             es[a,]$recode <- 8
-          } else if(grepl("is very strongly more important",es1[a,]$comp_val) == TRUE){
+          } else if(grepl("is very strongly more important",es[a,]$comp_val) == TRUE){
             es[a,]$recode <- 6
-          } else if(grepl("is strongly more important",es1[a,]$comp_val) == TRUE){
+          } else if(grepl("is strongly more important",es[a,]$comp_val) == TRUE){
             es[a,]$recode <- 4
-          } else if(grepl("is moderately more important",es1[a,]$comp_val) == TRUE){
+          } else if(grepl("is moderately more important",es[a,]$comp_val) == TRUE){
             es[a,]$recode <- 2
           } 
           
@@ -256,7 +256,7 @@ ahpServer<-function(id, es_all, userID){
 # 
 # server <- function(input, output, session) {
 # 
-#   ahpServer("ahp1", es_all, "userID_002")
+#   ahpServer("ahp1", es_all, "es_user_new")
 # 
 # }
 # 

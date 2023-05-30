@@ -128,7 +128,7 @@ ahp_secServer<-function(id, es_all, userID){
   )
 }
 
-# 
+
 # ui <- fluidPage(
 #   fluidRow(
 #     column(width = 12,
@@ -141,7 +141,7 @@ ahp_secServer<-function(id, es_all, userID){
 # 
 # server <- function(input, output, session) {
 # 
-#   ahp_secServer("ahp1",es_all, "userID_001")
+#   ahp_secServer("ahp1",es_all, "testuser")
 # 
 # }
 # 
