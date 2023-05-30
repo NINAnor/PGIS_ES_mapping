@@ -1,6 +1,6 @@
-library(shinyWidgets)
-library(dplyr)
-es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
+# library(shinyWidgets)
+# library(dplyr)
+# es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
 
 ahpUI<- function(id, label = "ahp2") {
   ns <- NS(id)
@@ -242,25 +242,25 @@ ahpServer<-function(id, es_all, userID){
     
   )
 }
-
 # 
-ui <- fluidPage(
-  fluidRow(
-    column(width = 12,
-           ahpUI("ahp1", "Counter #1")
-           )
-  )
-
-
-)
-
-server <- function(input, output, session) {
-
-  ahpServer("ahp1", es_all, "userID_002")
-
-}
-
-shinyApp(ui, server)
+# # 
+# ui <- fluidPage(
+#   fluidRow(
+#     column(width = 12,
+#            ahpUI("ahp1", "Counter #1")
+#            )
+#   )
+# 
+# 
+# )
+# 
+# server <- function(input, output, session) {
+# 
+#   ahpServer("ahp1", es_all, "userID_002")
+# 
+# }
+# 
+# shinyApp(ui, server)
 
 
 
