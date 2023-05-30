@@ -137,7 +137,15 @@ navbarPage('POC PGIS ES
            tabPanel(title = "AHP section", value = "p6", 
                     mainPanel(
                       
-                      ahp_secUI("ahp_section", "ahp #1")
+                      ahp_secUI("ahp_section", "ahp #1"),
+                      actionButton('sub6', 'next task')
+                      
+                    )),
+           tabPanel(title = "AHP Detail", value = "p7", 
+                    mainPanel(
+                      
+                      ahpUI("ahp", "ahp #2"),
+                      actionButton('sub7', 'end')
                       
                     ))
            

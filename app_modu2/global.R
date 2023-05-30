@@ -20,6 +20,7 @@ library(tidyverse)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_section_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_es_module.R")
 # 
 
 #### number of ES part shoud see and pot. map:
