@@ -1,5 +1,8 @@
 # call mapping module
 
+
+
+
 mapselectUI<- function(id, label = "selector") {
   ns <- NS(id)
   tagList(
@@ -70,7 +73,7 @@ callback <- c(
   '});'
 )
 
-mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round, userID, geometry, vis_qc, all_es){
+mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geometry, vis_qc){
   moduleServer(
     id,
     function(input, output, session){
@@ -200,6 +203,8 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round
         vecA <- unlist(res)
         ## as df
         polygon$es_value <- vecA
+        polygon$es_id <- rep(es_ak,nrow(polygon))
+        polygon$userID <- rep(userID,nrow(polygon))
         n_polys <-nrow(polygon)
         ## as sf
         polygon<-st_as_sf(polygon)
@@ -263,6 +268,9 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round
         )
         
         esPred <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfReg, "predicted")
+        esPred <- esPred$set('es_id', es_ak,
+                             'userID', userID,
+                             'order_id', round)
         
         #rand_es_sel <- rand_es_sel()
         es_ak<-es_ak
@@ -380,3 +388,4 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, rand_es_nonSel, round
     }
   )
 }
+
