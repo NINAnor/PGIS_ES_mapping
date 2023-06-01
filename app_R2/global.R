@@ -9,11 +9,20 @@ library(rgee)
 library(DT)
 library(mapedit)
 
-
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/edit_module.R")
 ### read data sets
-user_conf<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
-quest<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
-es_user_data<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
+
+main_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base"
+ahp_ind<-readRDS(paste0(main_path,"/es_ranking_ind.RDS"))
+ahp_all<-readRDS(paste0(main_path,"/es_ranking_all.RDS"))
+es_user<-readRDS(paste0(main_path,"/es_user_data.RDS"))
+rmse<-readRDS(paste0(main_path,"/rmse.RDS"))
+varimp<-readRDS(paste0(main_path,"/varImp.RDS"))
+quest<-readRDS(paste0(main_path,"/questionnaire.RDS"))
+es<-readRDS(paste0(main_path,"/es_description.RDS"))
+user_conf<-readRDS(paste0(main_path,"/user_conf.RDS"))
+
+geom_path<-paste0(main_path,"/poly_R1")
 
 ## make user pts
 user_pts<-quest%>%filter(!is.na(user_lng)&!is.na(user_lat))
