@@ -39,17 +39,17 @@ ahpServer<-function(id, es_all, userID){
 
       
       reg<-es_all%>%filter(section == "regulating")%>%distinct(es_id)
-      reg <- reg[sample(1:nrow(reg)), ]
+      reg <- unlist(as.vector(reg))
       reg_comb<-as.data.frame(t(combn(reg, 2)))
       reg_comb$ind<-rep(1,nrow(reg_comb))
 
       cul<-es_all%>%filter(section == "cultural")%>%distinct(es_id)
-      cul <- cul[sample(1:nrow(cul)), ]
+      cul <- unlist(as.vector(cul))
       cul_comb<-as.data.frame(t(combn(cul, 2)))
       cul_comb$ind<-rep(2,nrow(cul_comb))
 
       prov<-es_all%>%filter(section == "provisioning")%>%distinct(es_id)
-      prov <- prov[sample(1:nrow(prov)), ]
+      prov <- unlist(as.vector(prov))
       prov_comb<-as.data.frame(t(combn(prov, 2)))
       prov_comb$ind<-rep(3,nrow(prov_comb))
       
@@ -57,11 +57,15 @@ ahpServer<-function(id, es_all, userID){
       
 
       #randomize the blocks
-      rand<-sample(1:3, 3, replace=F)
+      # rand<-sample(1:3, 3, replace=F)
       
-      es1<-all_comb%>%filter(ind == rand[1]) 
-      es2<-all_comb%>%filter(ind == rand[2]) 
-      es3<-all_comb%>%filter(ind == rand[3]) 
+      # es1<-all_comb%>%filter(ind == rand[1]) 
+      # es2<-all_comb%>%filter(ind == rand[2]) 
+      # es3<-all_comb%>%filter(ind == rand[3]) 
+      
+      es1<-all_comb%>%filter(ind == 1) 
+      es2<-all_comb%>%filter(ind == 2) 
+      es3<-all_comb%>%filter(ind == 3) 
       
 
       ## first ES block
@@ -228,10 +232,11 @@ ahpServer<-function(id, es_all, userID){
             es[a,]$recode<-es[a,]$recode
           }
         })
+        
         es$recode <- unlist(n)
         es$userID<-rep(userID,nrow(es))
-        es<-es%>%select(V1,V2,comp_val,recode,userID)
-        colnames(es)<-c("left","right","selection","recode_val","userID")
+        es<-es%>%select(V1,V2,comp_val,recode,userID,ind)
+        colnames(es)<-c("left","right","selection","recode_val","userID","group")
         all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
         all_ahp<-rbind(all_ahp,es)
         saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
@@ -256,7 +261,7 @@ ahpServer<-function(id, es_all, userID){
 # 
 # server <- function(input, output, session) {
 # 
-#   ahpServer("ahp1", es_all, "es_user_new")
+#   ahpServer("ahp1", es_all, "kamIorrj54")
 # 
 # }
 # 

@@ -117,7 +117,8 @@ ahp_secServer<-function(id, es_all, userID){
         })
         sec_comb$recode <- unlist(n)
         sec_comb$userID<-rep(userID,nrow(sec_comb))
-        colnames(sec_comb)<-c("left","right","selection","recode_val","userID")
+        sec_comb$group <- rep(4,nrow(sec_comb))
+        colnames(sec_comb)<-c("left","right","selection","recode_val","userID", "group")
         all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
         all_ahp<-rbind(all_ahp,sec_comb)
         saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
@@ -129,7 +130,7 @@ ahp_secServer<-function(id, es_all, userID){
   )
 }
 
-
+# 
 # ui <- fluidPage(
 #   fluidRow(
 #     column(width = 12,
@@ -142,7 +143,7 @@ ahp_secServer<-function(id, es_all, userID){
 # 
 # server <- function(input, output, session) {
 # 
-#   ahp_secServer("ahp1",es_all, "testuser")
+#   ahp_secServer("ahp1",es_all, "kamIorrj54")
 # 
 # }
 # 
