@@ -40,7 +40,8 @@ ahp_secServer<-function(id, es_all, userID){
 
       es_sec<-es_all%>%distinct(section)
       #randomization
-      es_sec <- es_sec[sample(1:nrow(es_sec)), ] 
+      #es_sec <- es_sec[sample(1:nrow(es_sec)), ] 
+      es_sec<-unlist(as.vector(es_sec))
       sec_comb<-as.data.frame(t(combn(es_sec, 2)))
 
       output$slider <- shiny::renderUI({
