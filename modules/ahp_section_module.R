@@ -1,6 +1,16 @@
 # library(shinyWidgets)
 # library(dplyr)
-# es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
+# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# # connection to bq
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# 
+# es_all<-tbl(con, "es_descr")
+# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
 
 
 ahp_secUI<- function(id, label = "ahp") {
@@ -32,13 +42,13 @@ ahp_secUI<- function(id, label = "ahp") {
   
 }
 
-ahp_secServer<-function(id, es_all, userID){
+ahp_secServer<-function(id, userID, siteID, es_all){
   moduleServer(
     id,
     function(input, output, session){
       ns<-session$ns
-
-      es_sec<-es_all%>%distinct(section)
+      #es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
+      es_sec<-es_all%>%distinct(esSECTION)
       #randomization
       #es_sec <- es_sec[sample(1:nrow(es_sec)), ] 
       es_sec<-unlist(as.vector(es_sec))
@@ -115,13 +125,21 @@ ahp_secServer<-function(id, es_all, userID){
             sec_comb[a,]$recode<-sec_comb[a,]$recode
           }
         })
-        sec_comb$recode <- unlist(n)
+        sec_comb$recode <- as.integer(unlist(n))
         sec_comb$userID<-rep(userID,nrow(sec_comb))
+        sec_comb$siteID<-rep(siteID,nrow(sec_comb))
         sec_comb$group <- rep(4,nrow(sec_comb))
-        colnames(sec_comb)<-c("left","right","selection","recode_val","userID", "group")
-        all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
-        all_ahp<-rbind(all_ahp,sec_comb)
-        saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
+        sec_comb$group <- as.integer(sec_comb$group)
+  
+        colnames(sec_comb)<-c("ES_left","ES_right","selection_text","selection_val","userID","siteID", "ahp_section")
+        m<-lapply(1:nrow(sec_comb), function(a){
+          sec_comb[a,]$es_pairUID <- paste0( sec_comb[a,]$userID, "_", sec_comb[a,]$siteID,"_", sec_comb[a,]$ES_left,"_",sec_comb[a,]$ES_right)
+        })
+        sec_comb$es_pairUID <- unlist(m)
+        insert_upload_job("rgee-381312", "data_base", "es_pair", sec_comb)
+        # all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
+        # all_ahp<-rbind(all_ahp,sec_comb)
+        # saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
       })
       
       
@@ -130,7 +148,7 @@ ahp_secServer<-function(id, es_all, userID){
   )
 }
 
-# 
+# # 
 # ui <- fluidPage(
 #   fluidRow(
 #     column(width = 12,
@@ -142,8 +160,10 @@ ahp_secServer<-function(id, es_all, userID){
 # )
 # 
 # server <- function(input, output, session) {
+# #   
 # 
-#   ahp_secServer("ahp1",es_all, "kamIorrj54")
+# 
+#   ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
 # 
 # }
 # 
