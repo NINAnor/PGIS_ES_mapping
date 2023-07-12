@@ -20,16 +20,19 @@ function(input, output, session) {
       email<-"not_provided"
     } else {
       email = input$email}
+    # generate log time
+    tlog<-Sys.time()
     
-    user_conf<-data.frame(email = email,UID = UID_part)
+    user_conf<-data.frame(userMAIL = email,userID = UID_part,userTLOG = tlog)
     ### save user conf
-    user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
+    insert_upload_job("rgee-381312", "data_base", "user_conf", user_conf)
+    #user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
     ###here it might be wise to double check if the UID is unique but with DB solution no problem
     ####
     
-    user_all<-rbind(user_all,user_conf)
-    saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
-    rm(user_conf,user_all)
+    #user_all<-rbind(user_all,user_conf)
+    #saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
+    rm(user_conf)
     userID<-as.character(UID_part)
     return(userID)
   })
@@ -48,17 +51,17 @@ function(input, output, session) {
    
   })
   
-  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffeled order)
+  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffled order)
   rand_es_sel<-eventReactive(input$sub0,{
     rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
     return(rand_es_sel)
   })
   
-  rand_es_nonSel<-eventReactive(input$sub0,{
-    rand_es_sel<-rand_es_sel()
-    rand_es_nonSel<-es_all%>%anti_join(rand_es_sel)
-    return(rand_es_nonSel)
-  })
+  # rand_es_nonSel<-eventReactive(input$sub0,{
+  #   rand_es_sel<-rand_es_sel()
+  #   rand_es_nonSel<-es_all%>%anti_join(rand_es_sel)
+  #   return(rand_es_nonSel)
+  # })
   
 
 
@@ -102,33 +105,58 @@ function(input, output, session) {
     userID<-userID()
     liv_pol<-liv_pol()
     rand_es_sel<-rand_es_sel()
-    es_order<-paste0(rand_es_sel$es_ind[1],"_",rand_es_sel$es_ind[2],"_",rand_es_sel$es_ind[3],"_",rand_es_sel$es_ind[4])
+    es_order<-paste0(rand_es_sel$esNUM[1],"_",rand_es_sel$esNUM[2],"_",rand_es_sel$esNUM[3],"_",rand_es_sel$esNUM[4])
     
-    quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
+    #quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
     cent<-st_centroid(liv_pol)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]
     print(user_lng)
     quest <-  data.frame(
-      userID=userID,
-      age=input$age,
-      gender = input$gender,
-      education = input$edu,
+      userID = userID,
+      siteID = siteID,
+      edu = input$edu,
+      fam = input$fam,
+      liv = input$liv,
+      gen = input$gender,
+      age = as.integer(input$age),
       work = input$work,
-      living_time=input$liv,
-      familiarity = input$fam,
-      NEP1 = input$matInput2$NEP1[1],
-      NEP2 = input$matInput2$NEP2[1],
-      NEP3 = input$matInput2$NEP3[1],
-      NEP4 = input$matInput2$NEP3[1],
+      # nep_1 = input$matInput2$NEP1[1],
+      # nep_2 = input$matInput2$NEP2[1],
+      # nep_3 = input$matInput2$NEP3[1],
+      # nep_4 = input$matInput2$NEP3[1],
+      nep_1 = NA,
+      nep_2 = NA,
+      nep_3 = NA,
+      nep_4 = NA,
+      
+      nep_5 = NA,
+      nep_6 = NA,
+      nep_7 = NA,
+      nep_8 = NA,
+      nep_9 = NA,
+      nep_10 = NA,
+      nep_11 = NA,
+      nep_12 = NA,
+      nep_13 = NA,
+      nep_14 = NA,
+      nep_15 = NA,
+      nep_16 = NA,
+      nep_17 = NA,
+      nep_18 = NA,
+      nep_19 = NA,
+      nep_20 = NA,
+      userLAT = user_lat,
+      userLNG = user_lng,
       land = input$land,
-      user_lat = user_lat,
-      user_lng = user_lng,
-      es_order = es_order
+      es_order = es_order,
+      questUID = paste0(userID,"_",siteID,"_",es_order)
     )
-    quest<-rbind(quest_all,quest)
-    saveRDS(quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
+    
+    insert_upload_job("rgee-381312", "data_base", "user_all", quest)
+    #quest<-rbind(quest_all,quest)
+    #saveRDS(quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     
   })
   
@@ -145,11 +173,11 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p3")
     rand_es_sel<-rand_es_sel()
-    rand_es_nonSel<-rand_es_nonSel()
+    # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
-
     
-    v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel,  1, userID, geometry, vis_qc)
+    
+    v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel,  1, userID, siteID, geometry, vis_qc)
     
     # output$cond_b3<-renderUI({
     #   if(v() == 1){
@@ -174,7 +202,7 @@ function(input, output, session) {
    
     #2nd col
     rand_es_sel<-rand_es_sel()
-    rand_es_nonSel<-rand_es_nonSel()
+    # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
     w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel,  2, userID, geometry, vis_qc)
     # output$cond_b4<-renderUI({
@@ -198,7 +226,7 @@ function(input, output, session) {
             target = "p5")
     #2nd col
     rand_es_sel<-rand_es_sel()
-    rand_es_nonSel<-rand_es_nonSel()
+    # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
     w=mapselectServer("mapping3", sf_bound, comb, rand_es_sel, 3, userID, geometry, vis_qc)
     # output$cond_b5<-renderUI({
@@ -222,7 +250,7 @@ function(input, output, session) {
             target = "p6")
 
     userID<-userID()
-    ahp_secServer("ahp_section",  es_all, userID)
+    ahp_secServer("ahp_section",   userID)
 
   })
   
@@ -240,7 +268,7 @@ function(input, output, session) {
             target = "p7")
     
     userID<-userID()
-    ahpServer("ahp",  es_all, userID)
+    ahpServer("ahp", userID)
     
   })
   

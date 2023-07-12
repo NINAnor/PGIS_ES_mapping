@@ -1,8 +1,5 @@
 # call mapping module
 
-
-
-
 mapselectUI<- function(id, label = "selector") {
   ns <- NS(id)
   tagList(
@@ -73,23 +70,23 @@ callback <- c(
   '});'
 )
 
-mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geometry, vis_qc){
+mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, siteID, geometry, vis_qc){
   moduleServer(
     id,
     function(input, output, session){
       ns<-session$ns
       
-      es_ak<-rand_es_sel[round,]$es_id
-      output$title_es<-renderText(rand_es_sel[round,]$es_name_long)
-      output$descr_es<-renderText(rand_es_sel[round,]$description)
-      output$text1<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[round,]$es_name_long))
-      output$text2<-renderText(paste0("if you look at the map, how important would you rate ",rand_es_sel[round,]$es_name_long,"compared to other ecosystem services, given there is no co existance between the two?"))
-      output$text3<-renderText(paste0("Your personal map of ",rand_es_sel[round,]$es_name_long))
-      output$text4<-renderText(paste0("Where do you find good spots for ", rand_es_sel[round,]$es_name_long))
-      output$text5<-renderText(paste0("How important is ", rand_es_sel[round,]$es_name_long,"..."))
+      es_ak<-rand_es_sel[round,]$esID
+      output$title_es<-renderText(rand_es_sel[round,]$esNAME)
+      output$descr_es<-renderText(rand_es_sel[round,]$esDESCR)
+      output$text1<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[round,]$esNAME))
+      output$text2<-renderText(paste0("if you look at the map, how important would you rate ",rand_es_sel[round,]$esNAME,"compared to other ecosystem services, given there is no co existance between the two?"))
+      output$text3<-renderText(paste0("Your personal map of ",rand_es_sel[round,]$esNAME))
+      output$text4<-renderText(paste0("Where do you find good spots for ", rand_es_sel[round,]$esNAME))
+      output$text5<-renderText(paste0("How important is ", rand_es_sel[round,]$esNAME,"..."))
       
       output$map_poss<-renderUI({
-        lable <- paste0("Are you able to map ", rand_es_sel[round,]$es_name_long,"?")
+        lable <- paste0("Are you able to map ", rand_es_sel[round,]$esNAME,"?")
         selectizeInput(ns("map_poss"),label=lable,choices = c("Yes","No"),options = list(
           placeholder = 'Please select an option below',
           onInitialize = I('function() { this.setValue(""); }')
@@ -101,7 +98,7 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geomet
      map<-leaflet(sf_bound)%>%
         addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
                     opacity = 1.0, fillOpacity = 0)%>%
-        addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 15))%>%
+        addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 14))%>%
         addDrawToolbar(targetGroup='drawPoly',
                        polylineOptions = F,
                        polygonOptions = F,
@@ -203,8 +200,14 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geomet
         vecA <- unlist(res)
         ## as df
         polygon$es_value <- vecA
-        polygon$es_id <- rep(es_ak,nrow(polygon))
+        polygon$esID <- rep(es_ak,nrow(polygon))
         polygon$userID <- rep(userID,nrow(polygon))
+        polygon$siteID <- rep(siteID,nrow(polygon))
+        polygon$mapping_round <- rep(round,nrow(polygon))
+        for(i in 1: nrow(polygon)){
+          polygon$UID[i] <- paste0(userID,"_",esID,"_",siteID,"_",i)
+        }
+        
         n_polys <-nrow(polygon)
         ## as sf
         polygon<-st_as_sf(polygon)
@@ -212,17 +215,26 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geomet
         
         train_param <- 
           list(
+            esID = es_ak,
             userID = userID,
-            es_id = es_ak,
-            access=input$access,
-            nat=input$nat,
-            lulc = input$lulc,
+            siteID = siteID,
+            imp_acc=input$access,
+            imp_nat=input$nat,
+            imp_lulc = input$lulc,
             imp_own = input$imp_own,
             imp_other = input$imp_other,
             area = area,
-            n_polys = n_polys,
+            n_poly = n_polys,
             blog = input$blog,
-            expert = NA
+            mapping = input$expert_map,
+            expert_trust = NA,
+            es_maxDIST = NA,
+            es_order = NA,
+            extrap_RMSE = NA,
+            extrap_accIMP = NA,
+            extrap_lulcIMP = NA,
+            extrap_natIMP = NA,
+            mappingR1_UID = paste0(userID,"_",es_ak,"_",siteID)
           )
           train_param<-as.data.frame(train_param)
           ## write to rds file
@@ -356,20 +368,28 @@ mapselectServer<-function(id, sf_bound, comb, rand_es_sel, round, userID, geomet
       })
       
       observeEvent(input$submit2,{
-        train_param <- 
-          list(
-            userID = userID,
-            es_id = es_ak,
-            access=NA,
-            nat=NA,
-            lulc = NA,
-            imp_own = input$imp_own,
-            imp_other = input$imp_other,
-            area = NA,
-            n_polys = NA,
-            blog = NA,
-            expert = input$expert_map
-          )
+        list(
+          esID = es_ak,
+          userID = userID,
+          siteID = siteID,
+          imp_acc=input$access,
+          imp_nat=input$nat,
+          imp_lulc = input$lulc,
+          imp_own = input$imp_own,
+          imp_other = input$imp_other,
+          area = area,
+          n_poly = n_polys,
+          blog = input$blog,
+          mapping = input$expert_map,
+          expert_trust = NA,
+          es_maxDIST = NA,
+          es_order = NA,
+          extrap_RMSE = NA,
+          extrap_accIMP = NA,
+          extrap_lulcIMP = NA,
+          extrap_natIMP = NA,
+          mappingR1_UID = paste0(userID,"_",es_ak,"_",siteID)
+        )
         train_param<-as.data.frame(train_param)
         ## write to rds file
         es_user<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_user_data.rds")
