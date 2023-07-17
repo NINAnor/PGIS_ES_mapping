@@ -10,6 +10,7 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p5")
   hideTab(inputId = "inTabset", target = "p6")
   hideTab(inputId = "inTabset", target = "p7")
+  hideTab(inputId = "inTabset", target = "p8")
   
   
   ####### generate user ID
@@ -23,7 +24,7 @@ function(input, output, session) {
     # generate log time
     tlog<-Sys.time()
     
-    user_conf<-data.frame(userMAIL = email,userID = UID_part,userTLOG = tlog)
+    user_conf<-data.frame(userMAIL = email, userID = UID_part, userTLOG = tlog)
     ### save user conf
     insert_upload_job("rgee-381312", "data_base", "user_conf", user_conf)
     #user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
@@ -275,10 +276,42 @@ function(input, output, session) {
     ahpServer("ahp", userID, siteID, es_all)
     
   })
+  ## effect distance
+  observeEvent(input$sub7, {
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p8")
+  })
+  observeEvent(input$sub7, {
+    hideTab(inputId = "inTabset",
+            target = "p7")
+  })
+  observeEvent(input$sub7, {
+    showTab(inputId= "inTabset",
+            target = "p8")
+    
+  })
   
   
-## terminate app
-  observeEvent(input$sub7,{
+  
+  
+## save and terminate app
+  observeEvent(input$sub8,{
+    ## remove km
+    dist_cult<-gsub("km", "", input$dist_cult)
+    dist_aest<-gsub("km", "", input$dist_aest)
+    dist_recr<-gsub("km", "", input$dist_recr)
+    dist_wild_prod<-gsub("km", "", input$dist_wild_prod)
+    
+    dist_table <-  data.frame(
+      userID = userID,
+      siteID = siteID,
+      dist_cult = as.integer(dist_cult),
+      dist_aes = as.integer(dist_aest),
+      dist_recr = as.integer(dist_recr),
+      dist_wild_prod = as.integer(dist_wild_prod))
+    
+    insert_upload_job("rgee-381312", "data_base", "impact_dist", dist_table)
+    
     stopApp(returnValue = invisible())
   })
   

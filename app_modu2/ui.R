@@ -145,11 +145,12 @@ navbarPage('POC PGIS ES
                     mainPanel(
                       
                       ahpUI("ahp", "ahp #2"),
-                      actionButton('sub7', 'end')
+                      actionButton('sub7', 'next')
                       
                     )),
            tabPanel(title = "Impact distance", value = "p8",
                     mainPanel(
+                      h5("Considering the following four ecosystem services, to which extent do you think a wind turbine could have a negative or positive impact on these?"),
                       sliderTextInput("dist_recr",
                                       "impact on recreation value", 
                                       grid = F,
@@ -157,7 +158,32 @@ navbarPage('POC PGIS ES
                                       choices = c("2km","4km","6km","8km","10km","12km","14km"),
                                       width = "75%"
                                       
-                      )
+                      ),
+                      sliderTextInput("dist_aest",
+                                      "impact on aesthetic values", 
+                                      grid = F,
+                                      force_edges = TRUE,
+                                      choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
+                                      width = "75%"
+                                      
+                      ),
+                      sliderTextInput("dist_cult",
+                                      "impact on cultural values", 
+                                      grid = F,
+                                      force_edges = TRUE,
+                                      choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
+                                      width = "75%"
+                                      
+                      ),
+                      sliderTextInput("dist_wild_prod",
+                                      "impact on wild products", 
+                                      grid = F,
+                                      force_edges = TRUE,
+                                      choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
+                                      width = "75%"
+                                      
+                      ),
+                      actionButton('sub8', 'end')
                     )
              
            )
