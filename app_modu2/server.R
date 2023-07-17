@@ -206,7 +206,7 @@ function(input, output, session) {
     # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
     # w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel,  2, userID, siteID, geometry, vis_qc)
-    v = mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 2, userID, siteID, geometry, maxentviz)
+    v = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, userID, siteID, geometry, maxentviz)
     # output$cond_b4<-renderUI({
     #   if(w() == 1){
     #     actionButton("sub4","next ES")
@@ -231,7 +231,7 @@ function(input, output, session) {
     # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
     # w=mapselectServer("mapping3", sf_bound, comb, rand_es_sel, 3, userID, siteID, geometry, vis_qc)
-    w = mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 3, userID, siteID, geometry, maxentviz)
+    w = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, userID, siteID, geometry, maxentviz)
     # output$cond_b5<-renderUI({
     #   if(u() == 1){
     #     actionButton("sub5","end")
