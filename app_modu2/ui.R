@@ -147,7 +147,20 @@ navbarPage('POC PGIS ES
                       ahpUI("ahp", "ahp #2"),
                       actionButton('sub7', 'end')
                       
-                    ))
+                    )),
+           tabPanel(title = "Impact distance", value = "p8",
+                    mainPanel(
+                      sliderTextInput("dist_recr",
+                                      "impact on recreation value", 
+                                      grid = F,
+                                      force_edges = TRUE,
+                                      choices = c("2km","4km","6km","8km","10km","12km","14km"),
+                                      width = "75%"
+                                      
+                      )
+                    )
+             
+           )
            
            
            

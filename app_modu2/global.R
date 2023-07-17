@@ -20,7 +20,7 @@ library(tidyverse)
 library(bigrquery)
 library(DBI)
 
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_maxent_mod.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_section_module.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_es_module.R")
 #gbq auth
@@ -68,49 +68,31 @@ map_liv<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
   addFeatures(st_sf(plz), layerId = ~seq_len(length(plz)))
 
+
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
-lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=30)
+lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 lulc<-lulc$clip(bound_reg)
 
-dem <- ee$Image('USGS/GMTED2010')$select("be75")
-dem<-dem$clip(bound_reg)
 
+acc_pat<-paste0(ee_get_assethome(), '/acc')
+acc<-ee$Image(acc_pat)
+acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 
-
-## besides single value at point loc from 3 raster, calc zonal stats with moving window for each pts test:
-count_lc<-lulc$select("landcover")$reduceNeighborhood(
-  reducer = ee$Reducer$countDistinct(),
-  kernel = ee$Kernel$circle(3)
-)
-
-#mean elev
-elev_mean<-dem$select("be75")$reduceNeighborhood(
-  reducer = ee$Reducer$mean(),
-  kernel = ee$Kernel$circle(3)
-)
-
-# slope
-slope <- ee$Terrain$slope(dem)
-
-#mean slope
-mean_slope<-slope$select("slope")$reduceNeighborhood(
-  reducer = ee$Reducer$mean(),
-  kernel = ee$Kernel$circle(3)
-)
-
-#aspect
-asp<-ee$Terrain$aspect(dem)
+nat_pat<-paste0(ee_get_assethome(), '/natu')
+nat<-ee$Image(nat_pat)
+nat<-nat$clip(bound_reg)
+nat<-nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+nat<-nat$rename("nat")
 
 # combine unique class count wdw and lulc
-comb<-ee$Image$cat(lulc,dem,count_lc,slope,mean_slope,elev_mean,asp)
-# 
-# ### es samples
-
+comb<-ee$Image$cat(lulc,acc, nat)
+bands <- list("landcover","b1","nat")
 
 ### load ES description table from gbq
 #es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
 es_all<-tbl(con, "es_descr")
-es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%filter(esID == "aes"| esID == "cult" | esID == "recr")%>%collect()
+# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%filter(esID == "aes"| esID == "cult" | esID == "recr")%>%collect()
+es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
 
 
 
@@ -141,14 +123,8 @@ data_copy <- sf::st_as_sf(
 
 
 ### visualization parameter for img, mean
-labels <- c("low", "moderate", "intermediate", "high","very high")
 cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-vis_qc <- list(min = 1, max = 5, palette = cols, values = labels)
-
-### vis param for diff map
-labels_diff <- c("low", "moderate", "intermediate", "high","very high")
-cols_diff<-c("#81ab1f","#c4f25a", "#d8e03f", "#fc8803","#e80909")
-vis_diff <- list(min = 0, max = -4, palette = cols_diff,  values = labels_diff)
+maxentviz = list(bands= 'probability',min= 0, max= 1, palette= cols)
 
 
 
