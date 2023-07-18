@@ -215,16 +215,23 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           # make ee object and save
           gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
           #set features
-          gee_poly <- gee_poly$set('es_id', esID,
-                                   'userID', userID,
-                                   'siteID', siteID,
-                                   'order_id', order,
-                                   'delphi_round', 1)
+          # gee_poly <- gee_poly$set('es_id', esID,
+          #                          'userID', userID,
+          #                          'siteID', siteID,
+          #                          'order_id', order,
+          #                          'delphi_round', 1)
           
-          # #save poly
-          poly_load<-ee_table_to_asset(gee_poly,
+          ## load collection
+          ee_asset_path<-paste0(ee_get_assethome(), "/train_polys_1/base_poly2")
+          ee_poly_old<-ee$FeatureCollection(ee_asset_path)
+          
+          #merge
+          ee_poly_old<-ee_poly_1$merge(gee_poly)
+          
+          # #save poly old with added gee poly
+          poly_load<-ee_table_to_asset(ee_poly_old,
                                        description = "upload poly",
-                                       assetId = paste0(ee_get_assethome(),"/train_polys_1/",userID,"_",esID,"_",siteID),
+                                       assetId = paste0(ee_get_assethome(),"/train_polys_1/","base_poly2"),
                                        overwrite = T
           )
           poly_load$start()
