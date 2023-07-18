@@ -1,0 +1,579 @@
+---
+title: "postprocessing_R1"
+author: "R.Spielhofer"
+date: "2023-05-30"
+output: html_document
+---
+
+This markdown will postprocess the whole data after finishing round 1 of the geospatial data. Before starting round 2 it is necessary to run this script.
+
+Basically this script performs the following steps
+1 AHP
+1.1 compute the individual AHP matrix
+1.2 compute the common importance of all ES
+
+2 Contribution
+2.1 compute individuals contribution to ES with leave one out (RF)
+2.2 compute spatial explicit contribution of individual
+
+# 0. setup
+```{r libraries, include=FALSE}
+library(leaflet)
+library(mapview)
+library(sf)
+library(dplyr)
+library(rgee)
+library(stringi)
+library(tidyverse)
+library(fs)
+library(ahpsurvey)
+library(bigrquery)
+library(DBI)
+```
+
+
+## gee connection and setup
+```{r gee}
+siteID<-"NOR-SNJ"
+
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+labels <- c("low", "moderate", "intermediate", "high","very high")
+cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+vis_qc <- list(min = 1, max = 5, palette = cols, values = labels)
+visprob <- list(min = 0, max = 1, palette = cols)
+
+cols_diff   <- c("#e80909", "#e80909",  "#c4f25a","#c4f25a","#81ab1f")
+vis_diff <- list(min = -2, max = 2, palette = cols_diff, values = labels)
+
+ee_Initialize(user = 'r.spielhofer@bluewin.ch')
+# 
+geometry <- ee$Geometry$Rectangle(
+  coords = c(10.30, 63.35, 10.50, 63.5),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
+
+bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
+
+
+sf_bound <- ee_as_sf(x = bound_reg)
+
+
+lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
+lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+lulc<-lulc$clip(bound_reg)
+
+
+acc_pat<-paste0(ee_get_assethome(), '/acc')
+acc<-ee$Image(acc_pat)
+acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+
+nat_pat<-paste0(ee_get_assethome(), '/natu')
+nat<-ee$Image(nat_pat)
+nat<-nat$clip(bound_reg)
+nat<-nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+nat<-nat$rename("nat")
+
+# combine unique class count wdw and lulc
+comb<-ee$Image$cat(lulc,acc, nat)
+bands <- list("landcover","b1","nat")
+```
+
+## files
+Read comparisons for a single site from BQ
+```{r files / DB}
+# main_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base"
+# ahp<-readRDS(paste0(main_path,"/ahp_es.RDS"))
+
+es_pair <- tbl(con, "es_pair")
+es_pair <- select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == siteID)%>% collect()
+
+# # ahp <- ahp[0, ]
+# # saveRDS(ahp,paste0(main_path,"/ahp_es.RDS"))
+# 
+# es_user<-readRDS(paste0(main_path,"/es_user_data.RDS"))
+# # es_user <- es_user[0, ]
+# # saveRDS(es_user,paste0(main_path,"/es_user_data.RDS"))
+# 
+# rmse<-readRDS(paste0(main_path,"/rmse.RDS"))
+# # rmse <- rmse[0, ]
+# # saveRDS(rmse,paste0(main_path,"/rmse.RDS"))
+# 
+# varimp<-readRDS(paste0(main_path,"/varImp.RDS"))
+# # varimp <- varimp[0, ]
+# # saveRDS(varimp,paste0(main_path,"/varImp.RDS"))
+# 
+# quest<-readRDS(paste0(main_path,"/questionnaire.RDS"))
+# # quest <- quest[0, ]
+# # saveRDS(quest,paste0(main_path,"/questionnaire.RDS"))
+# 
+# es<-readRDS(paste0(main_path,"/es_description.RDS"))
+# #es<-es%>%filter(es_id == "aes"| es_id == "cult" | es_id == "recr")
+# es_conf<-readRDS(paste0(main_path,"/user_conf.RDS"))
+# # es_conf <- es_conf[0, ]
+# # saveRDS(es_conf,paste0(main_path,"/user_conf.RDS"))
+# 
+# geom_path<-paste0(main_path,"/poly_R1")
+# 
+# es_sel<-es%>%select(es_id)
+# #for (i in 1:length(es_id)) { print(es_id[i,])}
+
+
+## ahp processing vars
+group_vec<-es_pair%>%distinct(ahp_section)
+atts4 <- c("cultural","regulating","provisioning")
+atts1 <- c("atmo","nat_haz","biodiv")
+atts2 <- c("aes","cult","recr")
+atts3 <- c("farm","wild","drink_wat","fibres")
+atts_list<-list(atts1,atts2,atts3,atts4)
+user_vec<-es_pair%>%distinct(userID)
+
+```
+
+#1 AHP matrix
+
+## 1.1 individual preferences and consistency
+This section computes the individual preferences for all es and each participant.
+
+```{r}
+
+all_user_list<-list()
+for(u in 1:nrow(user_vec)){
+  all_groups<-es_pair%>%filter(userID %in% user_vec[u,])
+  pref_list<-list() #list to store tmp pref
+  cons_list<-list() #list to store tmp consistencies
+  for (g in 1:nrow(group_vec)) {
+    # subset data
+    data<-all_groups%>%filter(ahp_section %in% group_vec[g,])%>%select(userID,selection_val, ES_left, ES_right)
+    data$pair<-paste0(data$ES_left,"_",data$ES_right)
+    tDat<-data%>%select(selection_val, pair, userID)%>%
+      pivot_wider(id_cols = userID, id_expand = F,  names_from = pair, values_from = selection_val)
+    tDat<-tDat[, -1]
+    
+    ## preferences
+    atts<-atts_list[[g]]
+    
+    ahp_ind <- ahp.mat(df = tDat, atts = atts, negconvert = TRUE)
+    pref<-ahp.aggpref(ahp_ind, atts, method = "geometric", aggmethod = "eigen", qt = 0)
+    a<-as.data.frame(pref)
+    pref_list[[g]]<-a
+    cons_list[g]<-ahp.cr(ahp_ind, atts, ri = NULL)
+    
+  }#close group
+  main<-as.data.frame(t(pref_list[[4]]))
+  reg<-as.data.frame(t(pref_list[[1]]))
+  cul<-as.data.frame(t(pref_list[[2]]))
+  prov<-as.data.frame(t(pref_list[[3]]))
+  
+  ## final ranking of es per respondent
+  reg<-t(reg*main$regulating)
+  cul<-t(cul*main$cultural)
+  prov<-t(prov*main$provisioning)
+  
+  all<-as.data.frame(rbind(reg,prov,cul))
+  all<-all%>%rownames_to_column(var = "esID")
+  all$userID<-rep(user_vec[u,],nrow(all))
+  all$siteID<-rep(siteID,nrow(all))
+  all_user_list[[u]]<-all
+  
+}#close user
+
+es_ranking<-as.data.frame(do.call(rbind, all_user_list))
+es_ranking$userID<-as.character(es_ranking$userID)
+
+insert_upload_job("rgee-381312", "data_base", "ahp_ind", es_ranking)
+
+
+
+
+
+```
+## 1.2 common preferences and consistency
+This section computes the common preference for each es.
+```{r}
+
+pref_list<-list()
+cons_list<-list()
+ for(g in 1:nrow(group_vec)){
+
+  data<-es_pair%>%filter(ahp_section %in% group_vec[g,])%>%select(userID,selection_val, ES_left, ES_right)
+  data$pair<-paste0(data$ES_left,"_",data$ES_right)
+  tDat<-data%>%select(selection_val, pair, userID)%>%
+      pivot_wider(id_cols = userID, id_expand = F,  names_from = pair, values_from = selection_val)
+  tDat<-tDat[, -1]
+    
+    ## preferences
+  atts<-atts_list[[g]]
+    
+  ahp_all <- ahp.mat(df = tDat, atts = atts, negconvert = TRUE)
+  pref<-ahp.aggpref(ahp_all, atts, method = "geometric", aggmethod = "eigen", qt = 0)
+  
+  
+  a<-as.data.frame(pref)
+  pref_list[[g]]<-a
+  # cons_list[group_vec[g,]]<-ahp.cr(ahp_all, atts, ri = NULL)
+}
+
+main<-as.data.frame(t(pref_list[[4]]))
+reg<-as.data.frame(t(pref_list[[1]]))
+cul<-as.data.frame(t(pref_list[[2]]))
+prov<-as.data.frame(t(pref_list[[3]]))
+
+  ## final ranking of es per respondent
+reg<-t(reg*main$regulating)
+cul<-t(cul*main$cultural)
+prov<-t(prov*main$provisioning)
+  
+all<-as.data.frame(rbind(reg,prov,cul))
+all<-all%>%rownames_to_column(var = "esID")
+all$siteID<-rep(siteID,nrow(all))
+
+insert_upload_job("rgee-381312", "data_base", "ahp_all", all)
+
+```
+
+
+# 2. Individual`s contribution to common ES map
+
+## 2.1 leave one out RF
+1) import all ES polygons per ES --> 10 multipolygon
+```{r}
+file_list <- as.list(list.files(geom_path, pattern = "*shp", full.names = TRUE))
+# Getting all file paths
+shapefiles <- geom_path |>
+  dir_ls(recurse = TRUE) |>
+  str_subset('.shp$')
+
+# Loading all files
+sfdf <- shapefiles |>
+  map(st_read) |>
+  bind_rows()
+
+
+
+```
+
+2) compute 10 maps RF with all participants available --> store RMSE & Varimp
+```{r}
+
+# overall map per es
+for (i in 1:nrow(es_sel)) {
+  poly_sub<-sfdf%>%filter(es_id==es_sel[i,] & userID == "qtiFvmL7rn")
+  gee_poly<-rgee::sf_as_ee(poly_sub, via = "getInfo")
+  
+  bands <- list("landcover","be75","landcover_count","slope","slope_mean","aspect")
+        
+  poly_pts = comb$select(bands)$sampleRegions(collection= gee_poly,
+                                                    properties = list("es_valu"),
+                                                    scale = 100,
+                                                    geometries = T
+        )
+  
+  
+  poly_pts = poly_pts$randomColumn('random')
+        
+  #split data
+  training = poly_pts$filter(ee$Filter$gt('random',0.3)) # 70% training
+  validation = poly_pts$filter(ee$Filter$lte('random',0.3)) # 30% testing
+        
+        
+  rfReg <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION ")$train(
+          features=training,
+          classProperty= "es_valu",
+          inputProperties = bands
+        )
+  
+  
+  
+  # col_pat<-paste0(ee_get_assethome(), '/R_1/ind_maps')
+  # esMean<- ee$ImageCollection(col_pat)$filter(ee$Filter$eq("es_id",es_sel[i,]))
+  # esMean<-esMean$mean()
+  # 
+    rfClass <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$train(
+          features=training,
+          classProperty= "es_valu",
+          inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
+        )
+
+  esPred_calss <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfClass, "predicted")
+  esPred = esPred$updateMask(esPred$gte(0.5))
+
+  #    
+  # esPred_calss <- esPred_calss$set('es_id', es_sel[i,],
+  #                            'userID', "all")
+        
+  esPred <- comb$select(bands)$classify(rfReg, "predicted")
+  # esPred <- esPred$set('es_id', es_sel[i,],
+  #                            'userID', "all")
+  # 
+  
+       # Map$addLayer(
+       #    eeObject = esPred_calss,
+       #    vis_qc,
+       #    opacity = 0.7
+       #  ) |
+        m1<- Map$addLayer(
+          eeObject = esPred,
+          # vis_qc,
+          opacity = 0.7
+        )
+        cent_poly <- st_centroid(poly_sub)
+        
+        leaflet(poly_sub)%>%
+        addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
+                    opacity = 1.0, fillOpacity = 0, group = "editable")%>%
+       addLabelOnlyMarkers(data = cent_poly,
+                           lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
+                           labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
+                                                       style = list(
+                                                         "color" = "red",
+                                                         "font-family" = "serif",
+                                                         "font-style" = "bold",
+                                                         "font-size" = "20px"
+                                                       ))) + m1
+  
+  
+  #save
+  assetid <- paste0(ee_get_assethome(), '/R_1/all_part/',"1_",es_sel[i,])
+ 
+  start_time<-Sys.time()
+  task_img <- ee_image_to_asset(
+          image = esPred,
+          assetId = assetid,
+          overwrite = F,
+          region = geometry
+        )
+        
+   task_img$start()
+   
+    ## retrieve covariate importance
+        varImp = rfReg$explain()$get("importance")$getInfo()%>% #get importance
+          as_tibble()%>%#make tibble
+          pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
+          arrange(desc(value))%>% #sort decreasing values
+          slice(1:10)
+        varImp$rel<-varImp$value/sum(varImp$value)
+        varImp$es_ak<-rep(es_sel[i,],nrow(varImp))
+        varImp$userID<-rep("all",nrow(varImp))
+
+        
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
+        b<-rbind(b,varImp)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
+        
+        # retrieve model quality and
+        pred = validation$classify(rfReg, "predictions")$
+          select(c("es_valu", "predictions"))
+        
+        
+        ### rmse of validation
+        #get residuals
+        addResid <- function(feature) {
+          res <- ee$Number(feature$get("es_valu"))$ #subtract observed from predicted
+            subtract(ee$Number(feature$get("predictions")))
+          feature$set(list(res = res)) #create new feature in featureCollection
+        }
+        
+        #apply function to FeatureCollection for residuals
+        res = pred$map(addResid)
+        
+        #calculate RMSE
+        rmse = ee$Array(res$aggregate_array("res"))$
+          pow(2)$ #square it
+          reduce("mean", list(0))$ #get mean for the residuals
+          sqrt()
+        
+        #print RMSE
+        a<-as.data.frame(rmse$getInfo())
+        a$userID<-"all"
+        a$es_ak<-es_sel[i,]
+        colnames(a)<-c("RMSE","userID","es_ak")
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
+        b<-rbind(b,a)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
+      
+   
+   
+   ## see if it worked
+   # a<-poly_sub%>%distinct(userID)
+   # 
+   # ind<-ee$ImageCollection(paste0(ee_get_assethome(), '/R_1/ind_maps'))$filter(ee$Filter$eq('userID', a[1,]))$filter(ee$Filter$eq('es_id',es_sel[i,]))$toBands()
+   # 
+   # ind<-ee$Image(ind)
+   # 
+        
+   vis_prob<-
+     
+   Map$setCenter(10.38649, 63.40271,10)
+   esPred_calss = esPred_calss$updateMask(esPred_calss$gte(5))
+   m1<-Map$addLayer(
+          eeObject = esPred,
+          opacity = 0.4
+        )     |    Map$addLegend(
+         )
+   
+   cent_poly <- st_centroid(poly_sub)
+   map<-leaflet(poly_sub)%>%
+          addPolygons(color = "blue", weight = 3, smoothFactor = 0.5,
+                      opacity = 1.0, fillOpacity = 0)%>%
+          addLabelOnlyMarkers(data = cent_poly,
+                              lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
+                              labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
+                                                          style = list(
+                                                            "color" = "red",
+                                                            "font-family" = "serif",
+                                                            "font-style" = "bold",
+                                                            "font-size" = "20px"
+                                                          )))+m1
+   
+
+
+   
+}
+
+
+
+
+```
+
+
+
+
+3) For each participant (N) compute RF model without his polys (leave one out) diff in RMSE --> contribution?
+
+```{r}
+# es_sel<-as.data.frame("recr")
+
+
+userids<-poly_sub%>%distinct(userID)
+for(m in 1: 1:nrow(es_sel)){
+  for(n in 1: nrow(userids)){
+  #leave one out
+  poly_sub<-sfdf%>%filter(es_id==es_sel[m,] & userID != userids[n,] )
+  
+  gee_poly<-rgee::sf_as_ee(poly_sub, via = "getInfo")
+  
+  bands <- c("landcover","be75","landcover_count","slope","slope_mean","aspect")
+        
+  poly_pts = comb$select(bands)$sampleRegions(collection= gee_poly,
+                                                    properties = list("es_valu"),
+                                                    scale = 100,
+                                                    geometries = T
+        )
+  
+  
+  poly_pts = poly_pts$randomColumn('random')
+        
+  #split data
+  training = poly_pts$filter(ee$Filter$gt('random',0.3)) # 70% training
+  validation = poly_pts$filter(ee$Filter$lte('random',0.3)) # 30% testing
+        
+        
+  rfReg <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION")$train(
+          features=training,
+          classProperty= "es_valu",
+          inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
+        )
+        
+  esPred <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfReg, "predicted")
+  esPred <- esPred$set('es_id',es_sel[m,] ,
+                             'left_out_userID', userids[n,])
+  
+  
+  #save
+  assetid <- paste0(ee_get_assethome(), '/R_1/leave_one_out/',"1_",es_sel[m,],"_",userids[n,])
+ 
+  start_time<-Sys.time()
+  task_img <- ee_image_to_asset(
+          image = esPred,
+          assetId = assetid,
+          overwrite = F,
+          region = geometry
+        )
+        
+   task_img$start()
+   
+    ## retrieve covariate importance
+        varImp = rfReg$explain()$get("importance")$getInfo()%>% #get importance
+          as_tibble()%>%#make tibble
+          pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
+          arrange(desc(value))%>% #sort decreasing values
+          slice(1:10)
+        varImp$rel<-varImp$value/sum(varImp$value)
+        varImp$es_ak<-rep(es_sel[m,],nrow(varImp))
+        varImp$leftout_userID<-rep(userids[n,],nrow(varImp))
+
+        
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp_leftout.rds")
+        b<-rbind(b,varImp)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp_leftout.rds")
+        
+        # retrieve model quality and
+        pred = validation$classify(rfReg, "predictions")$
+          select(c("es_valu", "predictions"))
+        
+        
+        ### rmse of validation
+        #get residuals
+        addResid <- function(feature) {
+          res <- ee$Number(feature$get("es_valu"))$ #subtract observed from predicted
+            subtract(ee$Number(feature$get("predictions")))
+          feature$set(list(res = res)) #create new feature in featureCollection
+        }
+        
+        #apply function to FeatureCollection for residuals
+        res = pred$map(addResid)
+        
+        #calculate RMSE
+        rmse = ee$Array(res$aggregate_array("res"))$
+          pow(2)$ #square it
+          reduce("mean", list(0))$ #get mean for the residuals
+          sqrt()
+        
+        #print RMSE
+        a<-as.data.frame(rmse$getInfo())
+        a$leftout_userID<-userids[n,]
+        a$es_ak<-es_sel[m,]
+        colnames(a)<-c("RMSE","leftout_userID","es_ak")
+        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE_leftout.rds")
+        b<-rbind(b,a)
+        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE_leftout.rds")
+  
+  
+}
+}
+
+
+
+```
+
+
+## 2.2 areas of high contribution
+1) ES all - ES all without participant XY?
+
+```{r}
+es_selected<-"recr"
+
+leftout<-ee$ImageCollection(paste0(ee_get_assethome(), '/R_1/leave_one_out'))$filter(ee$Filter$eq('left_out_userID', "KUUFYZ5gYt"))$filter(ee$Filter$eq('es_id',"recr"))$toBands()
+
+all<-ee$Image(paste0(ee_get_assethome(), '/R_1/all_part/1_recr'))
+
+diff<-all$subtract(leftout)
+
+Map$addLayer(
+        eeObject = diff,
+        vis_diff,
+        opacity = .7
+      )
+
+```
+
