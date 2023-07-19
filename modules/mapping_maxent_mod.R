@@ -205,10 +205,15 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           for(i in 1: nrow(polygon)){
             polygon$drawing_order[i] <- as.integer(i)
             # # UID of each single poly
-            polygon$polyUID[i]<-paste0(userID,"_",esID,"_",siteID,"_",polygon$drawing_order[i])
+            # polygon$polyUID[i]<-paste0(userID,"_",esID,"_",siteID,"_",polygon$drawing_order[i])
           }
           n_polys <-nrow(polygon)
           polygon<-st_as_sf(polygon)
+          
+          ## save as shp (up to now)
+          polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/',userID,"_",esID,"_",siteID,".shp")
+          ## save poly
+          st_write(polygon,polypath)
           
           poly_area<-as.numeric(sum(st_area(polygon)))
           
@@ -221,20 +226,20 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           #                          'order_id', order,
           #                          'delphi_round', 1)
           
-          ## load collection
-          ee_asset_path<-paste0(ee_get_assethome(), "/train_polys_1/base_poly2")
-          ee_poly_old<-ee$FeatureCollection(ee_asset_path)
-          
-          #merge
-          ee_poly_old<-ee_poly_1$merge(gee_poly)
-          
-          # #save poly old with added gee poly
-          poly_load<-ee_table_to_asset(ee_poly_old,
-                                       description = "upload poly",
-                                       assetId = paste0(ee_get_assethome(),"/train_polys_1/","base_poly2"),
-                                       overwrite = T
-          )
-          poly_load$start()
+          ## load full collection
+          # ee_asset_path<-paste0(ee_get_assethome(), "/train_polys")
+          # ee_poly_old<-ee$FeatureCollection(ee_asset_path)
+          # 
+          # #merge
+          # ee_poly_old<-ee_poly_old$merge(gee_poly)
+          # 
+          # # #save poly old with added gee poly
+          # poly_load<-ee_table_to_asset(ee_poly_old,
+          #                              description = "upload poly",
+          #                              assetId = ee_asset_path,
+          #                              overwrite = T
+          # )
+          # poly_load$start()
           
           
           ############ training pts
