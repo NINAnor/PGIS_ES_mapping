@@ -365,7 +365,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           prediction<-imageClassified$select("probability")
           
           ############ save map
-          incProgress(amount = 0.2,message = "save geodata")
+          incProgress(amount = 0.2,message = "store your map")
           img_assetid <- paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",userID,"_",esID,"_", siteID)
           
           #set features of img

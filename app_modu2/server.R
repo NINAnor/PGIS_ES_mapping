@@ -296,6 +296,7 @@ function(input, output, session) {
   
 ## save and terminate app
   observeEvent(input$sub8,{
+    userID<-userID()
     ## remove km
     dist_cult<-gsub("km", "", input$dist_cult)
     dist_aest<-gsub("km", "", input$dist_aest)
