@@ -328,7 +328,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           # varImp$esID<-rep(esID,nrow(varImp))
           # varImp$siteID<-rep(siteID,nrow(varImp))
           # varImp$userID<-rep(userID,nrow(varImp))
-          # varImp$spatial_delphi_round<-rep(1,nrow(varImp))
+          # varImp$spatial_delphi_round<-rep(as.integer(1),nrow(varImp))
           # varImp<-varImp%>%filter(name !="__unused__")
           # colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID","spatial_delphi_round")
           # insert_upload_job("rgee-381312", "data_base", "var_imp", varImp)

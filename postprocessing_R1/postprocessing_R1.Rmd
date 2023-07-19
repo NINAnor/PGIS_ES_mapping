@@ -464,7 +464,7 @@ for(m in 1: 1:nrow(eslist)){
           varImp$esID<-rep(eslist[m,],nrow(varImp))
           varImp$siteID<-rep(siteID_analysis,nrow(varImp))
           varImp$userID<-rep(userlist[n,],nrow(varImp))
-          varImp$spatial_delphi_round<-rep(1,nrow(varImp))
+          varImp$spatial_delphi_round<-rep(as.integer(1),nrow(varImp))
           varImp<-varImp%>%filter(name !="__unused__")
           colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID","spatial_delphi_round")
           ## store on bq
