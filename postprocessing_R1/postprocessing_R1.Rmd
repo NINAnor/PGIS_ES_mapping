@@ -8,12 +8,13 @@ output: html_document
 This markdown will postprocess the whole data after finishing round 1 of the geospatial data. Before starting round 2 it is necessary to run this script.
 
 Basically this script performs the following steps
-1 AHP
+1 individual and common importance ranking of ES with AHP
 1.1 compute the individual AHP matrix
-1.2 compute the common importance of all ES
+1.2 compute the common AHP matrix
 
-2 Contribution
-2.1 compute individuals contribution to ES with leave one out (RF)
+2 Contribution of a single participant to the consensus map for each ES
+
+2.1 compute individuals contribution to ES with leave one out (LOO-MaxEnt)
 2.2 compute spatial explicit contribution of individual
 
 # 0. setup
@@ -32,9 +33,9 @@ library(DBI)
 ```
 
 
-## gee connection and setup
+## gee/BQ connection and setup
 ```{r gee}
-siteID<-"NOR-SNJ"
+siteID_analysis<-"NOR-SNJ"
 
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
 con <- dbConnect(
@@ -44,10 +45,23 @@ con <- dbConnect(
   billing = "rgee-381312"
 )
 
-labels <- c("low", "moderate", "intermediate", "high","very high")
+
+## get sf_bound according to siteID
+site <- tbl(con, "study_site")
+adm_code <- select(site, siteID, siteADM2) %>%filter(siteID == siteID_analysis)%>%select(siteADM2)%>% collect()
+adm_code<-as.numeric(adm_code)
+
+bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",adm_code))
+
+
+sf_bound <- ee_as_sf(x = bound_reg)
+
+# path of geometries (training polys)-- change to DB solution
+geom_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1"
+
 cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-vis_qc <- list(min = 1, max = 5, palette = cols, values = labels)
-visprob <- list(min = 0, max = 1, palette = cols)
+maxentviz = list(bands= 'probability',min= 0, max= 1, palette= cols)
 
 cols_diff   <- c("#e80909", "#e80909",  "#c4f25a","#c4f25a","#81ab1f")
 vis_diff <- list(min = -2, max = 2, palette = cols_diff, values = labels)
@@ -60,14 +74,7 @@ geometry <- ee$Geometry$Rectangle(
   geodesic = FALSE
 )
 
-
-bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
-  filter(ee$Filter$eq("ADM2_CODE",23463))
-
-
-sf_bound <- ee_as_sf(x = bound_reg)
-
-
+## ee layers
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
 lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 lulc<-lulc$clip(bound_reg)
@@ -88,45 +95,13 @@ comb<-ee$Image$cat(lulc,acc, nat)
 bands <- list("landcover","b1","nat")
 ```
 
-## files
-Read comparisons for a single site from BQ
+#1 Importance of ES
+## Read data
+Read pairwise comparisons for a single site from BQ
 ```{r files / DB}
-# main_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base"
-# ahp<-readRDS(paste0(main_path,"/ahp_es.RDS"))
 
 es_pair <- tbl(con, "es_pair")
 es_pair <- select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == siteID)%>% collect()
-
-# # ahp <- ahp[0, ]
-# # saveRDS(ahp,paste0(main_path,"/ahp_es.RDS"))
-# 
-# es_user<-readRDS(paste0(main_path,"/es_user_data.RDS"))
-# # es_user <- es_user[0, ]
-# # saveRDS(es_user,paste0(main_path,"/es_user_data.RDS"))
-# 
-# rmse<-readRDS(paste0(main_path,"/rmse.RDS"))
-# # rmse <- rmse[0, ]
-# # saveRDS(rmse,paste0(main_path,"/rmse.RDS"))
-# 
-# varimp<-readRDS(paste0(main_path,"/varImp.RDS"))
-# # varimp <- varimp[0, ]
-# # saveRDS(varimp,paste0(main_path,"/varImp.RDS"))
-# 
-# quest<-readRDS(paste0(main_path,"/questionnaire.RDS"))
-# # quest <- quest[0, ]
-# # saveRDS(quest,paste0(main_path,"/questionnaire.RDS"))
-# 
-# es<-readRDS(paste0(main_path,"/es_description.RDS"))
-# #es<-es%>%filter(es_id == "aes"| es_id == "cult" | es_id == "recr")
-# es_conf<-readRDS(paste0(main_path,"/user_conf.RDS"))
-# # es_conf <- es_conf[0, ]
-# # saveRDS(es_conf,paste0(main_path,"/user_conf.RDS"))
-# 
-# geom_path<-paste0(main_path,"/poly_R1")
-# 
-# es_sel<-es%>%select(es_id)
-# #for (i in 1:length(es_id)) { print(es_id[i,])}
-
 
 ## ahp processing vars
 group_vec<-es_pair%>%distinct(ahp_section)
@@ -139,10 +114,8 @@ user_vec<-es_pair%>%distinct(userID)
 
 ```
 
-#1 AHP matrix
-
 ## 1.1 individual preferences and consistency
-This section computes the individual preferences for all es and each participant.
+This section computes the individual preferences for all es and each participant. It stores the result in the BQ table "ahp_ind".
 
 ```{r}
 
@@ -192,13 +165,10 @@ es_ranking$userID<-as.character(es_ranking$userID)
 
 insert_upload_job("rgee-381312", "data_base", "ahp_ind", es_ranking)
 
-
-
-
-
 ```
+
 ## 1.2 common preferences and consistency
-This section computes the common preference for each es.
+This section computes the common preference for each ES and stores the results in the "ahp_all" table.
 ```{r}
 
 pref_list<-list()
@@ -243,8 +213,11 @@ insert_upload_job("rgee-381312", "data_base", "ahp_all", all)
 
 
 # 2. Individual`s contribution to common ES map
+This section recomputes the spatial extrapolation of each ES using Maxent but leaves out each participant once. I then calculates the importance of each participant and the areas the participant contributed most to the consensus map.
 
-## 2.1 leave one out RF
+## 2.1 leave one out MaxEnt
+(read from local files nneds to be changed!!)
+
 1) import all ES polygons per ES --> 10 multipolygon
 ```{r}
 file_list <- as.list(list.files(geom_path, pattern = "*shp", full.names = TRUE))
@@ -266,314 +239,283 @@ sfdf <- shapefiles |>
 ```{r}
 
 # overall map per es
-for (i in 1:nrow(es_sel)) {
-  poly_sub<-sfdf%>%filter(es_id==es_sel[i,] & userID == "qtiFvmL7rn")
-  gee_poly<-rgee::sf_as_ee(poly_sub, via = "getInfo")
+eslist<-sfdf%>%filter(siteID == siteID_analysis)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+
+
+for (i in 1:nrow(eslist)) {
+  polygon<-sfdf%>%filter(esID==eslist[i,])
+  gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
   
-  bands <- list("landcover","be75","landcover_count","slope","slope_mean","aspect")
-        
-  poly_pts = comb$select(bands)$sampleRegions(collection= gee_poly,
-                                                    properties = list("es_valu"),
-                                                    scale = 100,
+   ############ training pts
+
+   ## N background (outside poly points) according to area of extrapolation
+          A_roi<-as.numeric(st_area(sf_bound))
+          # area of smallest poly
+          A_min<-as.numeric(min(st_area(polygon)))
+          # area of largest poly
+          A_max<-as.numeric(max(st_area(polygon)))       
+          
+          # max pts for efficient extrapolation each 250x250 cell
+          max_pts<- round(A_roi/(300*300),0)
+          
+          #union of poly in case overlapping
+          poly_uni<-st_union(polygon)
+          
+          # ratio poly area union vs whole area
+          poly_area<-as.numeric(sum(st_area(poly_uni)))
+          ratio_A<-poly_area/A_roi
+          
+          ## although zooming on the map while drawing is limited, we assure that at least 10pts are within a poly
+          min_in_pts<-10
+          abs_min_res<-100
+          min_in_eff_pts<-(sqrt(A_min)/abs_min_res)^2
+          
+          
+          if(min_in_eff_pts<min_in_pts){
+            pts_min <- min_in_pts
+          } else {
+            pts_min <- min_in_eff_pts
+          }
+          
+          # amount of background pts
+          pts_out<-round(1/ratio_A*pts_min,0)
+          
+          # sample backgraound pts
+          # pts_out = st_sample(sf_bound, pts_out,type="random")
+          pts_out = st_sample(sf_bound, max_pts,type="random")
+          
+
+          # don`t allow intersection with polygons
+          pts_out <- st_difference(st_combine(pts_out), st_combine(test_union)) %>% st_cast('POINT')
+          pts_out<-st_as_sf(pts_out)
+          pts_out$inside<-rep(0,nrow(pts_out))
+          pts_all<-pts_out
+          
+          # inside pts are area + es value weighted
+          for (a in 1:nrow(polygon)) {
+            A_tmp <- as.numeric(st_area(polygon[a,]))
+            #tmp_ratio<-A_tmp/A_min
+            tmp_ratio<-A_tmp/A_roi
+            # npts in this poly must be max_pts*tmp_ratio*es_value
+            #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
+            tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*polygon[a,]$es_valu,type="random")
+            tmp_pts<-st_as_sf(tmp_pts)
+            tmp_pts$inside<-rep(1,nrow(tmp_pts))
+            pts_ee<-rbind(pts_all,tmp_pts)
+            
+          }
+          # ee object of sampling pts 6k pts = 7sec
+          pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
+          
+          # define target bands of comb (indep. var) and sample vars by pts
+          pts_ee = comb$select(bands)$sampleRegions(collection= pts_ee,
+                                                    properties = list("inside"),
                                                     geometries = T
-        )
-  
-  
-  poly_pts = poly_pts$randomColumn('random')
-        
-  #split data
-  training = poly_pts$filter(ee$Filter$gt('random',0.3)) # 70% training
-  validation = poly_pts$filter(ee$Filter$lte('random',0.3)) # 30% testing
-        
-        
-  rfReg <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION ")$train(
-          features=training,
-          classProperty= "es_valu",
-          inputProperties = bands
-        )
-  
-  
-  
-  # col_pat<-paste0(ee_get_assethome(), '/R_1/ind_maps')
-  # esMean<- ee$ImageCollection(col_pat)$filter(ee$Filter$eq("es_id",es_sel[i,]))
-  # esMean<-esMean$mean()
-  # 
-    rfClass <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$train(
-          features=training,
-          classProperty= "es_valu",
-          inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
-        )
+          )
+          
+          ############ maxent
 
-  esPred_calss <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfClass, "predicted")
-  esPred = esPred$updateMask(esPred$gte(0.5))
-
-  #    
-  # esPred_calss <- esPred_calss$set('es_id', es_sel[i,],
-  #                            'userID', "all")
-        
-  esPred <- comb$select(bands)$classify(rfReg, "predicted")
-  # esPred <- esPred$set('es_id', es_sel[i,],
-  #                            'userID', "all")
-  # 
-  
-       # Map$addLayer(
-       #    eeObject = esPred_calss,
-       #    vis_qc,
-       #    opacity = 0.7
-       #  ) |
-        m1<- Map$addLayer(
-          eeObject = esPred,
-          # vis_qc,
-          opacity = 0.7
-        )
-        cent_poly <- st_centroid(poly_sub)
-        
-        leaflet(poly_sub)%>%
-        addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
-                    opacity = 1.0, fillOpacity = 0, group = "editable")%>%
-       addLabelOnlyMarkers(data = cent_poly,
-                           lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
-                           labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
-                                                       style = list(
-                                                         "color" = "red",
-                                                         "font-family" = "serif",
-                                                         "font-style" = "bold",
-                                                         "font-size" = "20px"
-                                                       ))) + m1
-  
-  
-  #save
-  assetid <- paste0(ee_get_assethome(), '/R_1/all_part/',"1_",es_sel[i,])
- 
-  start_time<-Sys.time()
-  task_img <- ee_image_to_asset(
-          image = esPred,
-          assetId = assetid,
-          overwrite = F,
-          region = geometry
-        )
-        
-   task_img$start()
-   
-    ## retrieve covariate importance
-        varImp = rfReg$explain()$get("importance")$getInfo()%>% #get importance
-          as_tibble()%>%#make tibble
-          pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
-          arrange(desc(value))%>% #sort decreasing values
-          slice(1:10)
-        varImp$rel<-varImp$value/sum(varImp$value)
-        varImp$es_ak<-rep(es_sel[i,],nrow(varImp))
-        varImp$userID<-rep("all",nrow(varImp))
-
-        
-        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
-        b<-rbind(b,varImp)
-        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp.rds")
-        
-        # retrieve model quality and
-        pred = validation$classify(rfReg, "predictions")$
-          select(c("es_valu", "predictions"))
-        
-        
-        ### rmse of validation
-        #get residuals
-        addResid <- function(feature) {
-          res <- ee$Number(feature$get("es_valu"))$ #subtract observed from predicted
-            subtract(ee$Number(feature$get("predictions")))
-          feature$set(list(res = res)) #create new feature in featureCollection
-        }
-        
-        #apply function to FeatureCollection for residuals
-        res = pred$map(addResid)
-        
-        #calculate RMSE
-        rmse = ee$Array(res$aggregate_array("res"))$
-          pow(2)$ #square it
-          reduce("mean", list(0))$ #get mean for the residuals
-          sqrt()
-        
-        #print RMSE
-        a<-as.data.frame(rmse$getInfo())
-        a$userID<-"all"
-        a$es_ak<-es_sel[i,]
-        colnames(a)<-c("RMSE","userID","es_ak")
-        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
-        b<-rbind(b,a)
-        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE.rds")
-      
-   
-   
-   ## see if it worked
-   # a<-poly_sub%>%distinct(userID)
-   # 
-   # ind<-ee$ImageCollection(paste0(ee_get_assethome(), '/R_1/ind_maps'))$filter(ee$Filter$eq('userID', a[1,]))$filter(ee$Filter$eq('es_id',es_sel[i,]))$toBands()
-   # 
-   # ind<-ee$Image(ind)
-   # 
-        
-   vis_prob<-
-     
-   Map$setCenter(10.38649, 63.40271,10)
-   esPred_calss = esPred_calss$updateMask(esPred_calss$gte(5))
-   m1<-Map$addLayer(
-          eeObject = esPred,
-          opacity = 0.4
-        )     |    Map$addLegend(
-         )
-   
-   cent_poly <- st_centroid(poly_sub)
-   map<-leaflet(poly_sub)%>%
-          addPolygons(color = "blue", weight = 3, smoothFactor = 0.5,
-                      opacity = 1.0, fillOpacity = 0)%>%
-          addLabelOnlyMarkers(data = cent_poly,
-                              lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
-                              labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
-                                                          style = list(
-                                                            "color" = "red",
-                                                            "font-family" = "serif",
-                                                            "font-style" = "bold",
-                                                            "font-size" = "20px"
-                                                          )))+m1
-   
+          mEntclass = ee$Classifier$amnhMaxent()$train(
+            features = pts_ee,
+            classProperty = 'inside',
+            inputProperties = bands
+          )
+          
+          imageClassified = comb$select(bands)$classify(mEntclass)
+          
+          ### varImp and ROC takes a lot of time -- postprocessing?
+          varImp<- mEntclass$explain()$get("Contributions")$getInfo()%>% #get importance
+            as_tibble()%>%#make tibble
+            pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
+            arrange(desc(value))%>% #sort decreasing values
+            slice(1:10)
+          
+          varImp$esID<-rep(eslist[i,],nrow(varImp))
+          varImp$siteID<-rep(siteID_analysis,nrow(varImp))
+          varImp$userID<-rep("all_user",nrow(varImp))
+          varImp<-varImp%>%filter(name !="__unused__")
+          colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID")
 
 
-   
+          AUC_maxent<-mEntclass$explain()$get("Training AUC")$getInfo()%>% #get importance
+            as_tibble()
+  
+          img_assetid <- paste0(ee_get_assethome(), '/R_1/all_part/',eslist[i,],"_", siteID_analysis)
+          
+          #set features of img
+          imageClassified <- imageClassified$set('es_id', eslist[i,],
+                                       'siteID', siteID_analysis)
+          
+          start_time<-Sys.time()
+          task_img <- ee_image_to_asset(
+            image = imageClassified,
+            assetId = img_assetid,
+            overwrite = T,
+            region = geometry
+          )
+          
+          task_img$start()
+print("============= next ES==============")
 }
-
 
 
 
 ```
 
-
-
-
-3) For each participant (N) compute RF model without his polys (leave one out) diff in RMSE --> contribution?
-
+### LOO
 ```{r}
 # es_sel<-as.data.frame("recr")
 
+eslist<-sfdf%>%filter(siteID == siteID_analysis)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+A_roi<-as.numeric(st_area(sf_bound))
 
-userids<-poly_sub%>%distinct(userID)
-for(m in 1: 1:nrow(es_sel)){
-  for(n in 1: nrow(userids)){
-  #leave one out
-  poly_sub<-sfdf%>%filter(es_id==es_sel[m,] & userID != userids[n,] )
+for(m in 1: 1:nrow(eslist)){
+  ## for each es_list we need to find the distinct users
+  userlist<-sfdf%>%filter(siteID == siteID_analysis, esID == eslist[m,])%>%select(userID)%>%st_drop_geometry()%>%distinct()
+
+  for(n in 1: nrow(userlist)){
+    #leave nth user out
+    polygon<-sfdf%>%filter(esID==eslist[m,] & userID != userlist[n,] )
   
-  gee_poly<-rgee::sf_as_ee(poly_sub, via = "getInfo")
-  
-  bands <- c("landcover","be75","landcover_count","slope","slope_mean","aspect")
-        
-  poly_pts = comb$select(bands)$sampleRegions(collection= gee_poly,
-                                                    properties = list("es_valu"),
-                                                    scale = 100,
+    gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
+    
+    ## N background (outside poly points) according to area of extrapolation
+          
+          # area of smallest poly
+          A_min<-as.numeric(min(st_area(polygon)))
+          # area of largest poly
+          A_max<-as.numeric(max(st_area(polygon)))       
+          
+          # max pts for efficient extrapolation each 250x250 cell
+          max_pts<- round(A_roi/(300*300),0)
+          
+          #union of poly in case overlapping
+          poly_uni<-st_union(polygon)
+          
+          # ratio poly area union vs whole area
+          poly_area<-as.numeric(sum(st_area(poly_uni)))
+          ratio_A<-poly_area/A_roi
+          
+          ## although zooming on the map while drawing is limited, we assure that at least 10pts are within a poly
+          min_in_pts<-10
+          abs_min_res<-100
+          min_in_eff_pts<-(sqrt(A_min)/abs_min_res)^2
+          
+          
+          if(min_in_eff_pts<min_in_pts){
+            pts_min <- min_in_pts
+          } else {
+            pts_min <- min_in_eff_pts
+          }
+          
+          # amount of background pts
+          pts_out<-round(1/ratio_A*pts_min,0)
+          
+          # sample backgraound pts
+          # pts_out = st_sample(sf_bound, pts_out,type="random")
+          pts_out = st_sample(sf_bound, max_pts,type="random")
+          
+
+          # don`t allow intersection with polygons
+          pts_out <- st_difference(st_combine(pts_out), st_combine(test_union)) %>% st_cast('POINT')
+          pts_out<-st_as_sf(pts_out)
+          pts_out$inside<-rep(0,nrow(pts_out))
+          pts_all<-pts_out
+          
+          # inside pts are area + es value weighted
+          for (a in 1:nrow(polygon)) {
+            A_tmp <- as.numeric(st_area(polygon[a,]))
+            #tmp_ratio<-A_tmp/A_min
+            tmp_ratio<-A_tmp/A_roi
+            # npts in this poly must be max_pts*tmp_ratio*es_value
+            #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
+            tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*polygon[a,]$es_valu,type="random")
+            tmp_pts<-st_as_sf(tmp_pts)
+            tmp_pts$inside<-rep(1,nrow(tmp_pts))
+            pts_ee<-rbind(pts_all,tmp_pts)
+            
+          }
+          # ee object of sampling pts 6k pts = 7sec
+          pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
+          
+          # define target bands of comb (indep. var) and sample vars by pts
+          pts_ee = comb$select(bands)$sampleRegions(collection= pts_ee,
+                                                    properties = list("inside"),
                                                     geometries = T
-        )
-  
-  
-  poly_pts = poly_pts$randomColumn('random')
-        
-  #split data
-  training = poly_pts$filter(ee$Filter$gt('random',0.3)) # 70% training
-  validation = poly_pts$filter(ee$Filter$lte('random',0.3)) # 30% testing
-        
-        
-  rfReg <- ee$Classifier$smileRandomForest(100, NULL, 1,0.5,NULL,0)$setOutputMode("REGRESSION")$train(
-          features=training,
-          classProperty= "es_valu",
-          inputProperties = list("landcover","be75","landcover_count","slope","slope_mean","aspect")
-        )
-        
-  esPred <- comb$select("landcover","be75","landcover_count","slope","slope_mean","aspect")$classify(rfReg, "predicted")
-  esPred <- esPred$set('es_id',es_sel[m,] ,
-                             'left_out_userID', userids[n,])
-  
-  
-  #save
-  assetid <- paste0(ee_get_assethome(), '/R_1/leave_one_out/',"1_",es_sel[m,],"_",userids[n,])
- 
-  start_time<-Sys.time()
-  task_img <- ee_image_to_asset(
-          image = esPred,
-          assetId = assetid,
-          overwrite = F,
-          region = geometry
-        )
-        
-   task_img$start()
-   
-    ## retrieve covariate importance
-        varImp = rfReg$explain()$get("importance")$getInfo()%>% #get importance
-          as_tibble()%>%#make tibble
-          pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
-          arrange(desc(value))%>% #sort decreasing values
-          slice(1:10)
-        varImp$rel<-varImp$value/sum(varImp$value)
-        varImp$es_ak<-rep(es_sel[m,],nrow(varImp))
-        varImp$leftout_userID<-rep(userids[n,],nrow(varImp))
+          )
+          
+          ############ maxent
 
-        
-        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp_leftout.rds")
-        b<-rbind(b,varImp)
-        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/varImp_leftout.rds")
-        
-        # retrieve model quality and
-        pred = validation$classify(rfReg, "predictions")$
-          select(c("es_valu", "predictions"))
-        
-        
-        ### rmse of validation
-        #get residuals
-        addResid <- function(feature) {
-          res <- ee$Number(feature$get("es_valu"))$ #subtract observed from predicted
-            subtract(ee$Number(feature$get("predictions")))
-          feature$set(list(res = res)) #create new feature in featureCollection
-        }
-        
-        #apply function to FeatureCollection for residuals
-        res = pred$map(addResid)
-        
-        #calculate RMSE
-        rmse = ee$Array(res$aggregate_array("res"))$
-          pow(2)$ #square it
-          reduce("mean", list(0))$ #get mean for the residuals
-          sqrt()
-        
-        #print RMSE
-        a<-as.data.frame(rmse$getInfo())
-        a$leftout_userID<-userids[n,]
-        a$es_ak<-es_sel[m,]
-        colnames(a)<-c("RMSE","leftout_userID","es_ak")
-        b<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE_leftout.rds")
-        b<-rbind(b,a)
-        saveRDS(b,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/RMSE_leftout.rds")
-  
-  
-}
-}
+          mEntclass = ee$Classifier$amnhMaxent()$train(
+            features = pts_ee,
+            classProperty = 'inside',
+            inputProperties = bands
+          )
+          
+          imageClassified = comb$select(bands)$classify(mEntclass)
+          
+          ### varImp and ROC takes a lot of time -- postprocessing?
+          varImp<- mEntclass$explain()$get("Contributions")$getInfo()%>% #get importance
+            as_tibble()%>%#make tibble
+            pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
+            arrange(desc(value))%>% #sort decreasing values
+            slice(1:10)
+          
+          varImp$esID<-rep(eslist[m,],nrow(varImp))
+          varImp$siteID<-rep(siteID_analysis,nrow(varImp))
+          varImp$userID<-rep(userlist[n,],nrow(varImp))
+          varImp<-varImp%>%filter(name !="__unused__")
+          colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID")
+          ## store on bq
+          
 
 
+          AUC_maxent<-mEntclass$explain()$get("Training AUC")$getInfo()%>% #get importance
+            as_tibble()
+  
+          img_assetid <- paste0(ee_get_assethome(), '/R_1/leave_one_out/',userlist[n,],"_",eslist[m,],"_", siteID_analysis)
+          
+          #set features of img
+          imageClassified <- imageClassified$set('esID', eslist[m,],
+                                       'siteID', siteID_analysis,
+                                       'leftout_userID',userlist[n,])
+          
+          start_time<-Sys.time()
+          task_img <- ee_image_to_asset(
+            image = imageClassified,
+            assetId = img_assetid,
+            overwrite = T,
+            region = geometry
+          )
+          
+          task_img$start()
+          
+          print("============= next user==============")
 
+  }#close user
+  print("============= next ES==============")
+}#close es
 ```
+
 
 
 ## 2.2 areas of high contribution
 1) ES all - ES all without participant XY?
 
 ```{r}
-es_selected<-"recr"
-
-leftout<-ee$ImageCollection(paste0(ee_get_assethome(), '/R_1/leave_one_out'))$filter(ee$Filter$eq('left_out_userID', "KUUFYZ5gYt"))$filter(ee$Filter$eq('es_id',"recr"))$toBands()
-
-all<-ee$Image(paste0(ee_get_assethome(), '/R_1/all_part/1_recr'))
-
-diff<-all$subtract(leftout)
-
-Map$addLayer(
-        eeObject = diff,
-        vis_diff,
-        opacity = .7
-      )
+# es_selected<-"recr"
+# 
+# leftout<-ee$ImageCollection(paste0(ee_get_assethome(), '/R_1/leave_one_out'))$filter(ee$Filter$eq('left_out_userID', "KUUFYZ5gYt"))$filter(ee$Filter$eq('esID',"recr"))$filter(ee$Filter$eq('siteID',"NOR-SNJ"))$toBands()
+# 
+# all<-ee$Image(paste0(ee_get_assethome(), '/R_1/all_part'))$filter(ee$Filter$eq('left_out_userID'))
+# 
+# diff<-all$subtract(leftout)
+# 
+# Map$addLayer(
+#         eeObject = diff,
+#         vis_diff,
+#         opacity = .7
+#       )
 
 ```
 
