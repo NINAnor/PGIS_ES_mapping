@@ -1,6 +1,6 @@
 
-navbarPage('POC PGIS ES
-                 ',id = "inTabset",
+navbarPage('POC Spatial Delphi R1',
+           id = "inTabset",
            tabPanel(title = "About the study", value = "p0",
                     mainPanel(h5("This is the study description, goals, aims, why we need you"),
                               h5("The study consists of two rounds ... if you want to participate in both rounds please fill in your e-mail, if not you can only participate in R1"),
