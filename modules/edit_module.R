@@ -10,11 +10,25 @@ remapUI<- function(id, label = "selector") {
     DTOutput(ns("blog")),
     br(),
     # uiOutput(ns("map_adjust")),
-    selectizeInput(ns("map_poss"),label="map_poss",choices = c("Yes","No"),options = list(
+    selectizeInput(ns("map_poss"),label="Do you want to adjust your areas of good ES?",choices = c("Yes","No"),options = list(
       placeholder = 'Please select an option below',
       onInitialize = I('function() { this.setValue(""); }'))),
+    actionButton(ns("confirm"),'confirm'),
     br(),
-    editModUI(ns("map_sel"))
+    conditionalPanel(
+      condition = "output.mappable == 1", ns=ns,
+      editModUI(ns("map_sel"))
+    ),
+    conditionalPanel(
+      condition = "output.mappable == 2", ns=ns,
+      textOutput(ns("test2"))
+    )
+    
+    # uiOutput(ns("edit_map"))
+    #textOutput(ns("test")),
+    # editModUI(ns("map_sel"))
+    
+    
     # conditionalPanel(
     #   condition = "input.editmap == 'Yes'", ns=ns,
     
@@ -89,24 +103,23 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, siteID_sel, g
         m1
         })
       
+      output$mappable<-eventReactive(input$confirm,{
+        if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
+          1
+        }else{
+          2 
+        }
+      })
+      outputOptions(output, 'mappable', suspendWhenHidden=FALSE)
       
-      # output$map_adjust<-renderUI({
-      #   lable <- paste0("Based on the information above do you want remap ", es_descr_sel$esNAME,"?")
-      #   # selectizeInput(ns("map_poss"),label=lable,choices = c("Yes","No"),options = list(
-      #   #   placeholder = 'Please select an option below',
-      #   #   onInitialize = I('function() { this.setValue(""); }')
-      #   ))
-      # })
+      
 
-      
-      edits<-eventReactive(input$map_poss,{
-          if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
-            poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", siteID_sel, ".shp")
+        poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", siteID_sel, ".shp")
             poly_r1<-st_read(poly_path1)
             poly_r1<-st_as_sf(poly_r1)
             poly_r1 <- st_transform(
-              poly_r1,
-              crs = 4326
+                poly_r1,
+                crs = 4326
             )
             cent_poly <- st_centroid(poly_r1)
             map1<-leaflet(poly_r1)%>%
@@ -132,17 +145,142 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, siteID_sel, g
                                              editOptions = editToolbarOptions(),
                                              singleFeature = FALSE)
 
-
-          
-        }else{
-          print("no selection")
-        }
-        edits<-callModule(
-          module = editMod,
-          leafmap = map1,
-          id = "map_sel")
-        
-      })
+          edits<-callModule(
+              module = editMod,
+              leafmap = map1,
+              id = "map_sel")
+   
+        output$test2<-renderText("you can NOT map")
+      
+      
+      
+      
+      
+      
+      # output$map_adjust<-renderUI({
+      #   lable <- paste0("Based on the information above do you want remap ", es_descr_sel$esNAME,"?")
+      #   # selectizeInput(ns("map_poss"),label=lable,choices = c("Yes","No"),options = list(
+      #   #   placeholder = 'Please select an option below',
+      #   #   onInitialize = I('function() { this.setValue(""); }')
+      #   ))
+      # })
+      # 
+      # observeEvent(input$confirm,{
+      #    output$edit_map<-renderUI({
+      #       if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
+      # 
+      #         editModUI(ns("map_sel"))
+      #       }else{
+      #         textOutput("you are NOT allowed to map")
+      #       }
+      #   })
+      # })
+      # 
+      # observeEvent(input$confirm,{
+      #   if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
+      #     poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", siteID_sel, ".shp")
+      #     poly_r1<-st_read(poly_path1)
+      #     poly_r1<-st_as_sf(poly_r1)
+      #     poly_r1 <- st_transform(
+      #         poly_r1,
+      #         crs = 4326
+      #     )
+      #           cent_poly <- st_centroid(poly_r1)
+      #     map1<-leaflet(poly_r1)%>%
+      #       addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
+      #                   opacity = 1.0, fillOpacity = 0, group = "editable")%>%
+      #       addLabelOnlyMarkers(data = cent_poly,
+      #                           lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
+      #                           labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
+      #                                                       style = list(
+      #                                                         "color" = "red",
+      #                                                         "font-family" = "serif",
+      #                                                         "font-style" = "bold",
+      #                                                         "font-size" = "20px"
+      #                                                       )))%>%
+      #       addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 15))%>%
+      #       leaflet.extras::addDrawToolbar(targetGroup='editable',
+      #                                      polylineOptions = F,
+      #                                      polygonOptions = F,
+      #                                      circleOptions = F,
+      #                                      markerOptions = F,
+      #                                      circleMarkerOptions = F,
+      #                                      rectangleOptions = F,
+      #                                      editOptions = editToolbarOptions(),
+      #                                      singleFeature = FALSE)
+      #     
+      #     edits<-callModule(
+      #       module = editMod,
+      #       leafmap = map1,
+      #       id = "map_sel")
+      #   }else{
+      #     edits<-NULL
+      #   }
+      #   edits
+      # })
+      #      
+      # 
+      # 
+      
+      
+      # observeEvent(input$confirm, {
+      #   if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
+      #     
+      #     output$edit_map<-renderUI(textOutput("you ARE allowed to map"))
+      #     
+      #   }else{
+      #     # mapping_allowed<-"you are NOT allowed"
+      #     output$edit_map<-renderUI(textOutput("you are NOT allowed to map"))
+      #   }
+      #   
+      # })
+      # 
+      # output$test<-renderText(edits())
+      
+      # edits<-eventReactive(input$map_poss,{
+      #     if(input$map_poss == "Yes" & userES_sel$mapping == "Yes"){
+      #       poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", siteID_sel, ".shp")
+      #       poly_r1<-st_read(poly_path1)
+      #       poly_r1<-st_as_sf(poly_r1)
+      #       poly_r1 <- st_transform(
+      #         poly_r1,
+      #         crs = 4326
+      #       )
+      #       cent_poly <- st_centroid(poly_r1)
+      #       map1<-leaflet(poly_r1)%>%
+      #         addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
+      #                     opacity = 1.0, fillOpacity = 0, group = "editable")%>%
+      #         addLabelOnlyMarkers(data = cent_poly,
+      #                             lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = cent_poly$es_valu,
+      #                             labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
+      #                                                         style = list(
+      #                                                           "color" = "red",
+      #                                                           "font-family" = "serif",
+      #                                                           "font-style" = "bold",
+      #                                                           "font-size" = "20px"
+      #                                                         )))%>%
+      #         addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 15))%>%
+      #         leaflet.extras::addDrawToolbar(targetGroup='editable',
+      #                                        polylineOptions = F,
+      #                                        polygonOptions = F,
+      #                                        circleOptions = F,
+      #                                        markerOptions = F,
+      #                                        circleMarkerOptions = F,
+      #                                        rectangleOptions = F,
+      #                                        editOptions = editToolbarOptions(),
+      #                                        singleFeature = FALSE)
+      # 
+      # 
+      #     
+      #   }else{
+      #     print("no selection")
+      #   }
+      #   edits<-callModule(
+      #     module = editMod,
+      #     leafmap = map1,
+      #     id = "map_sel")
+      #   
+      # })
 
         
  
