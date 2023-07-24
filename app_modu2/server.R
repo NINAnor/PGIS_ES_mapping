@@ -12,7 +12,24 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p7")
   hideTab(inputId = "inTabset", target = "p8")
   
+  #before userID is generated check if provided mail is not already present --> mess in R2!
+  ## before switching to expl, we should validate if all values are filled out
+  observeEvent(input$sub0,{
+    if(input$email %in% conf$userMAIL & !is.null(input$email)){
+        output$cond_b0<-renderUI({
+          renderText("email adress already present! please use another one or leafe it empty")
+  })
+    }else{
+      updateTabsetPanel(session, "inTabset",
+                        selected = "p1")
+      hideTab(inputId = "inTabset", target = "p0")
+      showTab(inputId = "inTabset", target = "p1")
+
+      }
+    
+  })
   
+
   ####### generate user ID
   userID<-eventReactive(input$sub0, {
     # create random large string
@@ -38,31 +55,12 @@ function(input, output, session) {
     return(userID)
   })
   
-  
-  ## submit mail, switch and remove tab one
-  observeEvent(input$sub0, {
-    updateTabsetPanel(session, "inTabset",
-                      selected = "p1")
-  })
-  observeEvent(input$sub0, {
-    hideTab(inputId = "inTabset", target = "p0")
-  })
-  observeEvent(input$sub0, {
-    showTab(inputId = "inTabset", target = "p1")
-   
-  })
-  
+
   ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffled order)
   rand_es_sel<-eventReactive(input$sub0,{
     rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
     return(rand_es_sel)
   })
-  
-  # rand_es_nonSel<-eventReactive(input$sub0,{
-  #   rand_es_sel<-rand_es_sel()
-  #   rand_es_nonSel<-es_all%>%anti_join(rand_es_sel)
-  #   return(rand_es_nonSel)
-  # })
   
 
 

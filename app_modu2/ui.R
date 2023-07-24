@@ -9,7 +9,9 @@ navbarPage('POC Spatial Delphi R1',
                                         value = "",
                                         width = NULL,
                                         placeholder = NULL),
-                              actionButton('sub0', 'start'))
+                              uiOutput("cond_b0"),
+                              actionButton('sub0', 'start')
+                              )
                     
            ),
            #### questionnaire general part

@@ -89,10 +89,12 @@ comb<-ee$Image$cat(lulc,acc, nat)
 bands <- list("landcover","b1","nat")
 
 ### load ES description table from gbq
-#es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
 es_all<-tbl(con, "es_descr")
-# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%filter(esID == "aes"| esID == "cult" | esID == "recr")%>%collect()
 es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
+
+### load user conf to check if e-mail is already there...
+conf<-tbl(con, "user_conf")
+conf<-select(conf,userMAIL)%>%collect()
 
 
 
