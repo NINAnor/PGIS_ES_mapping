@@ -68,6 +68,7 @@ function(input, output, session) {
                         leafmap=map_liv,
                         id="map_living")
   
+  liv_pol<- mapedit::selectMap(map_liv,"plz")
   
   ## before switching to expl, we should validate if all values are filled out
   output$cond_b1<-renderUI({
@@ -108,6 +109,8 @@ function(input, output, session) {
     
     #quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
+    # only take first poly if user selected multiple
+    liv_pol<-liv_pol[1,]
     cent<-st_centroid(liv_pol)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]
