@@ -117,7 +117,6 @@ navbarPage('POC Spatial Delphi R1',
            
            tabPanel(title = "Mapping of ecosystem services I", value = "p3", 
                     mainPanel(
-                      #selectInput("map_poss1",label="your choice:",choices = c("B","A")),
                       mapselectUI("mapping1", "map1 #1"),
                       actionButton('sub2', 'next ES')
                       # uiOutput("cond_b3")
@@ -141,6 +140,7 @@ navbarPage('POC Spatial Delphi R1',
                       
                       ahp_secUI("ahp_section", "ahp #1"),
                       actionButton('sub6', 'next task')
+                      # uiOutput("cond_b6")
                       
                     )),
            tabPanel(title = "AHP Detail", value = "p7", 
@@ -148,6 +148,7 @@ navbarPage('POC Spatial Delphi R1',
                       
                       ahpUI("ahp", "ahp #2"),
                       actionButton('sub7', 'next')
+                      # uiOutput("cond_b6")
                       
                     )),
            tabPanel(title = "Impact distance", value = "p8",
@@ -156,6 +157,7 @@ navbarPage('POC Spatial Delphi R1',
                       sliderTextInput("dist_recr",
                                       "impact on recreation value", 
                                       grid = F,
+                                      selected = NULL,
                                       force_edges = TRUE,
                                       choices = c("2km","4km","6km","8km","10km","12km","14km"),
                                       width = "75%"
@@ -164,6 +166,7 @@ navbarPage('POC Spatial Delphi R1',
                       sliderTextInput("dist_aest",
                                       "impact on aesthetic values", 
                                       grid = F,
+                                      selected = NULL,
                                       force_edges = TRUE,
                                       choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
                                       width = "75%"
@@ -172,6 +175,7 @@ navbarPage('POC Spatial Delphi R1',
                       sliderTextInput("dist_cult",
                                       "impact on cultural values", 
                                       grid = F,
+                                      selected = NULL,
                                       force_edges = TRUE,
                                       choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
                                       width = "75%"
@@ -180,6 +184,7 @@ navbarPage('POC Spatial Delphi R1',
                       sliderTextInput("dist_wild_prod",
                                       "impact on wild products", 
                                       grid = F,
+                                      selected = NULL,
                                       force_edges = TRUE,
                                       choices = c("2km","4km","6km","8km","10km","12km","14km and more"),
                                       width = "75%"

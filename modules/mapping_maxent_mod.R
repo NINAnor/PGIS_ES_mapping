@@ -29,23 +29,30 @@ mapselectUI<- function(id, label = "selector") {
       br(),
       # initial button to save the map
       actionButton(ns("savepoly"),"save polygons"),
-      # show mapping result and slider to adjust importance
-      leafletOutput(ns("map_res")),
-      uiOutput(ns("slider")),
-      br(),
-      textOutput(ns("varimp_text")),
-      sliderInput(ns("access"), "Accessibility",
-                  min = 0, max = 5, value = 3
-      ),
-      # a short expl. why this sites
-      textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-      actionButton(ns("submit"),"save values"),
-      br(),
-      # show results
-      textOutput(ns("res_text")),
-      leafletOutput(ns("gee_map"))
-      ,
       
+      ## show slider based on polys
+      # conditionalPanel(
+      #   condition = "input.savepoly != 0", ns = ns ,
+      #   leafletOutput(ns("map_res")),
+      #   uiOutput(ns("slider")),
+      #   br(),
+      #   textOutput(ns("varimp_text")),
+      #   sliderInput(ns("access"), "Accessibility",
+      #               min = 0, max = 5, value = 3
+      #   ),
+      #   # a short expl. why this sites
+      #   textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
+      #   actionButton(ns("submit"),"save values"),
+      # 
+      # ),
+      # show mapping results
+      conditionalPanel(
+        condition = "input.submit != 0", ns = ns ,
+        br(),
+        # show results
+        textOutput(ns("res_text")),
+        leafletOutput(ns("gee_map"))
+      ),
       
     ),
     # if ES not mappable
@@ -77,8 +84,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       esID<-rand_es_sel[order,]$esID
       output$title_es<-renderText(rand_es_sel[order,]$esNAME)
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
-      output$varimp_text<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[order,]$esNAME))
-      output$res_text<-renderText(paste0("Your personal map of ",rand_es_sel[order,]$esNAME))
+      # output$varimp_text<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[order,]$esNAME))
+      # output$res_text<-renderText(paste0("Your personal map of ",rand_es_sel[order,]$esNAME))
       output$es_quest<-renderText(paste0("Where do you find good spots for ", rand_es_sel[order,]$esNAME))
       output$imp_text<-renderText(paste0("How important is ", rand_es_sel[order,]$esNAME,"..."))
       
@@ -126,20 +133,55 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         leafmap = map,
         id = "map_sel")
       # edits<-mapedit::editMap(map)
-      
-      
+
       ### confirm the drawings and render the results table
       tbl_out<-eventReactive(input$savepoly,{
         tbl<-edits()$finished
+        req(tbl, cancelOutput = FALSE)
         tbl<-tbl%>%st_drop_geometry()
         tbl$value_es<-rep(NA,(nrow(tbl)))
         tbl
       })
       
-      ### confirm the drawings and render the leaflet map
-      observeEvent(input$savepoly, {
+      ### create a slider and map with leaflet ids for each of the polygons, remove UI content
+      observeEvent(input$savepoly,{
         tbl<-tbl_out()
         polygon<-edits()$finished
+        req(polygon, cancelOutput = FALSE)
+
+        insertUI(
+          selector = paste0("#",ns("savepoly")),
+          where = "afterEnd",
+          ui = tagList(
+            leafletOutput(ns("map_res")),
+            uiOutput(ns("slider")),
+            br(),
+            # textOutput(ns("varimp_text")),
+            # sliderInput(ns("access"), "Accessibility",
+            #             min = 0, max = 5, value = 3
+            # ),
+            # a short expl. why this sites
+            textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
+            actionButton(ns("submit"),"save values")
+          )
+        )
+        
+        # removeUI(
+        #   selector = paste0("#",ns("map_sel"))
+        # )
+        removeUI(selector = sprintf('#%s', ns("map_sel")))
+        removeUI(
+          selector = paste0("#",ns("savepoly")))
+        removeUI(
+          selector = paste0("#",ns("imp_text")))
+        removeUI(
+          selector = paste0("#",ns("imp_own")))
+        removeUI(
+          selector = paste0("#",ns("imp_other")))
+        removeUI(
+          selector = paste0("#",ns("map_poss")))
+        
+        
         cent_poly <- st_centroid(polygon)
         output$map_res<-renderLeaflet(map_res %>% 
                                         addPolygons(data=polygon) %>%
@@ -152,11 +194,6 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                                                                                           "font-style" = "bold",
                                                                                           "font-size" = "20px"
                                                                                         ))))
-      })
-      
-      ### create a slider for each of the polygons
-      observeEvent(input$savepoly,{
-        tbl<-tbl_out()
         output$slider <- shiny::renderUI({
           ns <- session$ns
           tagList(
@@ -170,14 +207,39 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           )
           
         })
+        
+        
       })
       
       ### predict probability of ES with maxent, save prediction, save poly and save drawing summaries on gee/bq
       
+      observeEvent(input$submit, {
+        removeUI(
+          selector = paste0("#",ns("map_res"))
+        )
+        removeUI(
+          selector = paste0("#",ns("slider"))
+        )
+        removeUI(
+          selector = paste0("#",ns("varimp_text"))
+        )
+        # removeUI(
+        #   selector = paste0("#",ns("access"))
+        # )
+        removeUI(
+          selector = paste0("#",ns("blog"))
+        )
+        removeUI(
+          selector = paste0("#",ns("submit"))
+        )
+  
+      })
+
       ### gather poly
       prediction<-eventReactive(input$submit, {
         withProgress(message = "save your drawings",value = 0.1,{
           polygon<-edits()$finished
+          req(polygon, cancelOutput = FALSE)
           polygon<-as.data.frame(polygon)
           polygon$es_value<-rep(NA,nrow(polygon))
           sliderval<-list()
@@ -347,7 +409,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
               userID = userID,
               siteID = siteID,
               mappingR1_UID = paste0(userID,"_",esID,"_", siteID),
-              imp_acc= as.integer(input$access),
+              # imp_acc= as.integer(input$access),
+              imp_acc= as.integer(0),
               imp_nat= as.integer(0),
               imp_lulc = as.integer(0),
               imp_own = as.integer(input$imp_own),
@@ -409,11 +472,11 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         
       })
       
-      
+
       output$gee_map <- renderLeaflet({
         prediction()
       })
-      
+
       ### store infos if mapping is not possible
       observeEvent(input$submit2,{
         train_param<-list(
