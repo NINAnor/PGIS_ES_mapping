@@ -47,7 +47,6 @@ ahp_secServer<-function(id, userID, siteID, es_all){
     id,
     function(input, output, session){
       ns<-session$ns
-      #es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
       es_sec<-es_all%>%distinct(esSECTION)
       #randomization
       #es_sec <- es_sec[sample(1:nrow(es_sec)), ] 
@@ -137,9 +136,7 @@ ahp_secServer<-function(id, userID, siteID, es_all){
         })
         sec_comb$es_pairUID <- unlist(m)
         insert_upload_job("rgee-381312", "data_base", "es_pair", sec_comb)
-        # all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
-        # all_ahp<-rbind(all_ahp,sec_comb)
-        # saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
+
       })
       
       

@@ -68,8 +68,7 @@ function(input, output, session) {
                         leafmap=map_liv,
                         id="map_living")
   
-  liv_pol<- mapedit::selectMap(map_liv,"plz")
-  
+
   ## before switching to expl, we should validate if all values are filled out
   output$cond_b1<-renderUI({
     validate(
@@ -107,14 +106,13 @@ function(input, output, session) {
     rand_es_sel<-rand_es_sel()
     es_order<-paste0(rand_es_sel$esNUM[1],"_",rand_es_sel$esNUM[2],"_",rand_es_sel$esNUM[3],"_",rand_es_sel$esNUM[4])
     
-    #quest_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
     # only take first poly if user selected multiple
     liv_pol<-liv_pol[1,]
     cent<-st_centroid(liv_pol)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]
-    print(user_lng)
+
     quest <-  data.frame(
       userID = userID,
       siteID = siteID,
@@ -132,7 +130,6 @@ function(input, output, session) {
       nep_2 = NA,
       nep_3 = NA,
       nep_4 = NA,
-      
       nep_5 = NA,
       nep_6 = NA,
       nep_7 = NA,
@@ -157,8 +154,6 @@ function(input, output, session) {
     )
     
     insert_upload_job("rgee-381312", "data_base", "user_all", quest)
-    #quest<-rbind(quest_all,quest)
-    #saveRDS(quest,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/questionnaire.rds")
     
   })
   
@@ -178,8 +173,6 @@ function(input, output, session) {
     # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
     
-    
-    #v = mapselectServer("mapping1", sf_bound, comb, rand_es_sel,  1, userID, siteID, geometry, vis_qc)
     u = mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, userID, siteID, geometry, maxentviz)
     
     # output$cond_b3<-renderUI({
@@ -207,7 +200,6 @@ function(input, output, session) {
     rand_es_sel<-rand_es_sel()
     # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
-    # w=mapselectServer("mapping2", sf_bound, comb, rand_es_sel,  2, userID, siteID, geometry, vis_qc)
     v = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, userID, siteID, geometry, maxentviz)
     # output$cond_b4<-renderUI({
     #   if(w() == 1){
@@ -232,7 +224,6 @@ function(input, output, session) {
     rand_es_sel<-rand_es_sel()
     # rand_es_nonSel<-rand_es_nonSel()
     userID<-userID()
-    # w=mapselectServer("mapping3", sf_bound, comb, rand_es_sel, 3, userID, siteID, geometry, vis_qc)
     w = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, userID, siteID, geometry, maxentviz)
     # output$cond_b5<-renderUI({
     #   if(u() == 1){
@@ -292,9 +283,7 @@ function(input, output, session) {
     
   })
   
-  
-  
-  
+ 
 ## save and terminate app
   observeEvent(input$sub8,{
     userID<-userID()
@@ -316,8 +305,4 @@ function(input, output, session) {
     
     stopApp(returnValue = invisible())
   })
-  
-  
-  
-
 }

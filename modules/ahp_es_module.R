@@ -47,7 +47,6 @@ ahpServer<-function(id, userID, siteID, es_all){
     function(input, output, session){
       ns<-session$ns
 
-      # es_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/es_description.rds")
       reg<-es_all%>%filter(esSECTION == "regulating")%>%distinct(esID)
       reg <- unlist(as.vector(reg))
       reg_comb<-as.data.frame(t(combn(reg, 2)))
@@ -65,15 +64,7 @@ ahpServer<-function(id, userID, siteID, es_all){
       
       all_comb<-rbind(reg_comb,cul_comb,prov_comb)
       all_comb$ind<-as.integer(all_comb$ind)
-      
 
-      #randomize the blocks
-      # rand<-sample(1:3, 3, replace=F)
-      
-      # es1<-all_comb%>%filter(ind == rand[1]) 
-      # es2<-all_comb%>%filter(ind == rand[2]) 
-      # es3<-all_comb%>%filter(ind == rand[3]) 
-      
       es1<-all_comb%>%filter(ind == 1) 
       es2<-all_comb%>%filter(ind == 2) 
       es3<-all_comb%>%filter(ind == 3) 
@@ -254,10 +245,7 @@ ahpServer<-function(id, userID, siteID, es_all){
         })
         es$es_pairUID <- unlist(m)
         insert_upload_job("rgee-381312", "data_base", "es_pair", es)
-        
-        # all_ahp<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
-        # all_ahp<-rbind(all_ahp,es)
-        # saveRDS(all_ahp,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/ahp_es.RDS")
+
       })
       
       
