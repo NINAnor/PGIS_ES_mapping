@@ -79,7 +79,7 @@ navbarPage('POC Spatial Delphi R1',
                       selectizeInput("fam","How familiar are you with the areas in and around Trondheim?",c("poor" ="poor",
                                                                                                              "fair" = "fair",
                                                                                                              "good"="good",
-                                                                                                            " I don`t know" = "na"),options = list(
+                                                                                                            "I don`t know" = "dont_know"),options = list(
                                                                                                                placeholder = 'Please select an option below',
                                                                                                                onInitialize = I('function() { this.setValue(""); }')
                                                                                                              )),
@@ -97,10 +97,10 @@ navbarPage('POC Spatial Delphi R1',
                                        # selected = character(0),
                                        selected = c("I don`t know","I don`t know","I don`t know", "I don`t know"),
                                        choices = c("strongly disagree", "agree", "unsure","disagree","strongly disagree", "I don`t know")),
-                      selectizeInput("land","If you could choose one of the following landscapes, which would you prefere",c("A well-ordered landscape, made by and for people" ="a",
-                                                                                                                             "A varied, park-like landscape. " = "b",
-                                                                                                                             "Untamed nature, with which one may have many interactions."="good",
-                                                                                                                             "A landscape in which one may experience the greatness and forces of nature." = "na"),options = list(
+                      selectizeInput("land","If you could choose one of the following landscapes, which would you prefere",c("A well-ordered landscape, made by and for people" ="man_made",
+                                                                                                                             "A varied, park-like landscape. " = "park",
+                                                                                                                             "Untamed nature, with which one may have many interactions."="untamed_nat",
+                                                                                                                             "A landscape in which one may experience the greatness and forces of nature." = "compl_nature"),options = list(
                                                                                                                                placeholder = 'Please select an option below',
                                                                                                                                onInitialize = I('function() { this.setValue(""); }')
                                                                                                                              )),
