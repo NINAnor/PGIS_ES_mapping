@@ -15,7 +15,7 @@ function(input, output, session) {
   #before userID is generated check if provided mail is not already present --> mess in R2!
   ## before switching to expl, we should validate if all values are filled out
   observeEvent(input$sub0,{
-    if(input$email %in% conf$userMAIL & !is.null(input$email)){
+    if(input$email %in% conf$userMAIL & input$email != ""){
         output$cond_b0<-renderUI({
           renderText("email adress already present! please use another one or leafe it empty")
   })
@@ -285,6 +285,8 @@ function(input, output, session) {
   
  
 ## save and terminate app
+  
+
   observeEvent(input$sub8,{
     userID<-userID()
     ## remove km
