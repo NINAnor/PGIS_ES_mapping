@@ -26,17 +26,13 @@ ahp_secUI<- function(id, label = "ahp") {
       h4("  - Provisioning landscape benefits: test2"),
       h4("  - Regulation landscape benefits: test3"),
       br(),
-
-        uiOutput(ns("slider"))
-      ,
-      # column(
-      #   uiOutput(ns("expl")),
-      #   width=4
-      # ),
-
-      actionButton(ns('sub'), 'store comparisons')
+      
+      uiOutput(ns("slider")),
+      
+      
+      actionButton(ns("conf2"), "Next task", class='btn-primary')
     )
-
+    
   )
   
   
@@ -52,7 +48,7 @@ ahp_secServer<-function(id, userID, siteID, es_all){
       #es_sec <- es_sec[sample(1:nrow(es_sec)), ] 
       es_sec<-unlist(as.vector(es_sec))
       sec_comb<-as.data.frame(t(combn(es_sec, 2)))
-
+      
       output$slider <- shiny::renderUI({
         ns <- session$ns
         tagList(
@@ -63,13 +59,13 @@ ahp_secServer<-function(id, userID, siteID, es_all){
             choice2<-paste0(sec_comb[n,]$V1, " is very strongly more important")
             choice3<-paste0(sec_comb[n,]$V1, " is strongly more important")
             choice4<-paste0(sec_comb[n,]$V1, " is moderately more important")
-
+            
             choice5<-paste0(sec_comb[n,]$V2, " is overwhelmingly more important")
             choice6<-paste0(sec_comb[n,]$V2, " is very strongly more important")
             choice7<-paste0(sec_comb[n,]$V2, " is strongly more important")
             choice8<-paste0(sec_comb[n,]$V2, " is moderately more important")
-    
-
+            
+            
             sliderTextInput(ns(pair_id),
                             pair_lable, 
                             grid = F,
@@ -77,23 +73,23 @@ ahp_secServer<-function(id, userID, siteID, es_all){
                             choices = c(choice1, 
                                         choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
                             width = "75%"
-             
+                            
             )
-
-
+            
+            
           })
           
         )
         
       })
       
-
+      
       ### store the values
-      observeEvent(input$sub,{
+      observeEvent(input$conf2,{
         val_list<-list()
         # id_ist<-list()
         res<-lapply(1:nrow(sec_comb),function(a){
-       
+          
           
           var<-paste0(sec_comb[a,]$V1,"_",sec_comb[a,]$V2)
           val_list[[a]]<-input[[var]]
@@ -129,17 +125,19 @@ ahp_secServer<-function(id, userID, siteID, es_all){
         sec_comb$siteID<-rep(siteID,nrow(sec_comb))
         sec_comb$group <- rep(4,nrow(sec_comb))
         sec_comb$group <- as.integer(sec_comb$group)
-  
+        
         colnames(sec_comb)<-c("ES_left","ES_right","selection_text","selection_val","userID","siteID", "ahp_section")
         m<-lapply(1:nrow(sec_comb), function(a){
           sec_comb[a,]$es_pairUID <- paste0( sec_comb[a,]$userID, "_", sec_comb[a,]$siteID,"_", sec_comb[a,]$ES_left,"_",sec_comb[a,]$ES_right)
         })
         sec_comb$es_pairUID <- unlist(m)
         insert_upload_job("rgee-381312", "data_base", "es_pair", sec_comb)
-
+        
       })
       
+      cond <- reactive({input$conf2})
       
+      return(cond) 
     }
     
   )

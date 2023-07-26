@@ -16,20 +16,20 @@ function(input, output, session) {
   ## before switching to expl, we should validate if all values are filled out
   observeEvent(input$sub0,{
     if(input$email %in% conf$userMAIL & input$email != ""){
-        output$cond_b0<-renderUI({
-          renderText("email adress already present! please use another one or leafe it empty")
-  })
+      output$cond_b0<-renderUI({
+        renderText("email adress already present! please use another one or leafe it empty")
+      })
     }else{
       updateTabsetPanel(session, "inTabset",
                         selected = "p1")
       hideTab(inputId = "inTabset", target = "p0")
       showTab(inputId = "inTabset", target = "p1")
-
-      }
+      
+    }
     
   })
   
-
+  
   ####### generate user ID
   userID<-eventReactive(input$sub0, {
     # create random large string
@@ -55,20 +55,20 @@ function(input, output, session) {
     return(userID)
   })
   
-
-  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffled order)
-  rand_es_sel<-eventReactive(input$sub0,{
-    rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
-    return(rand_es_sel)
-  })
   
-
-
+  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffled order)
+  # rand_es_sel<-eventReactive(input$sub0,{
+    rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
+  #   return(rand_es_sel)
+  # })
+  
+  
+  
   liv_pol <- callModule(module=selectMod, 
                         leafmap=map_liv,
                         id="map_living")
   
-
+  
   ## before switching to expl, we should validate if all values are filled out
   output$cond_b1<-renderUI({
     validate(
@@ -81,29 +81,29 @@ function(input, output, session) {
     )
     actionButton('sub1', 'submit answers')
   })
-
-  output$cond_b2<-renderUI({
-    validate(
-      need(input$check, 'Please confirm')
-
-    )
-    actionButton('sub3', 'go to task')
-  })
+  
+  
   
   ## submit questionnaire and switch to expl
+  # observeEvent(input$sub1, {
+  #   updateTabsetPanel(session, "inTabset",
+  #                     selected = "p2")
+  # })
+  # observeEvent(input$sub1, {
+  #   hideTab(inputId = "inTabset",
+  #           target = "p1")
+  # })
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
-  })
-  observeEvent(input$sub1, {
     hideTab(inputId = "inTabset",
             target = "p1")
-  })
-  observeEvent(input$sub1, {
     showTab(inputId = "inTabset", target = "p2")
+    
+    
     userID<-userID()
     liv_pol<-liv_pol()
-    rand_es_sel<-rand_es_sel()
+    # rand_es_sel<-rand_es_sel()
     es_order<-paste0(rand_es_sel$esNUM[1],"_",rand_es_sel$esNUM[2],"_",rand_es_sel$esNUM[3],"_",rand_es_sel$esNUM[4])
     
     liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
@@ -112,7 +112,7 @@ function(input, output, session) {
     cent<-st_centroid(liv_pol)
     user_lat <- st_coordinates(cent)[2]
     user_lng <- st_coordinates(cent)[1]
-
+    
     quest <-  data.frame(
       userID = userID,
       siteID = siteID,
@@ -157,136 +157,97 @@ function(input, output, session) {
     
   })
   
+  output$cond_b2<-renderUI({
+    validate(
+      need(input$check, 'Please confirm')
+      
+    )
+    actionButton('sub3', 'Go to mapping', class='btn-primary')
+  })
   ## confirm expl switch to tab mapping I
   observeEvent(input$sub3, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p3")
-  })
-  observeEvent(input$sub3, {
     hideTab(inputId = "inTabset",
             target = "p2")
-  })
-  observeEvent(input$sub3, {
     showTab(inputId= "inTabset",
             target = "p3")
-    rand_es_sel<-rand_es_sel()
-    # rand_es_nonSel<-rand_es_nonSel()
-    userID<-userID()
-    
-    u = mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, userID, siteID, geometry, maxentviz)
-    
-    # output$cond_b3<-renderUI({
-    #   if(v() == 1){
-    #     actionButton('sub2', 'next ES')
-    #   }
-    # })
-    
   })
+  # observeEvent(input$sub3, {
+  #   # hideTab(inputId = "inTabset",
+  #   #         target = "p2")
+  # })
+  
+  
+  m1<- mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, isolate(userID()), siteID, geometry, maxentviz)
+  
   
   ## switch to tab mapping II
-  observeEvent(input$sub2, {
+  observeEvent(m1(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p4")
-  })
-  observeEvent(input$sub2, {
     hideTab(inputId = "inTabset",
             target = "p3")
-  })
-  observeEvent(input$sub2, {
     showTab(inputId= "inTabset",
             target = "p4")
-   
-    #2nd col
-    rand_es_sel<-rand_es_sel()
-    # rand_es_nonSel<-rand_es_nonSel()
-    userID<-userID()
-    v = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, userID, siteID, geometry, maxentviz)
-    # output$cond_b4<-renderUI({
-    #   if(w() == 1){
-    #     actionButton("sub4","next ES")
-    #   }
-    # })
   })
+  
+  
+  m2 = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, isolate(userID()), siteID, geometry, maxentviz)
+  
   
   ## confirm mapping switch to tab mapping III
-  observeEvent(input$sub4, {
+  observeEvent(m2(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p5")
-  })
-  observeEvent(input$sub4, {
     hideTab(inputId = "inTabset",
             target = "p4")
-  })
-  observeEvent(input$sub4, {
     showTab(inputId= "inTabset",
             target = "p5")
-    #2nd col
-    rand_es_sel<-rand_es_sel()
-    # rand_es_nonSel<-rand_es_nonSel()
-    userID<-userID()
-    w = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, userID, siteID, geometry, maxentviz)
-    # output$cond_b5<-renderUI({
-    #   if(u() == 1){
-    #     actionButton("sub5","end")
-    #   }
-    # })
+    
   })
-  
   ## AHP section
-  observeEvent(input$sub5, {
+  m3 = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, isolate(userID()), siteID, geometry, maxentviz)
+  
+  observeEvent(m3(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p6")
-  })
-  observeEvent(input$sub5, {
     hideTab(inputId = "inTabset",
             target = "p5")
-  })
-  observeEvent(input$sub5, {
     showTab(inputId= "inTabset",
             target = "p6")
-
-    userID<-userID()
-    ahp_secServer("ahp_section",   userID, siteID, es_all)
-
+    
   })
+  
+  m4<-ahp_secServer("ahp_section", isolate(userID()), siteID, es_all)
   
   ## AHP detail
-  observeEvent(input$sub6, {
+  observeEvent(m4(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p7")
-  })
-  observeEvent(input$sub6, {
     hideTab(inputId = "inTabset",
             target = "p6")
-  })
-  observeEvent(input$sub6, {
     showTab(inputId= "inTabset",
             target = "p7")
-    
-    userID<-userID()
-    
-    ahpServer("ahp", userID, siteID, es_all)
-    
   })
+  
+  m5<-ahpServer("ahp", isolate(userID()), siteID, es_all)
+  
+  
   ## effect distance
-  observeEvent(input$sub7, {
+  observeEvent(m5(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p8")
-  })
-  observeEvent(input$sub7, {
     hideTab(inputId = "inTabset",
             target = "p7")
-  })
-  observeEvent(input$sub7, {
     showTab(inputId= "inTabset",
             target = "p8")
-    
   })
   
- 
-## save and terminate app
   
-
+  ## save and terminate app
+  
+  
   observeEvent(input$sub8,{
     userID<-userID()
     ## remove km

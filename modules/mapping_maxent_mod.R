@@ -28,31 +28,8 @@ mapselectUI<- function(id, label = "selector") {
       editModUI(ns("map_sel")),
       br(),
       # initial button to save the map
-      actionButton(ns("savepoly"),"save polygons"),
+      actionButton(ns("savepoly"),"save polygons")
       
-      ## show slider based on polys
-      # conditionalPanel(
-      #   condition = "input.savepoly != 0", ns = ns ,
-      #   leafletOutput(ns("map_res")),
-      #   uiOutput(ns("slider")),
-      #   br(),
-      #   textOutput(ns("varimp_text")),
-      #   sliderInput(ns("access"), "Accessibility",
-      #               min = 0, max = 5, value = 3
-      #   ),
-      #   # a short expl. why this sites
-      #   textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-      #   actionButton(ns("submit"),"save values"),
-      # 
-      # ),
-      # show mapping results
-      conditionalPanel(
-        condition = "input.submit != 0", ns = ns ,
-        br(),
-        # show results
-        textOutput(ns("res_text")),
-        leafletOutput(ns("gee_map"))
-      ),
       
     ),
     # if ES not mappable
@@ -60,8 +37,13 @@ mapselectUI<- function(id, label = "selector") {
       condition = "input.map_poss == 'No'", ns = ns ,
       selectizeInput(ns("expert_map"),label="Would you trust an expert map",choices = c("Yes","No"),options = list(
         placeholder = 'Please select an option below',
-        onInitialize = I('function() { this.setValue(""); }'))),
-      actionButton(ns("submit2"),"save")
+        onInitialize = I('function() { this.setValue(""); }')))
+      # actionButton(ns("submit2"),"save")
+      
+    ),
+    conditionalPanel(
+      condition = "input.expert_map != '' || input.submit > 0", ns=ns,
+      actionButton(ns("confirm"), "Next task", class='btn-primary')
     )
     
   )
@@ -133,6 +115,15 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         leafmap = map,
         id = "map_sel")
       # edits<-mapedit::editMap(map)
+      
+      ## remove mapping question as soon as decided
+      observeEvent(input$map_poss,{
+        if(input$map_poss !=""){
+          removeUI(
+            selector = paste0("#",ns("map_poss"))
+          )
+        }
+      })
 
       ### confirm the drawings and render the results table
       tbl_out<-eventReactive(input$savepoly,{
@@ -147,8 +138,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       observeEvent(input$savepoly,{
         tbl<-tbl_out()
         polygon<-edits()$finished
+        # do not give possibility to submit map without polygons
         req(polygon, cancelOutput = FALSE)
 
+        ## render new UI of polygon map and slider remove rest
         insertUI(
           selector = paste0("#",ns("savepoly")),
           where = "afterEnd",
@@ -156,20 +149,13 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             leafletOutput(ns("map_res")),
             uiOutput(ns("slider")),
             br(),
-            # textOutput(ns("varimp_text")),
-            # sliderInput(ns("access"), "Accessibility",
-            #             min = 0, max = 5, value = 3
-            # ),
+            
             # a short expl. why this sites
             textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
             actionButton(ns("submit"),"save values")
           )
         )
         
-        # removeUI(
-        #   selector = paste0("#",ns("map_sel"))
-        # )
-        removeUI(selector = sprintf('#%s', ns("map_sel")))
         removeUI(
           selector = paste0("#",ns("savepoly")))
         removeUI(
@@ -178,9 +164,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           selector = paste0("#",ns("imp_own")))
         removeUI(
           selector = paste0("#",ns("imp_other")))
-        removeUI(
-          selector = paste0("#",ns("map_poss")))
-        
+
         
         cent_poly <- st_centroid(polygon)
         output$map_res<-renderLeaflet(map_res %>% 
@@ -211,9 +195,19 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         
       })
       
-      ### predict probability of ES with maxent, save prediction, save poly and save drawing summaries on gee/bq
       
+      ## remove map UI and sliders show result
       observeEvent(input$submit, {
+        
+        insertUI(
+          selector = paste0("#",ns("submit")),
+          where = "afterEnd",
+          ui = tagList(
+            textOutput(ns("res_text")),
+            leafletOutput(ns("gee_map"))
+          )
+        )
+        
         removeUI(
           selector = paste0("#",ns("map_res"))
         )
@@ -223,18 +217,17 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         removeUI(
           selector = paste0("#",ns("varimp_text"))
         )
-        # removeUI(
-        #   selector = paste0("#",ns("access"))
-        # )
         removeUI(
           selector = paste0("#",ns("blog"))
         )
         removeUI(
           selector = paste0("#",ns("submit"))
         )
-  
+        
       })
-
+      
+      
+      ### predict probability of ES with maxent, save prediction, save poly and save drawing summaries on gee/bq
       ### gather poly
       prediction<-eventReactive(input$submit, {
         withProgress(message = "save your drawings",value = 0.1,{
@@ -478,8 +471,9 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       })
 
       ### store infos if mapping is not possible
-      observeEvent(input$submit2,{
-        train_param<-list(
+      observeEvent(input$expert_map,{
+        if(input$expert_map !=""){
+                  train_param<-list(
           esID = esID,
           userID = userID,
           siteID = siteID,
@@ -503,8 +497,13 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         )
         train_param<-as.data.frame(train_param)
         insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
-        
+        }
       })
+      
+      # play back the value of the confirm button to be used in the main app
+      cond <- reactive({input$confirm})
+      
+      return(cond) 
       
     }
   )

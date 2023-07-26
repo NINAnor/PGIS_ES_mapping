@@ -20,22 +20,22 @@ ahpUI<- function(id, label = "ahp2") {
       br(),
       h3("You will now compare the importance of different landscape benefits within the 
          study region. If you need more information about a specific benefit please click on the respective name."),
-        br(),
-        br(),
-        # textOutput(ns("expl1")),
-        uiOutput(ns("slider_es1")),
-        br(),
-        br(),
-        # textOutput(ns("expl2")),
-        uiOutput(ns("slider_es2")),
-        br(),
-        br(),
-        # textOutput(ns("expl3")),
-        uiOutput(ns("slider_es3")),
-
-      actionButton(ns('sub'), 'store comparisons')
+      br(),
+      br(),
+      # textOutput(ns("expl1")),
+      uiOutput(ns("slider_es1")),
+      br(),
+      br(),
+      # textOutput(ns("expl2")),
+      uiOutput(ns("slider_es2")),
+      br(),
+      br(),
+      # textOutput(ns("expl3")),
+      uiOutput(ns("slider_es3")),
+      
+      actionButton(ns("conf3"), "Next task", class='btn-primary')
     )
-
+    
   )
   
   
@@ -46,17 +46,17 @@ ahpServer<-function(id, userID, siteID, es_all){
     id,
     function(input, output, session){
       ns<-session$ns
-
+      
       reg<-es_all%>%filter(esSECTION == "regulating")%>%distinct(esID)
       reg <- unlist(as.vector(reg))
       reg_comb<-as.data.frame(t(combn(reg, 2)))
       reg_comb$ind<-rep(1,nrow(reg_comb))
-
+      
       cul<-es_all%>%filter(esSECTION == "cultural")%>%distinct(esID)
       cul <- unlist(as.vector(cul))
       cul_comb<-as.data.frame(t(combn(cul, 2)))
       cul_comb$ind<-rep(2,nrow(cul_comb))
-
+      
       prov<-es_all%>%filter(esSECTION == "provisioning")%>%distinct(esID)
       prov <- unlist(as.vector(prov))
       prov_comb<-as.data.frame(t(combn(prov, 2)))
@@ -64,12 +64,12 @@ ahpServer<-function(id, userID, siteID, es_all){
       
       all_comb<-rbind(reg_comb,cul_comb,prov_comb)
       all_comb$ind<-as.integer(all_comb$ind)
-
+      
       es1<-all_comb%>%filter(ind == 1) 
       es2<-all_comb%>%filter(ind == 2) 
       es3<-all_comb%>%filter(ind == 3) 
       
-
+      
       ## first ES block
       output$slider_es1 <- shiny::renderUI({
         ns <- session$ns
@@ -81,13 +81,13 @@ ahpServer<-function(id, userID, siteID, es_all){
             choice2<-paste0(es1[n,]$V1, " is very strongly more important")
             choice3<-paste0(es1[n,]$V1, " is strongly more important")
             choice4<-paste0(es1[n,]$V1, " is moderately more important")
-
+            
             choice5<-paste0(es1[n,]$V2, " is overwhelmingly more important")
             choice6<-paste0(es1[n,]$V2, " is very strongly more important")
             choice7<-paste0(es1[n,]$V2, " is strongly more important")
             choice8<-paste0(es1[n,]$V2, " is moderately more important")
-    
-           
+            
+            
             
             sliderTextInput(ns(pair_id),
                             pair_lable, 
@@ -96,10 +96,10 @@ ahpServer<-function(id, userID, siteID, es_all){
                             choices = c(choice1, 
                                         choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
                             width = "75%"
-             
+                            
             )
-
-
+            
+            
           })
           
         )
@@ -141,7 +141,7 @@ ahpServer<-function(id, userID, siteID, es_all){
         )
         
       })
-
+      
       ## third ES block
       output$slider_es3 <- shiny::renderUI({
         ns <- session$ns
@@ -177,14 +177,14 @@ ahpServer<-function(id, userID, siteID, es_all){
         )
         
       })      
-
+      
       
       ### store the values
-      observeEvent(input$sub,{
+      observeEvent(input$conf3,{
         val_list1<-list()
         val_list2<-list()
         val_list3<-list()
-
+        
         res1<-lapply(1:nrow(es1),function(a){
           var<-paste0(es1[a,]$V1,"_",es1[a,]$V2)
           val_list1[[a]]<-input[[var]]
@@ -245,8 +245,11 @@ ahpServer<-function(id, userID, siteID, es_all){
         })
         es$es_pairUID <- unlist(m)
         insert_upload_job("rgee-381312", "data_base", "es_pair", es)
-
+        
       })
+      cond <- reactive({input$conf3})
+      
+      return(cond) 
       
       
     }
@@ -272,12 +275,3 @@ ahpServer<-function(id, userID, siteID, es_all){
 # }
 # 
 # shinyApp(ui, server)
-
-
-
-
-
-
-
-
-

@@ -11,7 +11,7 @@ navbarPage('POC Spatial Delphi R1',
                                         placeholder = NULL),
                               uiOutput("cond_b0"),
                               actionButton('sub0', 'start')
-                              )
+                    )
                     
            ),
            #### questionnaire general part
@@ -28,61 +28,61 @@ navbarPage('POC Spatial Delphi R1',
                           onInitialize = I('function() { this.setValue(""); }')
                         )
                       ),
-      
+                      
                       selectizeInput("edu","What is the highest level of education you have attained?",c("please select" = NA,
-                                                                                                          "Upper secondary education" ="upper_s",
-                                                                                                          "Tertiary vocational programme" = "tertiary",
-                                                                                                          "Bachelor"="bsc",
-                                                                                                          "Master" = "msc",
-                                                                                                          "Doctoral degree" = "phd",
-                                                                                                          "Prefer not to say"="no_answ"),options = list(
-                                                                                                            placeholder = 'Please select an option below',
-                                                                                                            onInitialize = I('function() { this.setValue(""); }')
-                                                                                                          )
+                                                                                                         "Upper secondary education" ="upper_s",
+                                                                                                         "Tertiary vocational programme" = "tertiary",
+                                                                                                         "Bachelor"="bsc",
+                                                                                                         "Master" = "msc",
+                                                                                                         "Doctoral degree" = "phd",
+                                                                                                         "Prefer not to say"="no_answ"),options = list(
+                                                                                                           placeholder = 'Please select an option below',
+                                                                                                           onInitialize = I('function() { this.setValue(""); }')
+                                                                                                         )
                                      
-                                     ),
+                      ),
                       
                       selectizeInput("work","In which economic sector do you currently work?",
-                                  c("Mining and quarrying" = "mining",
-                                    "Manufacturing"= "man",
-                                    "Electricity, gas, steam and air conditioning supply"= "energy",
-                                    "Water supply; sewerage, waste management and remediation activities" =  "water",
-                                    "Construction" = "cons",
-                                    "Distributive trade sector" = "trade",
-                                    "Transportation and storage services" = "transport",
-                                    "Accommodation and food services" = "accomodation",
-                                    "Information and communication services" = "inform",
-                                    "Real estate activities" = "real_estate",
-                                    "Professional, scientific and technical activities" = "science",
-                                    "Administrative and support service activities" = "admin",
-                                    "Repair of computers and personal and household goods" = "repair",
-                                    "prefer not to say" = "no_w"),options = list(
-                                      placeholder = 'Please select an option below',
-                                      onInitialize = I('function() { this.setValue(""); }')
-                                    )),
+                                     c("Mining and quarrying" = "mining",
+                                       "Manufacturing"= "man",
+                                       "Electricity, gas, steam and air conditioning supply"= "energy",
+                                       "Water supply; sewerage, waste management and remediation activities" =  "water",
+                                       "Construction" = "cons",
+                                       "Distributive trade sector" = "trade",
+                                       "Transportation and storage services" = "transport",
+                                       "Accommodation and food services" = "accomodation",
+                                       "Information and communication services" = "inform",
+                                       "Real estate activities" = "real_estate",
+                                       "Professional, scientific and technical activities" = "science",
+                                       "Administrative and support service activities" = "admin",
+                                       "Repair of computers and personal and household goods" = "repair",
+                                       "prefer not to say" = "no_w"),options = list(
+                                         placeholder = 'Please select an option below',
+                                         onInitialize = I('function() { this.setValue(""); }')
+                                       )),
                       br(),
                       h5("Click on the postal area where you currently live"),
                       mapedit::selectModUI("map_living"),
                       
                       
                       selectizeInput("liv","How long have you lived in Trondheim area in total?",c(
-                                                                                                    " I don`t  live in the Trondheim area" ="no_TRD",
-                                                                                                    "Less than 5 years" = "few",
-                                                                                                    "5 - 10 years"="more",
-                                                                                                    "10 - 20 years" = "more2",
-                                                                                                    "more than 20 years" = "all",
-                                                                                                    "Prefer not to say"="no_answ"),options = list(
-                                                                                                      placeholder = 'Please select an option below',
-                                                                                                      onInitialize = I('function() { this.setValue(""); }')
-                                                                                                    )),
+                        " I don`t  live in the Trondheim area" ="no_TRD",
+                        "Less than 5 years" = "few",
+                        "5 - 10 years"="more",
+                        "10 - 20 years" = "more2",
+                        "more than 20 years" = "all",
+                        "Prefer not to say"="no_answ"),options = list(
+                          placeholder = 'Please select an option below',
+                          onInitialize = I('function() { this.setValue(""); }')
+                        )),
                       
                       selectizeInput("fam","How familiar are you with the areas in and around Trondheim?",c("poor" ="poor",
-                                                                                                             "fair" = "fair",
-                                                                                                             "good"="good",
+                                                                                                            "fair" = "fair",
+                                                                                                            "good"="good",
                                                                                                             "I don`t know" = "dont_know"),options = list(
-                                                                                                               placeholder = 'Please select an option below',
-                                                                                                               onInitialize = I('function() { this.setValue(""); }')
-                                                                                                             )),
+                                                                                                              placeholder = 'Please select an option below',
+                                                                                                              onInitialize = I('function() { this.setValue(""); }')
+                                                                                                            )),
                       br(),
                       
                       # new environmental paradigm (NEP)
@@ -104,10 +104,10 @@ navbarPage('POC Spatial Delphi R1',
                                                                                                                                placeholder = 'Please select an option below',
                                                                                                                                onInitialize = I('function() { this.setValue(""); }')
                                                                                                                              )),
-                    # actionButton('sub1', 'submit answers')
-                    uiOutput("cond_b1")
+                      # actionButton('sub1', 'submit answers')
+                      uiOutput("cond_b1")
                     ),
-
+                    
            ),
            tabPanel(title = "Your Task", value = "p2",
                     h5("This explains what you are asked to do in the following task"),
@@ -117,37 +117,37 @@ navbarPage('POC Spatial Delphi R1',
            
            tabPanel(title = "Mapping of ecosystem services I", value = "p3", 
                     mainPanel(
-                      mapselectUI("mapping1", "map1 #1"),
-                      actionButton('sub2', 'next ES')
+                      mapselectUI("mapping1", "map1 #1")
+                      # actionButton('sub2', 'next ES')
                       # uiOutput("cond_b3")
                     )),
            tabPanel(title = "Mapping of ecosystem services II", value = "p4", 
                     mainPanel(
-                      mapselectUI("mapping2", "map2"),
-                      actionButton('sub4', 'next ES')
+                      mapselectUI("mapping2", "map2")
+                      # actionButton('sub4', 'next ES')
                       # uiOutput("cond_b4")
                       
                     )),
            tabPanel(title = "Mapping of ecosystem services III", value = "p5", 
                     mainPanel(
-                      mapselectUI("mapping3", "map3"),
-                      actionButton('sub5', 'next task')
+                      mapselectUI("mapping3", "map3")
+                      # actionButton('sub5', 'next task')
                       # uiOutput("cond_b5")
                       
                     )),
            tabPanel(title = "AHP section", value = "p6", 
                     mainPanel(
                       
-                      ahp_secUI("ahp_section", "ahp #1"),
-                      actionButton('sub6', 'next task')
+                      ahp_secUI("ahp_section", "ahp #1")
+                      # actionButton('sub6', 'next task')
                       # uiOutput("cond_b6")
                       
                     )),
            tabPanel(title = "AHP Detail", value = "p7", 
                     mainPanel(
                       
-                      ahpUI("ahp", "ahp #2"),
-                      actionButton('sub7', 'next')
+                      ahpUI("ahp", "ahp #2")
+                      # actionButton('sub7', 'next')
                       # uiOutput("cond_b6")
                       
                     )),
@@ -190,12 +190,11 @@ navbarPage('POC Spatial Delphi R1',
                                       width = "75%"
                                       
                       ),
-                      actionButton('sub8', 'end')
+                      actionButton('sub8', 'End', class='btn-primary')
                     )
-             
+                    
            )
            
            
            
 )
-
