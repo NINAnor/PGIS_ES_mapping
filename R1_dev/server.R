@@ -79,7 +79,7 @@ function(input, output, session) {
       need(input$liv != '', 'provide the years you live in the study area'),
       need(input$land != '', 'provide a landscape type')
     )
-    actionButton('sub1', 'submit answers')
+    actionButton('sub1', 'submit answers', class='btn-primary')
   })
   
   
