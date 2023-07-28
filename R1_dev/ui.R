@@ -83,6 +83,7 @@ fluidPage(
                                       )),
                      br(),
                      h5("Click on the postal area where you currently live"),
+                     "If you don`t live in the area, do not select an area.",
                      br(),
                      mapedit::selectModUI("map_living"),
                      selectizeInput("liv",

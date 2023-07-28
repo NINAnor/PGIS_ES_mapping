@@ -2,7 +2,7 @@ function(input, output, session) {
   
   #track_usage(storage_mode = store_rds(path = "logs/"))
   
-  ## hiding all tabs but not start
+  ## hiding all tabs but not start tab
   hideTab(inputId = "inTabset", target = "p1")
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
@@ -12,8 +12,7 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p7")
   hideTab(inputId = "inTabset", target = "p8")
   
-  #before userID is generated check if provided mail is not already present --> mess in R2!
-  ## before switching to expl, we should validate if all values are filled out
+  #before userID is generated validate if provided mail is not already present --> mess in R2!
   observeEvent(input$sub0,{
     if(input$email %in% conf$userMAIL & input$email != ""){
       output$cond_b0<-renderUI({
@@ -28,9 +27,8 @@ function(input, output, session) {
     }
     
   })
-  
-  
-  ####### generate user ID
+
+  ## generate user ID
   userID<-eventReactive(input$sub0, {
     # create random large string
     UID_part<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
@@ -44,32 +42,22 @@ function(input, output, session) {
     user_conf<-data.frame(userMAIL = email, userID = UID_part, userTLOG = tlog)
     ### save user conf
     insert_upload_job("rgee-381312", "data_base", "user_conf", user_conf)
-    #user_all<-readRDS("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
-    ###here it might be wise to double check if the UID is unique but with DB solution no problem
-    ####
-    
-    #user_all<-rbind(user_all,user_conf)
-    #saveRDS(user_all,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/user_conf.rds")
     rm(user_conf)
     userID<-as.character(UID_part)
     return(userID)
   })
   
   
-  ## as soon as ID generated, random es order, save order in vector per part. sample 4 out of 8 ES (shuffled order)
-  # rand_es_sel<-eventReactive(input$sub0,{
+  ## sample n out of all ES from the es table
     rand_es_sel<-es_all%>%slice_sample(n=num_es, replace = F)
-  #   return(rand_es_sel)
-  # })
   
-  
-  
+  # call the module for the selection of living place  
   liv_pol <- callModule(module=selectMod, 
                         leafmap=map_liv,
                         id="map_living")
   
   
-  ## before switching to expl, we should validate if all values are filled out
+  ## before switching to expl with sub1, we should validate if all values are filled out
   output$cond_b1<-renderUI({
     validate(
       need(input$age, 'Provide your age'),
@@ -82,17 +70,7 @@ function(input, output, session) {
     actionButton('sub1', 'submit answers', class='btn-primary')
   })
   
-  
-  
-  ## submit questionnaire and switch to expl
-  # observeEvent(input$sub1, {
-  #   updateTabsetPanel(session, "inTabset",
-  #                     selected = "p2")
-  # })
-  # observeEvent(input$sub1, {
-  #   hideTab(inputId = "inTabset",
-  #           target = "p1")
-  # })
+  ## display expl. tab with initial UI and save user questionnaire to bq
   observeEvent(input$sub1, {
     updateTabsetPanel(session, "inTabset",
                       selected = "p2")
@@ -165,6 +143,7 @@ function(input, output, session) {
     insert_upload_job("rgee-381312", "data_base", "user_all", quest)
     
   })
+  
   ## description of task
   observeEvent(input$proc1,{
     output$task_2<-renderUI({
@@ -185,7 +164,7 @@ function(input, output, session) {
     
   })
   
-  
+  # description 1
   observeEvent(input$ok1,{
     output$task_3<-renderUI({
       tagList(
@@ -205,9 +184,8 @@ function(input, output, session) {
     
   })
   
-  
+  # description 2
   observeEvent(input$ok2,{
-    
     output$task_4<-renderUI({
       tagList(
         h6("4. You can map"),
@@ -220,11 +198,7 @@ function(input, output, session) {
         "Press save polygons once you are done!",
         br(),
         img(src="tutorial_selecting.gif", align = "left",height='620px',width='836px'),
-        # "4.1. Click on save polygons",
-        # "A new map with your polygons will appear. Each polygon shows a red number. Below this map you find for each polygon a slider with the same number.",
-        # "Please set now the slider value for each polygon. Higher values indicate that the area serves very high quality to benefit from the ecosystem service",
-        # "Finally you need to write a few keywords why you choosed these areas",
-        # "Press submit",
+        br(),
         actionButton("ok3","proceed")
       )
     })
@@ -232,9 +206,8 @@ function(input, output, session) {
     
   })  
   
-  
+  # description 3
   observeEvent(input$ok3,{
-    
     output$task_5<-renderUI({
       tagList(
         h6("5. Rate your polygons"),
@@ -253,9 +226,7 @@ function(input, output, session) {
     
   })  
   
-  
-  
-  
+  # description 4
   observeEvent(input$ok4,{
     output$task_5<-renderUI({
       tagList(
@@ -271,8 +242,6 @@ function(input, output, session) {
 
   })  
   
-  
-  
   ## confirm expl switch to tab mapping I
   observeEvent(input$sub3, {
     updateTabsetPanel(session, "inTabset",
@@ -282,14 +251,9 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p3")
   })
-  # observeEvent(input$sub3, {
-  #   # hideTab(inputId = "inTabset",
-  #   #         target = "p2")
-  # })
-  
-  
+
+  # call the mapping maxent module
   m1<- mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, isolate(userID()), siteID, geometry, maxentviz)
-  
   
   ## switch to tab mapping II
   observeEvent(m1(), {
@@ -301,9 +265,8 @@ function(input, output, session) {
             target = "p4")
   })
   
-  
+  # call the mapping maxent module
   m2 = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, isolate(userID()), siteID, geometry, maxentviz)
-  
   
   ## confirm mapping switch to tab mapping III
   observeEvent(m2(), {
@@ -315,9 +278,11 @@ function(input, output, session) {
             target = "p5")
     
   })
-  ## AHP section
+
+  # call the mapping maxent module
   m3 = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, isolate(userID()), siteID, geometry, maxentviz)
   
+  ## confirm and switch to AHP section
   observeEvent(m3(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p6")
@@ -330,7 +295,7 @@ function(input, output, session) {
   
   m4<-ahp_secServer("ahp_section", isolate(userID()), siteID, es_all)
   
-  ## AHP detail
+  ## confirm and switch to AHP detail
   observeEvent(m4(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p7")
@@ -342,8 +307,7 @@ function(input, output, session) {
   
   m5<-ahpServer("ahp", isolate(userID()), siteID, es_all)
   
-  
-  ## effect distance
+  ##confirm and switch to effect distance of WT
   observeEvent(m5(), {
     updateTabsetPanel(session, "inTabset",
                       selected = "p8")
@@ -352,11 +316,8 @@ function(input, output, session) {
     showTab(inputId= "inTabset",
             target = "p8")
   })
-  
-  
+
   ## save and terminate app
-  
-  
   observeEvent(input$sub8,{
     userID<-userID()
     ## remove km
