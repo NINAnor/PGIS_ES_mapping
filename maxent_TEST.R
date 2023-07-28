@@ -174,6 +174,7 @@ mapselectUI<- function(id, label = "selector") {
       # actionButton(ns("submit2"),"save")
       
     ),
+
     conditionalPanel(
       condition = "input.expert_map != '' || input.submit > 0", ns=ns,
       actionButton(ns("confirm"), "Next task", class='btn-primary')
@@ -381,7 +382,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           ui = tagList(
             textOutput(ns("res_text")),
             br(),
-            leafletOutput(ns("gee_map"))
+            leafletOutput(ns("gee_map")),
+
           )
         )
         
@@ -429,19 +431,13 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           vecA <- unlist(res)
           
           # write attributes to geometry
-          # polygon$es_value <- vecA
-          # polygon$esID <- rep(esID,nrow(polygon))
-          # polygon$userID <- rep(userID,nrow(polygon))
-          # polygon$siteID <- rep(siteID,nrow(polygon))
-          # polygon$mapping_order <- rep(order,nrow(polygon))
-          # polygon$delphi_round<-rep(1, nrow(polygon))
-          # polygon$drawing_order<-rep(NA,nrow(polygon))
-          
-          polygon$esID <- rep("test2",nrow(polygon))
-          polygon$userID <- rep("test2",nrow(polygon))
-          polygon$siteID <- rep("test2",nrow(polygon))
-          polygon$mapping_order <- rep(0,nrow(polygon))
-          polygon$delphi_round<-rep(0, nrow(polygon))
+          polygon$es_value <- vecA
+          polygon$esID <- rep(esID,nrow(polygon))
+          polygon$userID <- rep(userID,nrow(polygon))
+          polygon$siteID <- rep(siteID,nrow(polygon))
+          polygon$mapping_order <- rep(order,nrow(polygon))
+          polygon$delphi_round<-rep(1, nrow(polygon))
+          polygon$drawing_order<-rep(NA,nrow(polygon))
           
           # a drawing order index
           for(i in 1: nrow(polygon)){
@@ -452,57 +448,42 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           n_polys <-nrow(polygon)
           polygon<-st_as_sf(polygon)
           
-          # collection_with_prop <- polygon[c("es_value","esID","userID","siteID", "geometry")] %>%
-          #   st_as_sf() %>% 
-          #   sf_as_ee()
+          ## save as shp (up to now)
+          polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/',userID,"_",esID,"_",siteID,".shp")
+          ## save poly
+          st_write(polygon,polypath)
           
           poly_area<-as.numeric(sum(st_area(polygon)))
           
-          # # make ee object and save
-           gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
-          # #set features
-          # collection_with_prop <- collection_with_prop$set('es_id', "test2",
-          #                      'userID', "test2",
-          #                      'siteID', "test2",
-          #                      'order_id', 0,
-          #                      'delphi_round', 0)
-
-
-
-
-          # #save poly old with added gee poly
-          poly_load<-ee_table_to_asset(gee_poly,
-                            description = "upload poly",
-                            assetId = paste0(ee_get_assethome(), "/train_polys"),
-                            overwrite = T
-                            )
-          poly_load$start()
+          # make ee object and save
+          gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
+          #set features
+          # gee_poly <- gee_poly$set('es_id', esID,
+          #                          'userID', userID,
+          #                          'siteID', siteID,
+          #                          'order_id', order,
+          #                          'delphi_round', 1)
+          
+          ## load full collection
+          # ee_asset_path<-paste0(ee_get_assethome(), "/train_polys")
+          # ee_poly_old<-ee$FeatureCollection(ee_asset_path)
           # 
-           ## load collection
-          ee_asset_path<-paste0(ee_get_assethome(), "/train_polys")
-          ee_poly_old<-ee$FeatureCollection(ee_asset_path)
-
-          #merge
-          ee_poly_old<-ee_poly_old$merge(gee_poly)
-
-          ### upload merged poly
-          poly_load<-ee_table_to_asset(ee_poly_old,
-                                       description = "upload poly",
-                                       assetId = paste0(ee_get_assethome(), "/train_polys2"),
-                                       overwrite = T
-          )
-          poly_load$start()
-          
-          
-          ## test to select geom based on property
-          test<-ee$FeatureCollection(paste0(ee_get_assethome(), '/train_polys2'))$filter(ee$Filter$eq('userID', "test2"))%>%ee_as_sf()
-          mapview(test)
+          # #merge
+          # ee_poly_old<-ee_poly_old$merge(gee_poly)
+          # 
+          # # #save poly old with added gee poly
+          # poly_load<-ee_table_to_asset(ee_poly_old,
+          #                              description = "upload poly",
+          #                              assetId = ee_asset_path,
+          #                              overwrite = T
+          # )
+          # poly_load$start()
           
           
           ############ training pts
           incProgress(amount = 0.2,message = "prepare training data")
           
-
+          
           
           ## N background (outside poly points) according to area of extrapolation
           A_roi<-as.numeric(st_area(sf_bound))
@@ -513,6 +494,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           
           # max pts for efficient extrapolation each 250x250 cell
           max_pts<- round(A_roi/(300*300),0)
+          
           
           # ratio poly area vs whole area
           ratio_A<-poly_area/A_roi
@@ -581,6 +563,15 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           #   pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
           #   arrange(desc(value))%>% #sort decreasing values
           #   slice(1:10)
+          # varImp$esID<-rep(esID,nrow(varImp))
+          # varImp$siteID<-rep(siteID,nrow(varImp))
+          # varImp$userID<-rep(userID,nrow(varImp))
+          # varImp$spatial_delphi_round<-rep(as.integer(1),nrow(varImp))
+          # varImp<-varImp%>%filter(name !="__unused__")
+          # colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID","spatial_delphi_round")
+          # insert_upload_job("rgee-381312", "data_base", "var_imp", varImp)
+          
+          
           # 
           # 
           # AUC_maxent<-mEntclass$explain()$get("Training AUC")$getInfo()%>% #get importance
@@ -594,33 +585,35 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
               userID = userID,
               siteID = siteID,
               mappingR1_UID = paste0(userID,"_",esID,"_", siteID),
-              imp_acc= input$access,
+              # imp_acc= as.integer(input$access),
+              imp_acc= as.integer(0),
               imp_nat= as.integer(0),
               imp_lulc = as.integer(0),
-              imp_own = input$imp_own,
-              imp_other = input$imp_other,
+              imp_own = as.integer(input$imp_own),
+              imp_other = as.integer(input$imp_other),
               area = as.integer(poly_area),
               n_poly = as.integer(n_polys),
               blog = input$blog,
               mapping = "Yes",
-              expert_trust = NA,
+              expert_trust = "no_expert",
               mapping_order = as.integer(order),
               extrap_RMSE = 0,
               extrap_accIMP = 0,
               extrap_lulcIMP = 0,
               extrap_natIMP = 0
+              
             )
           train_param<-as.data.frame(train_param)
           
           ############ maxent
           incProgress(amount = 0.1,message = "update data base")
           # write to bq
-          # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
+          insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
           
           prediction<-imageClassified$select("probability")
           
           ############ save map
-          incProgress(amount = 0.2,message = "save geodata")
+          incProgress(amount = 0.2,message = "store your map")
           img_assetid <- paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",userID,"_",esID,"_", siteID)
           
           #set features of img
@@ -630,34 +623,37 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                                        'order_id', order,
                                        'delphi_round', 1)
           
-          # start_time<-Sys.time()
-          # task_img <- ee_image_to_asset(
-          #   image = prediction,
-          #   assetId = img_assetid,
-          #   overwrite = T,
-          #   region = geometry
-          # )
-          # 
-          # task_img$start()
+          start_time<-Sys.time()
+          task_img <- ee_image_to_asset(
+            image = prediction,
+            assetId = img_assetid,
+            overwrite = T,
+            region = geometry
+          )
           
-        
-        ############ prepare map
-        incProgress(amount = 0.1,message = "prepare interactive map")
-        Map$setCenter(10.38649, 63.40271,10)
-        
-        prediction<-Map$addLayer(
-          eeObject = prediction,
-          maxentviz,
-          "Probability of ES",
-          opacity = 0.4)
+          task_img$start()
+          
+          
+          ############ prepare map
+          incProgress(amount = 0.1,message = "prepare interactive map")
+          Map$setCenter(10.38649, 63.40271,10)
+          
+          prediction<-Map$addLayer(
+            eeObject = prediction,
+            maxentviz,
+            "Probability of ES",
+            opacity = 0.4)
         })  
-        prediction<-prediction
+        return(prediction)
         
       })
+      
+     
 
       output$gee_map <- renderLeaflet({
         prediction()
              })
+      # outputOptions(output, "gee_map", suspendWhenHidden = FALSE)
       
 
       ### store infos if mapping is not possible
