@@ -17,14 +17,20 @@ ahp_secUI<- function(id, label = "ahp") {
   ns <- NS(id)
   tagList(
     mainPanel(
-      h1("Comparison of landscape benefits"),
+      h5("Comparison of ecosystem services"),
       br(),
-      h3("Before you are going to compare individual benefits you might gain from the landscape in the study region, you first provide us
-         your importance of broad benefit groups. In particular, you will compare the importance of the following three groups within the 
-         study region:"),
-      h4("  - Cultural landscape benefits: test1"),
-      h4("  - Provisioning landscape benefits: test2"),
-      h4("  - Regulation landscape benefits: test3"),
+      "First, you are going to compare the importance of grouped ecosystem services. Keep in mind that you should refer your ratings to the study area. The comparison might look different in other areas. In particular, you will compare the importance of the following three groups:",
+      br(),
+      h6(" - Cultural ecosystem services"), 
+      " Benefits that you and others gain from interactions with different areas and with people 
+      in these areas through a wide range of activities. This includes exploring areas on site with all our senses. In additon benefits we gain indirectly even if we are not
+      present in the area. This might include learning from landscapes, feeling at home which gives us identity and cultural importance of certain areas.",
+      br(),
+      h6("  - Provisioning ecosystem services"),
+      "These includes benefits that people can extract from the nature in a certain area. Along with food, other types of provisioning services include drinking water, timber, wood fuel, natural gas, oils, plants that can be made into clothes and other materials.",
+      br(),
+      h6("  - Regulation ecosystem services"),
+      "Services that provides the basic needs and make our life possible. Plants clean air and filter water, bacteria decompose wastes, bees pollinate flowers, and tree roots hold soil in place to prevent erosion.",
       br(),
       
       uiOutput(ns("slider")),
@@ -155,7 +161,7 @@ ahp_secServer<-function(id, userID, siteID, es_all){
 # )
 # 
 # server <- function(input, output, session) {
-# #   
+# #
 # 
 # 
 #   ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
