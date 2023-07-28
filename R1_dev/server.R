@@ -100,6 +100,15 @@ function(input, output, session) {
             target = "p1")
     showTab(inputId = "inTabset", target = "p2")
     
+    output$task_1<-renderUI({
+      tagList(
+      h6("Mapping ecosystem services"),
+      br(),
+      "Read carefully the following instructions",
+      br(),
+      actionButton("proc1", "proceed")
+      )
+    })
     
     userID<-userID()
     liv_pol<-liv_pol()
@@ -156,14 +165,114 @@ function(input, output, session) {
     insert_upload_job("rgee-381312", "data_base", "user_all", quest)
     
   })
-  
-  output$cond_b2<-renderUI({
-    validate(
-      need(input$check, 'Please confirm')
-      
-    )
-    actionButton('sub3', 'Go to mapping', class='btn-primary')
+  ## description of task
+  observeEvent(input$proc1,{
+    output$task_2<-renderUI({
+      tagList(
+        h6("1. Description of ecosystem service"),
+        "Ecosystem services are complex, thus it is important that you first read the description of the ecosystem service.",
+        br(),
+        h6("2. Indicating the importance"),
+        br(),
+        "Subsequently you are asked to indicate how important this ecosystem service is for you personally and in general for the society. You can ask yourselfe How much you might benefit from this particular service. Please make sure that you refer your rating only to the study area indicated in the introduction of the study.",
+        br(),
+        actionButton("ok1","got it")
+      )
+    })
+
+    removeUI(selector = "#task_1")
+
+    
   })
+  
+  
+  observeEvent(input$ok1,{
+    output$task_3<-renderUI({
+      tagList(
+        h6("3. Can you map it?"),
+        "You are now going to be asked if you feel comfortable to indicate on a map of the study area areas where you think you or other can benefit from this eoscystem service",
+        br(),
+        "3.1. If not",
+        br(),
+        "No problem, you are now just beeing asked if you would trust a map of this ecosystem service that has been developed by experts or national authorities.",
+        "A next ecosystem service will appear which you might be able to map.",
+        br(),
+        actionButton("ok2","What if I can map...")
+      )
+    })
+
+    removeUI(selector = "#task_2")
+    
+  })
+  
+  
+  observeEvent(input$ok2,{
+    
+    output$task_4<-renderUI({
+      tagList(
+        h6("4. You can map"),
+        br(),
+        "An interactive map with orange borders indicating the study area will appear. You can pan and zoom the map.",
+        "As shown below you can create and modify one or several rectangles.",
+        "The rectangle(s) should meet the following aspects:",
+        "- deliniate as precise as possible areas of high ecosystem service benefit",
+        "- not too small areas: The squares should have an edge length of min 300m",
+        "Press save polygons once you are done!",
+        br(),
+        img(src="tutorial_selecting.gif", align = "left",height='620px',width='836px'),
+        # "4.1. Click on save polygons",
+        # "A new map with your polygons will appear. Each polygon shows a red number. Below this map you find for each polygon a slider with the same number.",
+        # "Please set now the slider value for each polygon. Higher values indicate that the area serves very high quality to benefit from the ecosystem service",
+        # "Finally you need to write a few keywords why you choosed these areas",
+        # "Press submit",
+        actionButton("ok3","proceed")
+      )
+    })
+    removeUI(selector = "#task_3")
+    
+  })  
+  
+  
+  observeEvent(input$ok3,{
+    
+    output$task_5<-renderUI({
+      tagList(
+        h6("5. Rate your polygons"),
+        br(),
+        "As soon as you have saved the polygons they will appear on the map with a red number. Below you find for each polygon a slider with the same number.",
+        "Please set now the slider value for each polygon. Higher values indicate that the area serves very high quality to benefit from the ecosystem service",
+        "Finally you need to write a few keywords why you choosed these areas",
+        "Press submit",
+        br(),
+        img(src="tutorial_rating.gif", align = "left",height='620px',width='836px'),
+
+        actionButton("ok4","proceed")
+      )
+    })
+    removeUI(selector = "#task_4")
+    
+  })  
+  
+  
+  
+  
+  observeEvent(input$ok4,{
+    output$task_5<-renderUI({
+      tagList(
+        h6("6. Your Result"),
+        br(),
+        "Your polygons and ratings are stored and extrapolated to the whole study region - this can take up to 30 seconds. Please wait until the new map appears",
+        "The final map shows you the probability to benefit from the respective ecosystem service, based on your inputs.",
+        "Press next and this procedure will repeat four times in total",
+        br(),
+        actionButton('sub3', 'Go to firs mapping task', class='btn-primary')
+      )
+    })
+
+  })  
+  
+  
+  
   ## confirm expl switch to tab mapping I
   observeEvent(input$sub3, {
     updateTabsetPanel(session, "inTabset",

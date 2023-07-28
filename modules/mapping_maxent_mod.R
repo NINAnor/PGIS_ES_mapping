@@ -3,49 +3,62 @@
 mapselectUI<- function(id, label = "selector") {
   ns <- NS(id)
   tagList(
-    # title 
-    textOutput(ns("title_es")),
     br(),
-    # description of es 
-    textOutput(ns("descr_es")),
-    br(),
-    # questions of importance
-    textOutput(ns("imp_text")),
-    sliderInput(ns("imp_own"), paste0("... for you personally in this area?"),
-                min = 0, max = 5, value = 3
-    ),
-    sliderInput(ns("imp_other"), paste0("... for others and the society in this area?"),
-                min = 0, max = 5, value = 3
-    ),
-    br(),
-    # are you able to map the ES?
-    uiOutput(ns("map_poss")),
-    br(),
-    conditionalPanel(
-      condition = "input.map_poss == 'Yes'", ns = ns ,
-      # h5("where do you find good spots of ESx?"),
-      textOutput(ns("es_quest")),
-      editModUI(ns("map_sel")),
+    mainPanel(
+      # title 
+      uiOutput(ns("title_es")),
       br(),
-      # initial button to save the map
-      actionButton(ns("savepoly"),"save polygons")
-      
-      
-    ),
-    # if ES not mappable
-    conditionalPanel(
-      condition = "input.map_poss == 'No'", ns = ns ,
-      selectizeInput(ns("expert_map"),label="Would you trust an expert map",choices = c("Yes","No"),options = list(
-        placeholder = 'Please select an option below',
-        onInitialize = I('function() { this.setValue(""); }')))
-      # actionButton(ns("submit2"),"save")
-      
-    ),
-    conditionalPanel(
-      condition = "input.expert_map != '' || input.submit > 0", ns=ns,
-      actionButton(ns("confirm"), "Next task", class='btn-primary')
+      fluidRow(
+        column(5,
+               textOutput(ns("descr_es"))),
+        column(2),
+        column(5,
+               uiOutput(ns("image_es")))
+      ),
+      br(),
+      # questions of importance
+      uiOutput(ns("imp_text")),
+      fluidRow(
+        column(5,
+               sliderInput(ns("imp_own"), "... for you personally in this area?",
+                           min = 0, max = 5, value = 3
+               )),
+        column(2),
+        column(5,
+               sliderInput(ns("imp_other"), "... for others and the society in this area?",
+                           min = 0, max = 5, value = 3
+               ))
+      ),
+      br(),
+      # are you able to map the ES?
+      uiOutput(ns("map_poss")),
+      br(),
+      conditionalPanel(
+        condition = "input.map_poss == 'Yes'", ns = ns ,
+        # h5("where do you find good spots of ESx?"),
+        uiOutput(ns("es_quest_where")),
+        br(),
+        editModUI(ns("map_sel")),
+        br(),
+        # initial button to save the map
+        actionButton(ns("savepoly"),"save polygons")
+        
+        
+      ),
+      # if ES not mappable
+      conditionalPanel(
+        condition = "input.map_poss == 'No'", ns = ns ,
+        selectizeInput(ns("expert_map"),label="Would you trust an expert map",choices = c("Yes","No"),options = list(
+          placeholder = 'Please select an option below',
+          onInitialize = I('function() { this.setValue(""); }')))
+        # actionButton(ns("submit2"),"save")
+        
+      ),
+      conditionalPanel(
+        condition = "input.expert_map != '' || input.submit > 0", ns=ns,
+        actionButton(ns("confirm"), "Next task", class='btn-primary')
+      )
     )
-    
   )
   
 }
@@ -63,13 +76,27 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
     function(input, output, session){
       ns<-session$ns
       
+      #render various texts for UI
       esID<-rand_es_sel[order,]$esID
-      output$title_es<-renderText(rand_es_sel[order,]$esNAME)
+      output$title_es<-renderUI(h5(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
-      # output$varimp_text<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[order,]$esNAME))
-      # output$res_text<-renderText(paste0("Your personal map of ",rand_es_sel[order,]$esNAME))
-      output$es_quest<-renderText(paste0("Where do you find good spots for ", rand_es_sel[order,]$esNAME))
-      output$imp_text<-renderText(paste0("How important is ", rand_es_sel[order,]$esNAME,"..."))
+      output$res_text<-renderUI(h6(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
+      output$es_quest_where<-renderUI(h6(paste0("Where do you find good areas for ", rand_es_sel[order,]$esNAME,"?")))
+      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",rand_es_sel[order,]$esNAME, " for each of area")))
+      output$imp_text<-renderUI(h6(paste0("How important is ", rand_es_sel[order,]$esNAME,"...")))
+      
+      #render the corresponding image to es
+      output$image_es<-renderUI({
+        tags$figure(
+          class = "centerFigure",
+          tags$img(
+            src = paste0(esID,".jpg"),
+            width = 600,
+            alt = "Picture of an astragalus (bone die)"
+          ),
+          tags$figcaption("Image of Astragalus by Yaan, 2007")
+        )
+      })
       
       # UI rendered to ask if able to map ES
       output$map_poss<-renderUI({
@@ -120,8 +147,9 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       observeEvent(input$map_poss,{
         if(input$map_poss !=""){
           removeUI(
-            selector = paste0("#",ns("map_poss"))
-          )
+            selector = paste0("#",ns("map_poss")))
+          removeUI(
+            selector = paste0("#",ns("imp_text")))
         }
       })
 
@@ -146,24 +174,29 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           selector = paste0("#",ns("savepoly")),
           where = "afterEnd",
           ui = tagList(
+            uiOutput(ns("es_quest_how")),
+            br(),
             leafletOutput(ns("map_res")),
+            br(),
             uiOutput(ns("slider")),
             br(),
-            
             # a short expl. why this sites
-            textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-            actionButton(ns("submit"),"save values")
+            uiOutput(ns("blogdescr")),
+            textInput(ns("blog"), label = ""),
+            br(),
+            conditionalPanel(
+              condition = "input.blog != ''", ns=ns,
+              actionButton(ns("submit"),"save values (wait app. 30 sec)")
+            )
           )
         )
         
         removeUI(
           selector = paste0("#",ns("savepoly")))
         removeUI(
-          selector = paste0("#",ns("imp_text")))
+          selector = paste0("#",ns("map_sel"),"-map"))
         removeUI(
-          selector = paste0("#",ns("imp_own")))
-        removeUI(
-          selector = paste0("#",ns("imp_other")))
+          selector = paste0("#",ns("es_quest_where")))
 
         
         cent_poly <- st_centroid(polygon)
@@ -177,24 +210,27 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                                                                                           "font-family" = "serif",
                                                                                           "font-style" = "bold",
                                                                                           "font-size" = "20px"
-                                                                                        ))))
-        output$slider <- shiny::renderUI({
+                                                                                         ))))
+        # create sliders according to number of polys
+      output$slider <- shiny::renderUI({
           ns <- session$ns
           tagList(
-            h5("please rate ESx for each area"),
+            paste0("The Nr. of the slider refer to the number of the rectangle in the map"),
+            br(),
             lapply(1:nrow(tbl),function(n){
               polynr <- tbl[n,]$`_leaflet_id`
               id<-paste0("id_",polynr)
-              lable<-paste0("Polygon Nr: ",polynr)
+              lable<-paste0("Polygon Nr in map: ",polynr)
               sliderInput(ns(id),lable, min = 1, max = 5, step = 1, value = 3)
             })
           )
           
         })
-        
-        
       })
-      
+      output$blogdescr<-renderUI({
+        h6(paste0("Please provide us a short explanation why you choosed these areas of good quality to provide ",rand_es_sel[order,]$esNAME))
+      })
+
       
       ## remove map UI and sliders show result
       observeEvent(input$submit, {
@@ -215,7 +251,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           selector = paste0("#",ns("slider"))
         )
         removeUI(
-          selector = paste0("#",ns("varimp_text"))
+          selector = paste0("#",ns("blogdescr"))
         )
         removeUI(
           selector = paste0("#",ns("blog"))
