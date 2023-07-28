@@ -22,6 +22,7 @@ library(bigrquery)
 library(DBI)
 
 
+img_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/R1_dev/data/images"
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
 # connection to bq
 con <- dbConnect(
@@ -127,20 +128,27 @@ maxentviz = list(bands= 'probability',min= 0, max= 1, palette= cols)
 mapselectUI<- function(id, label = "selector") {
   ns <- NS(id)
   tagList(
-    # title 
-    textOutput(ns("title_es")),
     br(),
-    # description of es 
-    textOutput(ns("descr_es")),
+    mainPanel(
+        # title 
+    uiOutput(ns("title_es")),
+    br(),
+    fluidRow(
+      column(5,
+             textOutput(ns("descr_es"))),
+      column(2),
+      column(5,
+             uiOutput(ns("image_es")))
+    ),
     br(),
     # questions of importance
-    textOutput(ns("imp_text")),
-    sliderInput(ns("imp_own"), paste0("... for you personally in this area?"),
-                min = 0, max = 5, value = 3
-    ),
-    sliderInput(ns("imp_other"), paste0("... for others and the society in this area?"),
-                min = 0, max = 5, value = 3
-    ),
+    uiOutput(ns("imp_text")),
+    sliderInput(ns("imp_own"), "... for you personally in this area?",
+                min = 0, max = 5, value = 3),
+    
+    sliderInput(ns("imp_other"), "... for others and the society in this area?",
+                min = 0, max = 5, value = 3),
+
     br(),
     # are you able to map the ES?
     uiOutput(ns("map_poss")),
@@ -148,7 +156,8 @@ mapselectUI<- function(id, label = "selector") {
     conditionalPanel(
       condition = "input.map_poss == 'Yes'", ns = ns ,
       # h5("where do you find good spots of ESx?"),
-      textOutput(ns("es_quest")),
+      uiOutput(ns("es_quest_where")),
+      br(),
       editModUI(ns("map_sel")),
       br(),
       # initial button to save the map
@@ -169,7 +178,7 @@ mapselectUI<- function(id, label = "selector") {
       condition = "input.expert_map != '' || input.submit > 0", ns=ns,
       actionButton(ns("confirm"), "Next task", class='btn-primary')
     )
-    
+    )
   )
   
 }
@@ -188,12 +197,27 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       ns<-session$ns
       
       esID<-rand_es_sel[order,]$esID
-      output$title_es<-renderText(rand_es_sel[order,]$esNAME)
+      output$title_es<-renderUI(h5(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
       # output$varimp_text<-renderText(paste0("How important are the following aspects to get a benefit of ",rand_es_sel[order,]$esNAME))
-      # output$res_text<-renderText(paste0("Your personal map of ",rand_es_sel[order,]$esNAME))
-      output$es_quest<-renderText(paste0("Where do you find good spots for ", rand_es_sel[order,]$esNAME))
-      output$imp_text<-renderText(paste0("How important is ", rand_es_sel[order,]$esNAME,"..."))
+      output$res_text<-renderUI(h6(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
+      output$es_quest_where<-renderUI(h6(paste0("Where do you find good areas for ", rand_es_sel[order,]$esNAME,"?")))
+      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",rand_es_sel[order,]$esNAME, " for each of area")))
+      output$imp_text<-renderUI(h6(paste0("How important is ", rand_es_sel[order,]$esNAME,"...")))
+                                
+      
+      output$image_es<-renderUI({
+        tags$figure(
+          class = "centerFigure",
+          tags$img(
+            src = paste0(esID,".jpg"),
+            width = 600,
+            alt = "Picture of an astragalus (bone die)"
+          ),
+          tags$figcaption("Image of Astragalus by Yaan, 2007")
+        )
+      })
+      
       
       # UI rendered to ask if able to map ES
       output$map_poss<-renderUI({
@@ -233,7 +257,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                        singleFeature = FALSE,
                        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
       
-      ### call the edit map module from the mapedit package
+
+      ## call the edit map module from the mapedit package
       edits<-callModule(
         module = editMod,
         leafmap = map,
@@ -247,6 +272,16 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           removeUI(
             selector = paste0("#",ns("map_poss"))
           )
+          # removeUI(
+          #   selector = paste0("#",ns("imp_own"),"-label"))
+          # removeUI(
+          #   selector = paste0("#",ns("imp_own")))
+          # removeUI(
+          #   selector = paste0("#",ns("imp_other"),"-label"))
+          # removeUI(
+          #   selector = paste0("#",ns("imp_other")))
+          removeUI(
+            selector = paste0("#",ns("imp_text")))
         }
       })
       
@@ -274,28 +309,33 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           selector = paste0("#",ns("savepoly")),
           where = "afterEnd",
           ui = tagList(
+            uiOutput(ns("es_quest_how")),
+            br(),
             leafletOutput(ns("map_res")),
+            br(),
             uiOutput(ns("slider")),
             br(),
-
             # a short expl. why this sites
-            textInput(ns("blog"),"Please provide us a short explanation why you choosed and rated your sites as you did"),
-            actionButton(ns("submit"),"save values")
+            uiOutput(ns("blogdescr")),
+            textInput(ns("blog"), label = ""),
+            br(),
+            conditionalPanel(
+              condition = "input.blog != ''", ns=ns,
+              actionButton(ns("submit"),"save values")
+            )
           )
         )
-        
-        # removeUI(
-        #   selector = paste0("#","map_sel")
-        # )
-        # removeUI(selector = sprintf('#%s', "map_sel"))
+
         removeUI(
           selector = paste0("#",ns("savepoly")))
+        
         removeUI(
-          selector = paste0("#",ns("imp_text")))
+          selector = paste0("#",ns("map_sel"),"-map"))
+        
         removeUI(
-          selector = paste0("#",ns("imp_own")))
-        removeUI(
-          selector = paste0("#",ns("imp_other")))
+          selector = paste0("#",ns("es_quest_where")))
+
+
 
         cent_poly <- st_centroid(polygon)
         output$map_res<-renderLeaflet(map_res %>% 
@@ -312,19 +352,24 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         
         ### create a slider for each of the polygons
 
-        output$slider <- shiny::renderUI({
+      output$slider <- shiny::renderUI({
           ns <- session$ns
           tagList(
-            h5("please rate ESx for each area"),
+            paste0("The Nr. of the slider refer to the number of the rectangle in the map"),
+            br(),
+            br(),
             lapply(1:nrow(tbl),function(n){
               polynr <- tbl[n,]$`_leaflet_id`
               id<-paste0("id_",polynr)
-              lable<-paste0("Polygon Nr: ",polynr)
+              lable<-paste0("Polygon Nr in map: ",polynr)
               sliderInput(ns(id),lable, min = 1, max = 5, step = 1, value = 3)
             })
           )
           
         })
+      })
+      output$blogdescr<-renderUI({
+        h6(paste0("Please provide us a short explanation why you choosed these areas of good quality to provide ",rand_es_sel[order,]$esNAME))
       })
 
       ## remove map UI and sliders show result
@@ -335,6 +380,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           where = "afterEnd",
           ui = tagList(
             textOutput(ns("res_text")),
+            br(),
             leafletOutput(ns("gee_map"))
           )
         )
@@ -343,10 +389,13 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           selector = paste0("#",ns("map_res"))
         )
         removeUI(
+          selector = paste0("#",ns("es_quest_how"))
+        )
+        removeUI(
           selector = paste0("#",ns("slider"))
         )
         removeUI(
-          selector = paste0("#",ns("varimp_text"))
+          selector = paste0("#",ns("blogdescr"))
         )
         removeUI(
           selector = paste0("#",ns("blog"))
@@ -566,7 +615,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           ############ maxent
           incProgress(amount = 0.1,message = "update data base")
           # write to bq
-          insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
+          # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
           
           prediction<-imageClassified$select("probability")
           
@@ -581,15 +630,15 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                                        'order_id', order,
                                        'delphi_round', 1)
           
-          start_time<-Sys.time()
-          task_img <- ee_image_to_asset(
-            image = prediction,
-            assetId = img_assetid,
-            overwrite = T,
-            region = geometry
-          )
-          
-          task_img$start()
+          # start_time<-Sys.time()
+          # task_img <- ee_image_to_asset(
+          #   image = prediction,
+          #   assetId = img_assetid,
+          #   overwrite = T,
+          #   region = geometry
+          # )
+          # 
+          # task_img$start()
           
         
         ############ prepare map
@@ -636,7 +685,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           extrap_natIMP = 0
         )
           train_param<-as.data.frame(train_param)
-          insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
+          # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
           # removeUI(
           #   selector = paste0("#",ns("expert_map"))
           # )
@@ -655,32 +704,34 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
 
 ### test
 # # 
-ui <- navbarPage('POC Spatial Delphi R1',
-                 id = "inTabset",
-  
-  tabPanel(title = "Your Task", value = "p1",
-           h5("This explains what you are asked to do in the following task"),
-           checkboxInput('check', 'I have read and understood the instructions',value = FALSE),
-           actionButton("test","hit me")
-  ),
-  tabPanel(title = "Mapping Task", value = "p2",
-           mapselectUI("map1", "mapping1")
-           )
-
+ui <- fluidPage(
+  theme = bslib::bs_theme(bootswatch = "cerulean"),
+                titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC mapping ecosystem services'), windowTitle = "ES mapping" ),
+                tabsetPanel(id = "inTabset",
+                          tabPanel(title = "Your Task", value = "p1",
+                          h5("This explains what you are asked to do in the following task"),
+                          img(src="tutorial_rating.gif", align = "left",height='620px',width='836px'),
+                          br(),
+                          checkboxInput('check', 'I have read and understood the instructions',value = FALSE),
+                          actionButton("test","hit me")
+                ),
+                tabPanel(title = "Mapping Task", value = "p2",
+                  mapselectUI("map1", "mapping1")
+           ))
 )
 
 server <- function(input, output, session) {
   
   
-  # userID<-eventReactive(input$test, {
-  #   # create random large string
-  #   UID_part<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
-  #   userID<-as.character(UID_part)
-  #   return(userID)
-  # })
-  rand_es_sel<-eventReactive(input$test,{
-    rand_es_sel<-es_all%>%slice_sample(n=1, replace = F)
+  userID<-eventReactive(input$test, {
+    # create random large string
+    UID_part<-stri_rand_strings(1, 10, pattern = "[A-Za-z0-9]")
+    userID<-as.character(UID_part)
+    return(userID)
   })
+
+    rand_es_sel<-es_all%>%slice_sample(n=1, replace = F)
+ 
   
   #
   hideTab(inputId = "inTabset", target = "p2")
@@ -698,13 +749,9 @@ server <- function(input, output, session) {
         showTab(inputId = "inTabset", target = "p2")
   })
 
-    
- 
 
- # v<-eventReactive(input$test,{
- #   userID<-userID()
-   v<- mapselectServer("map1",sf_bound, comb,bands, isolate(rand_es_sel()), 1, userID,"ABC", geometry, maxentviz)
- # })
+   v<- mapselectServer("map1",sf_bound, comb,bands, rand_es_sel, 1, isolate(userID()),"ABC", geometry, maxentviz)
+
 
   
   observeEvent(v(),{
