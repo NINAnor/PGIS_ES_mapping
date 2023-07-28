@@ -20,6 +20,7 @@ library(tidyverse)
 library(bigrquery)
 library(DBI)
 library(shinyjs)
+library(shinyBS)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_maxent_mod.R")
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/ahp_section_module.R")

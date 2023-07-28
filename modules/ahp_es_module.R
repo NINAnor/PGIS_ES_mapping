@@ -1,25 +1,27 @@
-# library(shinyWidgets)
-# library(dplyr)
-# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# # connection to bq
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
-# 
-# es_all<-tbl(con, "es_descr")
-# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
+library(shinyWidgets)
+library(dplyr)
+library(shinyBS)
+
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# connection to bq
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+es_all<-tbl(con, "es_descr")
+es_all<-select(es_all,esID,esDESCR,esNAME,esSECTION)%>%collect()
 
 ahpUI<- function(id, label = "ahp2") {
   ns <- NS(id)
   tagList(
     mainPanel(
-      h1("Comparison of landscape benefits"),
+      h6("Comparison of single ecosystem services"),
       br(),
-      h3("You will now compare the importance of different landscape benefits within the 
-         study region. If you need more information about a specific benefit please click on the respective name."),
+      "You will now compare the importance of different ecosystem services within the 
+         study region. If you need more information about a specific benefit please click on the respective name.",
       br(),
       br(),
       # textOutput(ns("expl1")),
@@ -47,8 +49,8 @@ ahpServer<-function(id, userID, siteID, es_all){
     function(input, output, session){
       ns<-session$ns
       
-      reg<-es_all%>%filter(esSECTION == "regulating")%>%distinct(esID)
-      reg <- unlist(as.vector(reg))
+      reg_full<-es_all%>%filter(esSECTION == "regulating")
+      reg <- unlist(as.vector(reg_full%>%distinct(esID)))
       reg_comb<-as.data.frame(t(combn(reg, 2)))
       reg_comb$ind<-rep(1,nrow(reg_comb))
       
@@ -72,11 +74,28 @@ ahpServer<-function(id, userID, siteID, es_all){
       
       ## first ES block
       output$slider_es1 <- shiny::renderUI({
+        
+        
         ns <- session$ns
-        tagList(
+        
+          # lapply(1:nrow(es1),function(a){
+          #   es_id_left<-es1[a,]$V1
+          #   actionLink(inputId = ns(paste0("l_",es_id_left)), label = es_id_left)
+          # 
+          # }),
+          # lapply(1:nrow(es1),function(b){
+          #   es_id_left<-es1[b,]$V1
+             # bsModal(id = "modal1", title = es_id_left, trigger = ns(paste0("l_",es_id_left)),
+             #        h5(es_id_left),
+             #        tags$ol(
+             #          tags$li("Must have Resp_ID as the first column, occasion_ID as second and dependent variable as the third"),
+             #          tags$li("Must have no missing value in any fields")
+             #        ), easyClose = TRUE, footer = NULL)
+          # }),
           lapply(1:nrow(es1),function(n){
+            
             pair_id <- paste0(es1[n,]$V1,"_",es1[n,]$V2)
-            pair_lable<-paste0(es1[n,]$V1," - ",es1[n,]$V2)
+            pair_lable<-paste0(reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esNAME)," - ",reg_full%>%filter(esID %in% es1[n,]$V2)%>%select(esNAME))
             choice1<-paste0(es1[n,]$V1, " is overwhelmingly more important")
             choice2<-paste0(es1[n,]$V1, " is very strongly more important")
             choice3<-paste0(es1[n,]$V1, " is strongly more important")
@@ -89,20 +108,62 @@ ahpServer<-function(id, userID, siteID, es_all){
             
             
             
+            es_id_left<-es1[n,]$V1
+            es_id_right<-es1[n,]$V2
+            mod_id_left<-paste0(es_id_left,"_mod_left")
+            mod_id_right<-paste0(es_id_right,"_mod_right")
+            
+
+            tagList(
+              bsModal(id = ns(paste0(mod_id_left,n)), title = reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esNAME), trigger = ns(paste0("l_",es_id_left)),
+                      h6(es_id_left),
+                      tags$ol(
+                        tags$li(reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esDESCR)),
+                        tags$figure(
+                          class = "centerFigure",
+                          tags$img(
+                            src = paste0(es1[n,]$V1,".jpg"),
+                            width = 300,
+                            alt = "Picture of an astragalus (bone die)"
+                          ),
+                          tags$figcaption("Image of Astragalus by Yaan, 2007")
+                        )
+                      ), easyClose = TRUE, footer = NULL),
+              
+              bsModal(id = ns(paste0(mod_id_right,n)), title = reg_full%>%filter(esID %in% es1[n,]$V2)%>%select(esNAME), trigger = ns(paste0("r_",es_id_right)),
+                      h6(es_id_right),
+                      tags$ol(
+                        tags$li(reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esDESCR)),
+                        tags$figure(
+                          class = "centerFigure",
+                          tags$img(
+                            src = paste0(es1[n,]$V2,".jpg"),
+                            width = 300,
+                            alt = "Picture of an astragalus (bone die)"
+                          ),
+                          tags$figcaption("Image of Astragalus by Yaan, 2007")
+                        )
+                      ), easyClose = TRUE, footer = NULL),
+
+              
+              column(6,actionLink(inputId = ns(paste0("l_",es_id_left)), label = es_id_left))
+            , 
+            column(6, actionLink(inputId = ns(paste0("r_",es_id_right)), label = es_id_right)),
+            
             sliderTextInput(ns(pair_id),
                             pair_lable, 
                             grid = F,
-                            force_edges = TRUE,
+                            force_edges = F,
                             choices = c(choice1, 
                                         choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
                             width = "75%"
                             
-            )
+            ))
             
             
           })
           
-        )
+        
         
       })
       
@@ -256,22 +317,22 @@ ahpServer<-function(id, userID, siteID, es_all){
     
   )
 }
-# 
-# # 
-# ui <- fluidPage(
-#   fluidRow(
-#     column(width = 12,
-#            ahpUI("ahp1", "Counter #1")
-#            )
-#   )
-# 
-# 
-# )
-# 
-# server <- function(input, output, session) {
-# 
-#   ahpServer("ahp1", "KcdePm2lep", "NOR-SNJ", es_all)
-# 
-# }
-# 
-# shinyApp(ui, server)
+
+#
+ui <- fluidPage(
+  fluidRow(
+    column(width = 12,
+           ahpUI("ahp1", "Counter #1")
+           )
+  )
+
+
+)
+
+server <- function(input, output, session) {
+
+  ahpServer("ahp1", "KcdePm2lep", "NOR-SNJ", es_all)
+
+}
+
+shinyApp(ui, server)
