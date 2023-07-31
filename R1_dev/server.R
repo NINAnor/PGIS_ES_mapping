@@ -12,6 +12,60 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p7")
   hideTab(inputId = "inTabset", target = "p8")
   
+  
+  url <- a(site$siteNAME, href=site$siteLINK)
+  output$study_area<-renderUI(
+    tagList(
+      h6(site$siteNAME),
+      fluidRow(
+        column(7,
+         renderLeaflet(map_area)      
+               ),
+        column(5,
+               fluidRow(paste0("Area [km2]: ",site$siteAREA)),
+               fluidRow(paste0("Population: ",site$sitePOP)),
+               tagList("URL link:", url)
+
+      )),
+      br(),
+      fluidRow(
+        column(3,
+               tags$figure(
+                 class = "centerFigure",
+                 tags$img(
+                   src = paste0("/study_areas/",studyID,"_1",".jpg"),
+                   width = 600,
+                   alt = "Picture of an astragalus (bone die)"
+                 ),
+                 tags$figcaption("Image of Astragalus by Yaan, 2007")
+               )),
+        column(1),
+        column(3,
+               tags$figure(
+                 class = "centerFigure",
+                 tags$img(
+                   src = paste0("/study_areas/",studyID,"_2",".jpg"),
+                   width = 600,
+                   alt = "Picture of an astragalus (bone die)"
+                 ),
+                 tags$figcaption("Image of Astragalus by Yaan, 2007")
+               )),
+        column(1),
+        column(3,
+               tags$figure(
+                 class = "centerFigure",
+                 tags$img(
+                   src = paste0("/study_areas/",studyID,"_3",".jpg"),
+                   width = 600,
+                   alt = "Picture of an astragalus (bone die)"
+                 ),
+                 tags$figcaption("Image of Astragalus by Yaan, 2007")
+               ))
+      )
+      
+    )
+  )
+  
   #before userID is generated validate if provided mail is not already present --> mess in R2!
   observeEvent(input$sub0,{
     if(input$email %in% conf$userMAIL & input$email != ""){
@@ -102,7 +156,7 @@ function(input, output, session) {
     
     quest <-  data.frame(
       userID = userID,
-      siteID = siteID,
+      studyID = studyID,
       edu = input$edu,
       fam = input$fam,
       liv = input$liv,
@@ -137,7 +191,7 @@ function(input, output, session) {
       userLNG = user_lng,
       land = input$land,
       es_order = es_order,
-      questUID = paste0(userID,"_",siteID,"_",es_order)
+      questUID = paste0(userID,"_",studyID,"_",es_order)
     )
     
     insert_upload_job("rgee-381312", "data_base", "user_all", quest)
@@ -253,7 +307,7 @@ function(input, output, session) {
   })
 
   # call the mapping maxent module
-  m1<- mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, isolate(userID()), siteID, geometry, maxentviz)
+  m1<- mapselectServer("mapping1",sf_bound, comb, bands, rand_es_sel, 1, isolate(userID()), studyID, geometry, maxentviz)
   
   ## switch to tab mapping II
   observeEvent(m1(), {
@@ -266,7 +320,7 @@ function(input, output, session) {
   })
   
   # call the mapping maxent module
-  m2 = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, isolate(userID()), siteID, geometry, maxentviz)
+  m2 = mapselectServer("mapping2",sf_bound, comb, bands, rand_es_sel, 2, isolate(userID()), studyID, geometry, maxentviz)
   
   ## confirm mapping switch to tab mapping III
   observeEvent(m2(), {
@@ -280,7 +334,7 @@ function(input, output, session) {
   })
 
   # call the mapping maxent module
-  m3 = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, isolate(userID()), siteID, geometry, maxentviz)
+  m3 = mapselectServer("mapping3",sf_bound, comb, bands, rand_es_sel, 3, isolate(userID()), studyID, geometry, maxentviz)
   
   ## confirm and switch to AHP section
   observeEvent(m3(), {
@@ -293,7 +347,7 @@ function(input, output, session) {
     
   })
   
-  m4<-ahp_secServer("ahp_section", isolate(userID()), siteID, es_all)
+  m4<-ahp_secServer("ahp_section", isolate(userID()), studyID, es_all)
   
   ## confirm and switch to AHP detail
   observeEvent(m4(), {
@@ -305,7 +359,7 @@ function(input, output, session) {
             target = "p7")
   })
   
-  m5<-ahpServer("ahp", isolate(userID()), siteID, es_all)
+  m5<-ahpServer("ahp", isolate(userID()), studyID, es_all)
   
   ##confirm and switch to effect distance of WT
   observeEvent(m5(), {
@@ -328,7 +382,7 @@ function(input, output, session) {
     
     dist_table <-  data.frame(
       userID = userID,
-      siteID = siteID,
+      siteID = studyID,
       dist_cult = as.integer(dist_cult),
       dist_aes = as.integer(dist_aest),
       dist_recr = as.integer(dist_recr),

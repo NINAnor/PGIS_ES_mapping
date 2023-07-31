@@ -1,19 +1,19 @@
-library(shinyWidgets)
-library(dplyr)
-library(shinyBS)
-library(bigrquery)
-
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# connection to bq
-con <- dbConnect(
-  bigrquery::bigquery(),
-  project = "rgee-381312",
-  dataset = "data_base",
-  billing = "rgee-381312"
-)
-
-es_all<-tbl(con, "es_descr")
-es_all<-select(es_all,esID,esDESCR,esNAME,esSECTION)%>%collect()
+# library(shinyWidgets)
+# library(dplyr)
+# library(shinyBS)
+# library(bigrquery)
+# 
+# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# # connection to bq
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# 
+# es_all<-tbl(con, "es_descr")
+# es_all<-select(es_all,esID,esDESCR,esNAME,esSECTION)%>%collect()
 
 ahpUI<- function(id, label = "ahp2") {
   ns <- NS(id)
@@ -387,20 +387,24 @@ ahpServer<-function(id, userID, siteID, es_all){
 }
 
 #
-ui <- fluidPage(
-  fluidRow(
-    column(width = 12,
-           ahpUI("ahp1", "Counter #1")
-           )
-  )
-
-
-)
-
-server <- function(input, output, session) {
-
-  ahpServer("ahp1", "KcdePm2lep", "NOR-SNJ", es_all)
-
-}
-
-shinyApp(ui, server)
+# ui <- fluidPage(
+#   fluidRow(
+#     column(width = 12,
+#            ahpUI("ahp1", "Counter #1")
+#            )
+#   ),
+#   textOutput("text1")
+# 
+# 
+# )
+# 
+# server <- function(input, output, session) {
+# 
+#   btn<-ahpServer("ahp1", "KcdePm2lep", "NOR-SNJ", es_all)
+#   observeEvent(btn(),{
+#     output$text1<-renderText("Test 1")
+#   })
+# 
+# }
+# 
+# shinyApp(ui, server)

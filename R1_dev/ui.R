@@ -10,9 +10,13 @@ fluidPage(
                      h6("Ecosystem services"),
                      "Ecosystem services are services provided by nature. These services have a significant impact on the well-being and health of individuals. But the prosperity and welfare of entire societies also depend on well-functioning ecosystem services. Ecosystems and ecosystem services are affected by economic growth, population increase and changes in climatic conditions. Especially the development of settlements and infrastructures often negatively influences ecosystem services and thus has negative effects for all of us.",
                      br(),
+                     br(),
                      h6("Why we need you"),
                      "Not all ecosystem services occure in all areas equally. Their spatial distribution is a complex interaction of soil, air and water. However, to better protect important areas that provide ecosystem services from human interventions, we need to better understand where and which services humans benefit from nature. ",
-                     "To find out were important areas for ecosystem services are, we need you. Because you know your homeland, its landscapes and the nature best. You can probably tell us something about many services of the landscape.",
+                     "To find out were important areas for ecosystem services are, we need you. Because you know your homeland, its landscapes and the nature best. You can probably tell us something about many services of the landscape. The whole questionnaire will focus on the following study area:",
+                     br(),
+                     br(),
+                     uiOutput("study_area"),
                      br(),
                      "The study consists of two rounds. This first round will take you max 15min. The second round will take place in a few weeks and might be even shorter. If you want to participate in both rounds please fill in your e-mail, that we can contact you. If you do not provide an e-mail, we are happy that you participate in the first round",
                      br(),
@@ -187,7 +191,7 @@ fluidPage(
           tabPanel(title = "Compare ES",
                    value = "p7",
             mainPanel(
-              ahpUI("ahp", "ahp #2")
+              ahpUI("ahp")
             )#/main panel
           ),#/panel
           

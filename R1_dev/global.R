@@ -37,7 +37,7 @@ con <- dbConnect(
 
 
 ### study site:
-siteID<-"NOR-SNJ"
+studyID<-"NOR-SNJ"
 
 #### number of ES part shoud see and pot. map:
 num_es<-4
@@ -70,6 +70,11 @@ map_liv<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
   addFeatures(st_sf(plz), layerId = ~seq_len(length(plz)))
 
+map_area<-leaflet(sf_bound) %>%
+  addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0)%>%
+  addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 14))
+
 
 lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
 lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
@@ -97,6 +102,10 @@ es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
 ### load user conf to check if e-mail is already there...
 conf<-tbl(con, "user_conf")
 conf<-select(conf,userMAIL)%>%collect()
+
+### load study site
+site<-tbl(con, "study_site")
+site<-select(site,siteID,siteNAME, siteAREA, sitePOP, siteHIGH, siteLOW, siteLINK, siteECONOMY, siteECOLOGY, siteCUL)%>%filter(siteID == studyID)%>%collect()
 
 
 
