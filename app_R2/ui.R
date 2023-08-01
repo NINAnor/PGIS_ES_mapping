@@ -1,5 +1,7 @@
-navbarPage("POC Spatial Delphi R2",
-           id = "tabset",
+fluidPage(
+  theme = bslib::bs_theme(bootswatch = "cerulean"),
+  titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC remapping ecosystem services'), windowTitle = "ES remapping"),
+  tabsetPanel(id = "inTabset",
            tabPanel(title = "Overview", value = "p0",
                     mainPanel(
                       useShinyjs(),
@@ -35,29 +37,29 @@ navbarPage("POC Spatial Delphi R2",
            tabPanel(title= "Remapping ES 1", value = "p1",
                     mainPanel(
                       remapUI("remap1"),
-                      actionButton("sub1","next ES")
+                      actionButton("sub1","next ES", class='btn-primary')
                     )
                     ),
            tabPanel(title= "Remapping ES 2", value = "p2",
                     mainPanel(
                       remapUI("remap2"),
-                      actionButton("sub2","next ES")
+                      actionButton("sub2","next ES", class='btn-primary')
                     )
            ),
            tabPanel(title= "Remapping ES 3", value = "p3",
                     mainPanel(
                       remapUI("remap3"),
-                      actionButton("sub3","next ES")
+                      actionButton("sub3","next ES", class='btn-primary')
                     )
            ),
-           tabPanel(title= "Remapping ES 4", value = "p4",
-                    mainPanel(
-                      remapUI("remap4"),
-                      actionButton("sub4","Finish")
-                    )
-           )
+           # tabPanel(title= "Remapping ES 4", value = "p4",
+           #          mainPanel(
+           #            remapUI("remap4"),
+           #            actionButton("sub4","Finish")
+           #          )
+           # )
 
-
-)
+  )#/tabset
+)#/fluidpage
 
 

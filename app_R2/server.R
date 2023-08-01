@@ -1,10 +1,10 @@
 function(input, output, session) { 
 
   ## start and hide map tab
-  hideTab(inputId = "tabset", target = "p1")
-  hideTab(inputId = "tabset", target = "p2")
-  hideTab(inputId = "tabset", target = "p3")
-  hideTab(inputId = "tabset", target = "p4")
+  hideTab(inputId = "inTabset", target = "p1")
+  hideTab(inputId = "inTabset", target = "p2")
+  hideTab(inputId = "inTabset", target = "p3")
+  # hideTab(inputId = "tabset", target = "p4")
 
   #show some plots
   output$age<-renderPlotly(
@@ -32,81 +32,89 @@ function(input, output, session) {
     }else{
       userID_sel = "KcdePm2lep"
     }
-    return(userID_sel)
-  })
- 
-  userES<-eventReactive(input$sub0,{
-    userID_sel<-userID_sel()
-    userES <- tbl(con, "es_mappingR1")
-    #dplyr sql
-    userES <- select(userES, userID, esID, mapping, siteID) %>% filter(siteID == siteID_sel, userID == userID_sel)%>%
-      collect()
 
   })
-  
+  # userES<-eventReactive(input$sub0,{
+  #   userID_sel<-userID_sel()
+  #   userES <- tbl(con, "es_mappingR1")
+  #   userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID, userID == userID_sel)%>%
+  #     collect()
+  # })
+
+  # userID_sel<-"vnt2jZiP8U"
   #mod es 1
   observeEvent(input$sub0, {
     if(input$email %in% user_conf$userMAIL){
       #update shiny content
-      output$login_res<-renderText("Mail adress found")
-      updateTabsetPanel(session, "tabset",
+      updateTabsetPanel(session, "inTabset",
                         selected = "p1")
-      hideTab(inputId = "tabset", target = "p0")
-      showTab(inputId = "tabset", target = "p1")
-      userES<-userES()
+      hideTab(inputId = "inTabset", target = "p0")
+      showTab(inputId = "inTabset", target = "p1")
       userID_sel<-userID_sel()
-      remapServer("remap1", userID_sel, blog_data, es_descr, userES, siteID_sel, geometry, sf_bound, vis_qc,1)
+      userES<-userES%>%filter(userID == userID_sel)
+      userES_sel<-userES[1,]
+      remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
 
     }else{
       output$login_res<-renderText("Mail adress NOT found")
       
     }
     })
+  # u<-eventReactive(input$sub0,{
+    
+    # userID_sel<-userID_sel()
+    # userES<-userES()
+    # userES_sel<-userES[1,]
+    # u<-remapServer("remap1", isolate(userID_sel()), es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
+  # })
   
   #mod es 2
   observeEvent(input$sub1, {
 
       #update shiny content
-      updateTabsetPanel(session, "tabset",
+      updateTabsetPanel(session, "inTabset",
                         selected = "p2")
-      hideTab(inputId = "tabset", target = "p1")
-      showTab(inputId = "tabset", target = "p2")
-      userES<-userES()
+      hideTab(inputId = "inTabset", target = "p1")
+      showTab(inputId = "inTabset", target = "p2")
       userID_sel<-userID_sel()
-      remapServer("remap2", userID_sel, blog_data, es_descr, userES, siteID_sel, geometry, sf_bound, vis_qc,2)
-
+      userES<-userES%>%filter(userID == userID_sel)
+      userES_sel<-userES[2,]
+      remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
 
   })
+  # v<-eventReactive(u(),{
+  #   
+  #   userID_sel<-userID_sel()
+  #   userES<-userES()
+  #   userES_sel<-userES[2,]
+  #   remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
+  # })
+
   
   #mod es 3
   observeEvent(input$sub2, {
     
     #update shiny content
-    updateTabsetPanel(session, "tabset",
+    updateTabsetPanel(session, "inTabset",
                       selected = "p3")
-    hideTab(inputId = "tabset", target = "p2")
-    showTab(inputId = "tabset", target = "p3")
-    userES<-userES()
-    userID_sel<-userID_sel()
-    remapServer("remap3", userID_sel, blog_data, es_descr, userES, siteID_sel, geometry, sf_bound, vis_qc,3)
+    hideTab(inputId = "inTabset", target = "p2")
+    showTab(inputId = "inTabset", target = "p3")
+      userID_sel<-userID_sel()
+      userES<-userES%>%filter(userID == userID_sel)
+      userES_sel<-userES[3,]
+      remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
+
   })
-  
-  #mod es 4
-  observeEvent(input$sub3, {
-    
-    #update shiny content
-    updateTabsetPanel(session, "tabset",
-                      selected = "p4")
-    hideTab(inputId = "tabset", target = "p3")
-    showTab(inputId = "tabset", target = "p4")
-    userES<-userES()
-    userID_sel<-userID_sel()
-    remapServer("remap4", userID_sel, blog_data, es_descr, userES, siteID_sel, geometry, sf_bound, vis_qc,3)
-    
-  })
-    
+  # w<-eventReactive(v(),{
+  #   
+  #   userID_sel<-userID_sel()
+  #   userES<-userES()
+  #   userES_sel<-userES[3,]
+  #   remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
+  # })
+
   #stop app
-  observeEvent(input$sub4, {
+  observeEvent(input$sub2, {
       stopApp(returnValue = invisible())
   })
 

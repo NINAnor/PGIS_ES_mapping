@@ -29,13 +29,13 @@
 # studyID<-"NOR-SNJ"
 # 
 # 
-# userID_sel<-"vnt2jZiP8U"
+# 
 # 
 # 
 # 
 # userES <- tbl(con, "es_mappingR1")
 # #dplyr sql
-# userES <- select(userES, userID, esID, mapping, siteID) %>% filter(siteID == studyID, userID == userID_sel)%>%
+# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
 #   collect()
 # 
 # 
@@ -64,8 +64,8 @@
 # blog_data <- select(blog_data, esID, blog, siteID) %>%filter(siteID == studyID)%>% collect()
 # 
 # 
-# 
-# 
+
+
 
 remapUI<- function(id, label = "selector") {
   ns<-NS(id)
@@ -112,16 +112,17 @@ callback <- c(
   '});'
 )
 
-remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round){
+remapServer<-function(id, userID_sel, es_descr, userES_sel, studyID, geometry, sf_bound, vis_qc, mapping_round){
   moduleServer(
     id,
     function(input,output,session){
       ns<-session$ns
-      
-      userES_sel<-userES[mapping_round,]
+      # 
+      # userES<-userES%>%dplyr::filter(userID == userID_sel)
+      # userES_sel<-userES[mapping_round,]
       esID_sel<-userES_sel$esID
-      es_descr_sel<-es_descr%>%filter(esID == esID_sel)
-      blog_data_sel<-blog_data%>%filter(esID == esID_sel & (blog !="NA"))%>%filter(blog!="")
+      es_descr_sel<-es_descr%>%dplyr::filter(esID %in% esID_sel)
+      blog_data_sel<-userES%>%dplyr::filter(esID %in% esID_sel & (blog !="NA"))%>%filter(blog!="")%>%select(blog)
       output$blog<-renderDT(blog_data_sel,rownames= FALSE, colnames="Blog entries")
 
       output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted area")))
@@ -131,7 +132,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
       imgpath1<-paste0(ee_get_assethome(), '/R_1/all_part/',"recr", "_", studyID)
       img_all<-ee$Image(imgpath1)$select("probability")
       
-      if(userES_sel$mapping == "Yes"){
+      if(userES_sel$mapping== "Yes"){
         imgpath2<-paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",userID_sel, "_", esID_sel, "_", studyID)
         img_ind<-ee$Image(imgpath2)
         
@@ -319,7 +320,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
             p_new<-p_new%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
             for(u in 1: nrow(p_new)){
               if(p_new$X_lflt_d[u] %in% final_edits$X_lflt_d){
-              a<-p_new[u,]%>%filter(!p_new$X_lflt_d[u] %in% final_edits$X_lflt_d)
+              a<-p_new[u,]%>%dplyr::filter(!p_new$X_lflt_d[u] %in% final_edits$X_lflt_d)
               final_edits<-rbind(final_edits,a)
               }else{
               final_edits<-rbind(final_edits,p_new[u,])
@@ -343,7 +344,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
             p_edit<-p_edit%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
             for(v in 1: nrow(p_edit)){
               if(p_edit$X_lflt_d[v] %in% final_edits$X_lflt_d){
-                a<-p_edit[v,]%>%filter(!p_edit$X_lflt_d[v] %in% final_edits$X_lflt_d)
+                a<-p_edit[v,]%>%dplyr::filter(!p_edit$X_lflt_d[v] %in% final_edits$X_lflt_d)
                 final_edits<-rbind(final_edits,a)
               }else{
                 final_edits<-rbind(final_edits,p_edit[v,])
@@ -368,7 +369,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
             p_del<-p_del%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
             for(w in 1: nrow(p_del)){
               if(p_del$X_lflt_d[w] %in% final_edits$X_lflt_d){
-                final_edits<-final_edits%>%filter(!final_edits$X_lflt_d %in% p_del$X_lflt_d[w])
+                final_edits<-final_edits%>%dplyr::filter(!final_edits$X_lflt_d %in% p_del$X_lflt_d[w])
               }
             }
           }
@@ -388,7 +389,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
       observeEvent(input$savepoly, {
         
         polygon<-final_edits()
-        polygon<-polygon%>%filter(status == "edited" | status == "new_drawn")
+        polygon<-polygon%>%dplyr::filter(status == "edited" | status == "new_drawn")
         cent_poly <- st_centroid(polygon)
         tbl<-polygon%>%st_drop_geometry()
         
@@ -445,7 +446,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
               br(),
               uiOutput(ns("slider")),
               br(),
-              actionButton(ns("confirm2"),"Next task", class='btn-primary')
+              actionButton(ns("confirm2"),"Save edits")
 
             )
           )
@@ -463,8 +464,8 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
       ## save the values of the polys in bq - recalculation of map will be postprocessing R2...
         observeEvent(input$confirm2,{
           poly_all<-final_edits()
-          poly_not_edited<-poly_all%>%filter(status == "no_edit_R2")
-          poly_edited<-poly_all%>%filter(status == "edited" | status == "new_drawn")
+          poly_not_edited<-poly_all%>%dplyr::filter(status == "no_edit_R2")
+          poly_edited<-poly_all%>%dplyr::filter(status == "edited" | status == "new_drawn")
           poly_edited<-as.data.frame(poly_edited)
           poly_edited$es_valu<-rep(NA,nrow(poly_edited))
           sliderval<-list()
@@ -510,9 +511,9 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
           insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
         })#/observer
         
-        cond <- reactive({input$confirm2})
-        
-        return(cond) 
+        # cond <- reactive({input$confirm2})
+        # 
+        # return(cond) 
 
     }#/function server session
   )#/module server
@@ -520,7 +521,7 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
 }#/server
 
 ################# test App
-# # 
+# 
 # ui <- fluidPage(
 #   theme = bslib::bs_theme(bootswatch = "cerulean"),
 #   titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
@@ -535,40 +536,49 @@ remapServer<-function(id, userID_sel, blog_data, es_descr, userES, studyID, geom
 # )
 # 
 # server <- function(input, output, session) {
-#   
-#   
+# 
+# 
 # 
 # 
 #   hideTab(inputId = "inTabset", target = "p2")
-#   
-#   
+# 
+# 
 #   observeEvent(input$test, {
 #     updateTabsetPanel(session, "inTabset",
-#                       selected = "p2") 
+#                       selected = "p2")
 #   })
 #   observeEvent(input$test, {
 #     hideTab(inputId = "inTabset",
 #             target = "p1")
-#   })  
+#   })
 #   observeEvent(input$test, {
 #     showTab(inputId = "inTabset", target = "p2")
 #   })
-#   
-#   
-#   v<- remapServer("remap1", userID_sel, blog_data, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-#   
-#   
-#   
-#   observeEvent(v(),{
 # 
-#     updateTabsetPanel(session, "inTabset",
-#                       selected = "p1")
-#     hideTab(inputId = "inTabset",
-#             target = "p2")
-#     showTab(inputId = "inTabset", target = "p1")
 # 
-#   })
-#   
+# 
+#      val<- remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+# 
+
+
+  # observeEvent(input$test,{
+  #   userID_sel<-userID_sel()
+  #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+  # })
+  
+
+
+
+  # observeEvent(val(),{
+  # 
+  #   updateTabsetPanel(session, "inTabset",
+  #                     selected = "p1")
+  #   hideTab(inputId = "inTabset",
+  #           target = "p2")
+  #   showTab(inputId = "inTabset", target = "p1")
+  # 
+  # })
+# 
 # }
 # 
 # shinyApp(ui, server)

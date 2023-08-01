@@ -14,7 +14,7 @@ library(tidyverse)
 library(bigrquery)
 library(DBI)
 
-source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/edit_module.R")
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/edit_moduleV2.R")
 
 ee_Initialize()
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
@@ -25,7 +25,7 @@ con <- dbConnect(
   billing = "rgee-381312"
 )
 
-siteID_sel<-"NOR-SNJ"
+studyID<-"NOR-SNJ"
 
 
 geometry <- ee$Geometry$Rectangle(
@@ -82,17 +82,20 @@ user_conf <- select(user_conf, userMAIL, userID) %>%
 es_descr <- tbl(con, "es_descr")
 es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
 
-### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
-blog_data <- tbl(con, "es_mappingR1")
-blog_data <- select(blog_data, esID, blog, siteID) %>%filter(siteID == siteID_sel & !is.na(blog))%>% collect()
+
 
 ### download general statistics for site ID
 
 user_all <- tbl(con, "user_all")
-user_all <- select(user_all, userLAT, userLNG, siteID, edu, fam, liv, gen, age)%>%filter(siteID == siteID_sel)%>%
+user_all <- select(user_all, userLAT, userLNG, siteID, edu, fam, liv, gen, age)%>%filter(siteID == studyID)%>%
   collect()
 ### map user location
 user_pts<-user_all%>%filter(!is.na(userLAT)&!is.na(userLNG))
 user_pts<-st_as_sf(user_pts, coords = c("userLNG","userLAT"))
+
+userES <- tbl(con, "es_mappingR1")
+userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+  collect()
+
 
 
