@@ -35,7 +35,7 @@ library(DBI)
 
 ## gee/BQ connection and setup
 ```{r gee}
-siteID_analysis<-"NOR-SNJ"
+studyID<-"NOR-SNJ"
 
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
 con <- dbConnect(
@@ -44,11 +44,11 @@ con <- dbConnect(
   dataset = "data_base",
   billing = "rgee-381312"
 )
-
+ee_Initialize(user = 'r.spielhofer@bluewin.ch')
 
 ## get sf_bound according to siteID
 site <- tbl(con, "study_site")
-adm_code <- select(site, siteID, siteADM2) %>%filter(siteID == siteID_analysis)%>%select(siteADM2)%>% collect()
+adm_code <- select(site, siteID, siteADM2) %>%filter(siteID == studyID)%>%select(siteADM2)%>% collect()
 adm_code<-as.numeric(adm_code)
 
 bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
@@ -66,7 +66,7 @@ maxentviz = list(bands= 'probability',min= 0, max= 1, palette= cols)
 cols_diff   <- c("#e80909", "#e80909",  "#c4f25a","#c4f25a","#81ab1f")
 vis_diff <- list(min = -2, max = 2, palette = cols_diff, values = labels)
 
-ee_Initialize(user = 'r.spielhofer@bluewin.ch')
+
 # 
 geometry <- ee$Geometry$Rectangle(
   coords = c(10.30, 63.35, 10.50, 63.5),
@@ -101,10 +101,10 @@ Read pairwise comparisons for a single site from BQ
 ```{r files / DB}
 
 es_pair <- tbl(con, "es_pair")
-es_pair <- select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == siteID)%>% collect()
+es_pair <- select(es_pair, ES_left,ES_right,selection_text,selection_val,userID,siteID,ahp_section) %>%filter(siteID == studyID)%>% collect()
 
 ## ahp processing vars
-group_vec<-es_pair%>%distinct(ahp_section)
+
 atts4 <- c("cultural","regulating","provisioning")
 atts1 <- c("atmo","nat_haz","biodiv")
 atts2 <- c("aes","cult","recr")
@@ -121,9 +121,14 @@ This section computes the individual preferences for all es and each participant
 
 all_user_list<-list()
 for(u in 1:nrow(user_vec)){
-  all_groups<-es_pair%>%filter(userID %in% user_vec[u,])
+  all_groups<-es_pair%>%filter(userID %in% user_vec[u,] & siteID == studyID)
   pref_list<-list() #list to store tmp pref
   cons_list<-list() #list to store tmp consistencies
+  group_vec<-all_groups%>%distinct(ahp_section)
+  # do not consider users that have not compleated the survey
+  if(nrow(group_vec)!=4){
+    u+1
+  }else{
   for (g in 1:nrow(group_vec)) {
     # subset data
     data<-all_groups%>%filter(ahp_section %in% group_vec[g,])%>%select(userID,selection_val, ES_left, ES_right)
@@ -137,9 +142,8 @@ for(u in 1:nrow(user_vec)){
     
     ahp_ind <- ahp.mat(df = tDat, atts = atts, negconvert = TRUE)
     pref<-ahp.aggpref(ahp_ind, atts, method = "geometric", aggmethod = "eigen", qt = 0)
-    a<-as.data.frame(pref)
-    pref_list[[g]]<-a
-    cons_list[g]<-ahp.cr(ahp_ind, atts, ri = NULL)
+    pref_list[[g]]<-as.data.frame(pref)
+    # cons_list[g]<-ahp.cr(ahp_ind, atts, ri = NULL)
     
   }#close group
   main<-as.data.frame(t(pref_list[[4]]))
@@ -155,26 +159,29 @@ for(u in 1:nrow(user_vec)){
   all<-as.data.frame(rbind(reg,prov,cul))
   all<-all%>%rownames_to_column(var = "esID")
   all$userID<-rep(user_vec[u,],nrow(all))
-  all$siteID<-rep(siteID,nrow(all))
+  all$siteID<-rep(studyID,nrow(all))
   all_user_list[[u]]<-all
+  }
+
   
 }#close user
 
 es_ranking<-as.data.frame(do.call(rbind, all_user_list))
 es_ranking$userID<-as.character(es_ranking$userID)
 
-insert_upload_job("rgee-381312", "data_base", "ahp_ind", es_ranking)
+# insert_upload_job("rgee-381312", "data_base", "ahp_ind", es_ranking)
 
 ```
 
 ## 1.2 common preferences and consistency
 This section computes the common preference for each ES and stores the results in the "ahp_all" table.
 ```{r}
-
-pref_list<-list()
-cons_list<-list()
+all_groups<-es_pair%>%filter(siteID == studyID)
+pref_list<-list() #list to store tmp pref
+cons_list<-list() #list to store tmp consistencies
+group_vec<-all_groups%>%distinct(ahp_section)
+  
  for(g in 1:nrow(group_vec)){
-
   data<-es_pair%>%filter(ahp_section %in% group_vec[g,])%>%select(userID,selection_val, ES_left, ES_right)
   data$pair<-paste0(data$ES_left,"_",data$ES_right)
   tDat<-data%>%select(selection_val, pair, userID)%>%
@@ -205,9 +212,9 @@ prov<-t(prov*main$provisioning)
   
 all<-as.data.frame(rbind(reg,prov,cul))
 all<-all%>%rownames_to_column(var = "esID")
-all$siteID<-rep(siteID,nrow(all))
+all$siteID<-rep(studyID,nrow(all))
 
-insert_upload_job("rgee-381312", "data_base", "ahp_all", all)
+# insert_upload_job("rgee-381312", "data_base", "ahp_all", all)
 
 ```
 
@@ -237,26 +244,27 @@ sfdf <- shapefiles |>
 
 2) compute 10 maps RF with all participants available --> store RMSE & Varimp
 ```{r}
-
+sf_use_s2(FALSE)
 # overall map per es
-eslist<-sfdf%>%filter(siteID == siteID_analysis)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+eslist<-sfdf%>%filter(siteID == studyID)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+AUC_list<-list()
+A_roi<-as.numeric(st_area(sf_bound))
+# max pts for efficient extrapolation each 250x250 cell
+max_pts<- round(A_roi/(300*300),0)
 
-
-for (i in 1:nrow(eslist)) {
+for (i in 3:nrow(eslist)) {
+  print(eslist[i,])
   polygon<-sfdf%>%filter(esID==eslist[i,])
-  gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
-  
-   ############ training pts
-
+  if(nrow(polygon)<1){
+    print(paste0("No geodata for ", i, "found"))
+    i+1
+  }else{
    ## N background (outside poly points) according to area of extrapolation
-          A_roi<-as.numeric(st_area(sf_bound))
+
           # area of smallest poly
           A_min<-as.numeric(min(st_area(polygon)))
           # area of largest poly
           A_max<-as.numeric(max(st_area(polygon)))       
-          
-          # max pts for efficient extrapolation each 250x250 cell
-          max_pts<- round(A_roi/(300*300),0)
           
           #union of poly in case overlapping
           poly_uni<-st_union(polygon)
@@ -271,7 +279,7 @@ for (i in 1:nrow(eslist)) {
           min_in_eff_pts<-(sqrt(A_min)/abs_min_res)^2
           
           
-          if(min_in_eff_pts<min_in_pts){
+          if(as.integer(min_in_eff_pts)<min_in_pts){
             pts_min <- min_in_pts
           } else {
             pts_min <- min_in_eff_pts
@@ -286,29 +294,35 @@ for (i in 1:nrow(eslist)) {
           
 
           # don`t allow intersection with polygons
-          pts_out <- st_difference(st_combine(pts_out), st_combine(test_union)) %>% st_cast('POINT')
+          pts_out <- st_difference(st_combine(pts_out), st_combine(poly_uni)) %>% st_cast('POINT')
           pts_out<-st_as_sf(pts_out)
           pts_out$inside<-rep(0,nrow(pts_out))
           pts_all<-pts_out
           
           # inside pts are area + es value weighted
-          for (a in 1:nrow(polygon)) {
-            A_tmp <- as.numeric(st_area(polygon[a,]))
-            #tmp_ratio<-A_tmp/A_min
+          for (n in 1:nrow(polygon)) {
+            A_tmp <- as.numeric(st_area(polygon[n,]))
             tmp_ratio<-A_tmp/A_roi
             # npts in this poly must be max_pts*tmp_ratio*es_value
             #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
-            tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*polygon[a,]$es_valu,type="random")
+            ## if user has not assigned poly value
+            if(is.na(polygon[a,]$es_valu)){
+              tmp_pts = st_sample(polygon[n,], round(max_pts*tmp_ratio,0)*1,type="random")
+            }else{
+              tmp_pts = st_sample(polygon[n,], round(max_pts*tmp_ratio,0)*polygon[n,]$es_valu,type="random")
+
+            }
+
             tmp_pts<-st_as_sf(tmp_pts)
             tmp_pts$inside<-rep(1,nrow(tmp_pts))
-            pts_ee<-rbind(pts_all,tmp_pts)
-            
+            pts_all<-rbind(pts_all,tmp_pts)
           }
+          
           # ee object of sampling pts 6k pts = 7sec
-          pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
+          pts_all<-rgee::sf_as_ee(pts_all, via = "getInfo")
           
           # define target bands of comb (indep. var) and sample vars by pts
-          pts_ee = comb$select(bands)$sampleRegions(collection= pts_ee,
+          pts_all = comb$select(bands)$sampleRegions(collection= pts_all,
                                                     properties = list("inside"),
                                                     geometries = T
           )
@@ -316,14 +330,14 @@ for (i in 1:nrow(eslist)) {
           ############ maxent
 
           mEntclass = ee$Classifier$amnhMaxent()$train(
-            features = pts_ee,
+            features = pts_all,
             classProperty = 'inside',
             inputProperties = bands
           )
           
           imageClassified = comb$select(bands)$classify(mEntclass)
           
-          ### varImp and ROC takes a lot of time -- postprocessing?
+          ### varImp and ROC takes
           varImp<- mEntclass$explain()$get("Contributions")$getInfo()%>% #get importance
             as_tibble()%>%#make tibble
             pivot_longer(cols = c(1:ncol(.)))%>% #long df for plotting
@@ -331,20 +345,20 @@ for (i in 1:nrow(eslist)) {
             slice(1:10)
           
           varImp$esID<-rep(eslist[i,],nrow(varImp))
-          varImp$siteID<-rep(siteID_analysis,nrow(varImp))
+          varImp$siteID<-rep(studyID,nrow(varImp))
           varImp$userID<-rep("all_user",nrow(varImp))
           varImp<-varImp%>%filter(name !="__unused__")
           colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID")
 
-
-          AUC_maxent<-mEntclass$explain()$get("Training AUC")$getInfo()%>% #get importance
+          #get AUC
+          AUC_list[i]<-mEntclass$explain()$get("Training AUC")$getInfo()%>% 
             as_tibble()
   
-          img_assetid <- paste0(ee_get_assethome(), '/R_1/all_part/',eslist[i,],"_", siteID_analysis)
+          img_assetid <- paste0(ee_get_assethome(), '/R_1/all_part/',eslist[i,],"_", studyID)
           
           #set features of img
           imageClassified <- imageClassified$set('es_id', eslist[i,],
-                                       'siteID', siteID_analysis)
+                                       'siteID', studyID)
           
           start_time<-Sys.time()
           task_img <- ee_image_to_asset(
@@ -356,6 +370,9 @@ for (i in 1:nrow(eslist)) {
           
           task_img$start()
 print("============= next ES==============")
+rm(pts_all,mEntclass)
+  }
+ 
 }
 
 
@@ -364,20 +381,23 @@ print("============= next ES==============")
 
 ### LOO
 ```{r}
-# es_sel<-as.data.frame("recr")
-
-eslist<-sfdf%>%filter(siteID == siteID_analysis)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+# sf_use_s2(FALSE)
+# overall map per es
+eslist<-sfdf%>%filter(siteID == studyID)%>%select(esID)%>%st_drop_geometry()%>%distinct()
+AUC_list<-list()
 A_roi<-as.numeric(st_area(sf_bound))
+# max pts for efficient extrapolation each 250x250 cell
+max_pts<- round(A_roi/(300*300),0)
 
 for(m in 1: 1:nrow(eslist)){
   ## for each es_list we need to find the distinct users
-  userlist<-sfdf%>%filter(siteID == siteID_analysis, esID == eslist[m,])%>%select(userID)%>%st_drop_geometry()%>%distinct()
+  userlist<-sfdf%>%filter(siteID == studyID, esID == eslist[m,])%>%select(userID)%>%st_drop_geometry()%>%distinct()
 
   for(n in 1: nrow(userlist)){
     #leave nth user out
     polygon<-sfdf%>%filter(esID==eslist[m,] & userID != userlist[n,] )
   
-    gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
+    # gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
     
     ## N background (outside poly points) according to area of extrapolation
           
@@ -417,7 +437,7 @@ for(m in 1: 1:nrow(eslist)){
           
 
           # don`t allow intersection with polygons
-          pts_out <- st_difference(st_combine(pts_out), st_combine(test_union)) %>% st_cast('POINT')
+          pts_out <- st_difference(st_combine(pts_out), st_combine(poly_uni)) %>% st_cast('POINT')
           pts_out<-st_as_sf(pts_out)
           pts_out$inside<-rep(0,nrow(pts_out))
           pts_all<-pts_out
@@ -428,18 +448,23 @@ for(m in 1: 1:nrow(eslist)){
             #tmp_ratio<-A_tmp/A_min
             tmp_ratio<-A_tmp/A_roi
             # npts in this poly must be max_pts*tmp_ratio*es_value
-            #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
-            tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*polygon[a,]$es_valu,type="random")
+            if(is.na(polygon[a,]$es_valu)){
+              tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*1,type="random")
+            }else{
+              tmp_pts = st_sample(polygon[a,], round(max_pts*tmp_ratio,0)*polygon[a,]$es_valu,type="random")
+
+            }
+            
             tmp_pts<-st_as_sf(tmp_pts)
             tmp_pts$inside<-rep(1,nrow(tmp_pts))
-            pts_ee<-rbind(pts_all,tmp_pts)
+            pts_all<-rbind(pts_all,tmp_pts)
             
           }
           # ee object of sampling pts 6k pts = 7sec
-          pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
+          pts_all<-rgee::sf_as_ee(pts_all, via = "getInfo")
           
           # define target bands of comb (indep. var) and sample vars by pts
-          pts_ee = comb$select(bands)$sampleRegions(collection= pts_ee,
+          pts_all = comb$select(bands)$sampleRegions(collection= pts_all,
                                                     properties = list("inside"),
                                                     geometries = T
           )
@@ -447,7 +472,7 @@ for(m in 1: 1:nrow(eslist)){
           ############ maxent
 
           mEntclass = ee$Classifier$amnhMaxent()$train(
-            features = pts_ee,
+            features = pts_all,
             classProperty = 'inside',
             inputProperties = bands
           )
@@ -462,23 +487,23 @@ for(m in 1: 1:nrow(eslist)){
             slice(1:10)
           
           varImp$esID<-rep(eslist[m,],nrow(varImp))
-          varImp$siteID<-rep(siteID_analysis,nrow(varImp))
+          varImp$siteID<-rep(studyID,nrow(varImp))
           varImp$userID<-rep(userlist[n,],nrow(varImp))
           varImp$spatial_delphi_round<-rep(as.integer(1),nrow(varImp))
           varImp<-varImp%>%filter(name !="__unused__")
           colnames(varImp)<-c("var_name","imp_val","esID","siteID","userID","spatial_delphi_round")
           ## store on bq
-          insert_upload_job("rgee-381312", "data_base", "var_imp", varImp)
+          # insert_upload_job("rgee-381312", "data_base", "var_imp", varImp)
 
 
           AUC_maxent<-mEntclass$explain()$get("Training AUC")$getInfo()%>% #get importance
             as_tibble()
   
-          img_assetid <- paste0(ee_get_assethome(), '/R_1/leave_one_out/',userlist[n,],"_",eslist[m,],"_", siteID_analysis)
+          img_assetid <- paste0(ee_get_assethome(), '/R_1/leave_one_out/',userlist[n,],"_",eslist[m,],"_", studyID)
           
           #set features of img
           imageClassified <- imageClassified$set('esID', eslist[m,],
-                                       'siteID', siteID_analysis,
+                                       'siteID', studyID,
                                        'leftout_userID',userlist[n,])
           
           start_time<-Sys.time()
