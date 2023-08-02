@@ -51,8 +51,7 @@ function(input, output, session) {
       hideTab(inputId = "inTabset", target = "p0")
       showTab(inputId = "inTabset", target = "p1")
       userID_sel<-userID_sel()
-      userES<-userES%>%filter(userID == userID_sel)
-      userES_sel<-userES[1,]
+
       remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
 
     }else{
@@ -60,13 +59,7 @@ function(input, output, session) {
       
     }
     })
-  # u<-eventReactive(input$sub0,{
-    
-    # userID_sel<-userID_sel()
-    # userES<-userES()
-    # userES_sel<-userES[1,]
-    # u<-remapServer("remap1", isolate(userID_sel()), es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
-  # })
+
   
   #mod es 2
   observeEvent(input$sub1, {
@@ -77,8 +70,8 @@ function(input, output, session) {
       hideTab(inputId = "inTabset", target = "p1")
       showTab(inputId = "inTabset", target = "p2")
       userID_sel<-userID_sel()
-      userES<-userES%>%filter(userID == userID_sel)
-      userES_sel<-userES[2,]
+      # userES<-userES%>%filter(userID == userID_sel)
+      # userES_sel<-userES[2,]
       remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
 
   })
@@ -100,8 +93,8 @@ function(input, output, session) {
     hideTab(inputId = "inTabset", target = "p2")
     showTab(inputId = "inTabset", target = "p3")
       userID_sel<-userID_sel()
-      userES<-userES%>%filter(userID == userID_sel)
-      userES_sel<-userES[3,]
+      # userES<-userES%>%filter(userID == userID_sel)
+      # userES_sel<-userES[3,]
       remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
 
   })
@@ -114,7 +107,7 @@ function(input, output, session) {
   # })
 
   #stop app
-  observeEvent(input$sub2, {
+  observeEvent(input$sub3, {
       stopApp(returnValue = invisible())
   })
 

@@ -1,72 +1,82 @@
 ## editi moduleV2
 ############ UI of remapping module
-library(shiny)
-library(shinydashboard)
-library(shinycssloaders)
-library(shinyjs)
-library(plotly)
-library(sf)
-library(leaflet)
-library(leaflet.extras)
-library(leaflet.extras2)
-library(rgee)
-library(DT)
-library(mapedit)
-library(tidyverse)
-library(bigrquery)
-library(DBI)
-
-
-ee_Initialize()
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-con <- dbConnect(
-  bigrquery::bigquery(),
-  project = "rgee-381312",
-  dataset = "data_base",
-  billing = "rgee-381312"
-)
-
-studyID<-"NOR-SNJ"
-
-userES <- tbl(con, "es_mappingR1")
-#dplyr sql
-userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-  collect()
-
-
-geometry <- ee$Geometry$Rectangle(
-  coords = c(10.30, 63.35, 10.50, 63.5),
-  proj = "EPSG:4326",
-  geodesic = FALSE
-)
-
-## here modify code according to siteID!
-sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
-  filter(ee$Filter$eq("ADM2_CODE",23463))
-sf_bound <- ee_as_sf(x = sf_bound)
-
-labels <- c("low", "moderate", "intermediate", "high","very high")
-cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
-
-
-### download es_descr table from bq once
-es_descr <- tbl(con, "es_descr")
-es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
-
-### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
-userES <- tbl(con, "es_mappingR1")
-userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-  collect()
-
-# userID_sel = "40PymeZHGl"
-# mapping_round<-1
-
+# library(shiny)
+# library(shinydashboard)
+# library(shinycssloaders)
+# library(shinyjs)
+# library(plotly)
+# library(sf)
+# library(leaflet)
+# library(leaflet.extras)
+# library(leaflet.extras2)
+# library(rgee)
+# library(DT)
+# library(mapedit)
+# library(tidyverse)
+# library(bigrquery)
+# library(DBI)
+# 
+# 
+# ee_Initialize()
+# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# 
+# studyID<-"NOR-SNJ"
+# 
+# userES <- tbl(con, "es_mappingR1")
+# #dplyr sql
+# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+#   collect()
+# 
+# 
+# geometry <- ee$Geometry$Rectangle(
+#   coords = c(10.30, 63.35, 10.50, 63.5),
+#   proj = "EPSG:4326",
+#   geodesic = FALSE
+# )
+# 
+# ## here modify code according to siteID!
+# sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+#   filter(ee$Filter$eq("ADM2_CODE",23463))
+# sf_bound <- ee_as_sf(x = sf_bound)
+# 
+# labels <- c("low", "moderate", "intermediate", "high","very high")
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
+# 
+# 
+# ### download es_descr table from bq once
+# es_descr <- tbl(con, "es_descr")
+# es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
+# 
+# ### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
+# userES <- tbl(con, "es_mappingR1")
+# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+#   collect()
+# 
+# # userID_sel = "40PymeZHGl"
+# # mapping_round<-1
+# 
 
 
 remapUI<- function(id, label = "selector") {
   ns<-NS(id)
   tagList(
+    uiOutput(ns("title_es")),
+    br(),
+    fluidRow(
+      column(5,
+             uiOutput(ns("descr_es"))),
+      column(2),
+      column(5,
+             uiOutput(ns("image_es")))
+    ),
+    br(),
     conditionalPanel(
       condition = "userES_sel$mapping == 'Yes'",
       ns=ns,
@@ -118,14 +128,29 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
     function(input,output,session){
       ns<-session$ns
       # 
+
       userES_sel<-userES%>%dplyr::filter(userID == userID_sel)%>%slice(mapping_round)
       esID_sel<-userES_sel$esID
       es_descr_sel<-es_descr%>%dplyr::filter(esID %in% esID_sel)
+      output$title_es<-renderUI(h5(es_descr_sel$esNAME))
       blog_data_sel<-userES%>%dplyr::filter(esID %in% esID_sel & (blog !="NA"))%>%filter(blog!="")%>%select(blog)
-      output$blog<-renderDT(blog_data_sel,rownames= FALSE, colnames="Blog entries")
+      output$blog<-renderDT(blog_data_sel,rownames= FALSE, colnames="Why people choosed their sites")
+      output$descr_es<-renderUI(es_descr_sel$esDESCR)
 
-      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted area")))
       output$remap<-renderUI(h6(paste0("Modify, add or delete areas that provide good ",es_descr_sel$esNAME)))
+      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
+      
+      output$image_es<-renderUI({
+        tags$figure(
+          class = "centerFigure",
+          tags$img(
+            src = paste0(esID_sel,".jpg"),
+            width = 600,
+            alt = "Picture of an astragalus (bone die)"
+          ),
+          tags$figcaption("Image of Astragalus by Yaan, 2007")
+        )
+      })
       
       ## all raster path (adjust!!! recr)
       imgpath1<-paste0(ee_get_assethome(), '/R_1/all_part/',"recr", "_", studyID)
@@ -136,8 +161,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         img_ind<-ee$Image(imgpath2)
         
         Map$setCenter(10.38649, 63.40271,10)
-        m1<-Map$addLayer(geometry)+
-          Map$addLayer(
+        m1<-Map$addLayer(
             eeObject = img_ind,
             vis_qc,
             opacity = 0.4,
@@ -146,7 +170,8 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             eeObject = img_all,
             vis_qc,
             opacity = 0.4,
-            name = "all participants")
+            name = "all participants")+
+          Map$addLegend(vis_qc, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
         
         output$text0<-renderText(paste0("In the previous mapping round you have mapped ", es_descr_sel$esNAME, ". The maps below show the areas of high probability to benefit form ",es_descr_sel$esNAME,
                                         " based on your individual contribution and all other participants contribution."))
@@ -162,7 +187,6 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               onInitialize = I('function() { this.setValue(""); }')
             ))
             )
-
           })
           
           output$cond_b1<-renderUI({
@@ -183,11 +207,12 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           )
           cent_poly <- st_centroid(poly_r1)
           # prepare map for editing
+
           map_edit<-leaflet(poly_r1)%>%
             addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
                         opacity = 1.0, fillOpacity = 0, group = "poly_r1")%>%
             addLabelOnlyMarkers(data = cent_poly,
-                                lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = paste0("Your valuation: ",cent_poly$es_valu),
+                                lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = paste0("Your valuation in round 1: ",cent_poly$es_valu),
                                 labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
                                                             style = list(
                                                               "color" = "red",
@@ -204,16 +229,18 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
                                            circleMarkerOptions = F,
                                            rectangleOptions = T,
                                            editOptions = editToolbarOptions(),
-                                           singleFeature = F)+m1
+                                           singleFeature = F)+
+            m1
+          
 
       }else{
         Map$setCenter(10.38649, 63.40271,10)
-        m1<-Map$addLayer(geometry)+
-          Map$addLayer(
+        m1<-Map$addLayer(
             eeObject = img_all,
             vis_qc,
             opacity = 0.4,
-            name = "all participants")
+            name = "all participants")+
+          Map$addLegend(vis_qc, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
 
         
         output$map_res_all <- renderLeaflet({
@@ -221,7 +248,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         })
         output$text1<-renderText(paste0("In the previous mapping round you have not mapped ", es_descr_sel$esNAME))
         output$ui2<-renderUI({
-          actionButton(ns("confirm2"),"Next task", class='btn-primary')
+          actionButton(ns("confirm2"),"Confirm", class='btn-primary')
         })
         map_edit<-leaflet()
       }
@@ -234,10 +261,15 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             where = "afterEnd",
             ui = tagList(
               uiOutput(ns("remap")),
+              fluidRow(
+                column(5,editModUI(ns("map_sel"))
+                       ),
+                column(2,
+                       ),
+                column(5,DTOutput(ns("blog2"))
+                       )
+              ),
               br(),
-              editModUI(ns("map_sel")),
-              DTOutput(ns("blog2")),
-
               br(),
               # initial button to save the remap
               actionButton(ns("savepoly"),"save polygons")
@@ -253,7 +285,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             ui = tagList(
               "We will use your data from the previous round!",
               br(),
-              actionButton(ns("confirm2"),"Next task", class='btn-primary')
+              actionButton(ns("confirm2"),"Confirm", class='btn-primary')
             )
           )
           
@@ -284,7 +316,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           mapping_param<-as.data.frame(mapping_param)
           
           # write to bq
-          # insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
+          insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
           
         }#/else
         removeUI(
@@ -481,7 +513,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               br(),
               uiOutput(ns("slider")),
               br(),
-              actionButton(ns("confirm2"),"Save and next task", class='btn-primary')
+              actionButton(ns("confirm2"),"Confirm", class='btn-primary')
 
             )
           )
@@ -509,7 +541,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               br(),
               leafletOutput(ns("map_res")),
               br(),
-              actionButton(ns("confirm2"),"Next task", class='btn-primary')
+              actionButton(ns("confirm2"),"Confirm", class='btn-primary')
 
             )
           )
@@ -532,93 +564,98 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
 #         
 #       ## save the values of the polys in bq - recalculation of map will be postprocessing R2...
       observeEvent(input$confirm2,{
-        poly_all<-final_edits()
-        poly_edited<-poly_all%>%dplyr::filter(status == "edited" | status == "new_drawn")
-        poly_not_edited<-poly_all%>%dplyr::filter(status == "no_edit_R2" | status == "old_geom")
+        withProgress(message = "save your data",value = 0.1,{
+          poly_all<-final_edits()
+          poly_edited<-poly_all%>%dplyr::filter(status == "edited" | status == "new_drawn")
+          poly_not_edited<-poly_all%>%dplyr::filter(status == "no_edit_R2" | status == "old_geom")
+          
+          if(nrow(poly_edited)>0){
+            poly_edited<-as.data.frame(poly_edited)
+            poly_edited$es_valu<-rep(NA,nrow(poly_edited))
+            sliderval<-list()
+            
+            # extract the values from the slider
+            res<-lapply(1:nrow(poly_edited),function(a){
+              var<-paste0("id_",poly_edited[a,]$`X_lflt_d`)
+              sliderval[[a]]<-input[[var]]
+              return(sliderval)
+            })
+            vecA <- unlist(res)
+            
+            # write attributes to geometry
+            poly_edited$es_valu <- vecA
+            
+            poly_edited<-st_as_sf(poly_edited)
+            poly_all<-rbind(poly_not_edited,poly_edited)
+            polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
+            ## save poly
+            st_write(poly_all,polypath)
+            print(poly_all)
+            incProgress(amount = 0.4,message = "save your data")
+            ## write information to poly 2
+            mapping_param <-
+              list(
+                esID = esID_sel,
+                userID = userID_sel,
+                siteID = studyID,
+                mappingR2_UID = paste0(userID_sel,"_",esID_sel,"_", studyID),
+                area = as.integer(sum(st_area(poly_all))),
+                n_poly = as.integer(nrow(poly_all)),
+                blog = "test_blog",
+                map_adjust = input$remap_poss,
+                mapping_order = as.integer(mapping_round),
+                extrap_RMSE = 0,
+                extrap_accIMP = 0,
+                extrap_lulcIMP = 0,
+                extrap_natIMP = 0,
+                edited = "Yes"
+              )
+            incProgress(amount = 0.6,message = "save your data")
+            
+            mapping_param<-as.data.frame(mapping_param)
+            
+            # write to bq
+            insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
+            incProgress(amount = 1,message = "save your data")
+          }else{
+            polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
+            ## save poly
+            st_write(poly_all,polypath)
+            print(poly_not_edited)
+            
+            ## write information to poly 2
+            mapping_param <-
+              list(
+                esID = esID_sel,
+                userID = userID_sel,
+                siteID = studyID,
+                mappingR2_UID = paste0(userID_sel,"_",esID_sel,"_", studyID),
+                area = as.integer(sum(st_area(poly_not_edited))),
+                n_poly = as.integer(nrow(poly_not_edited)),
+                blog = "test_blog",
+                map_adjust = input$remap_poss,
+                mapping_order = as.integer(mapping_round),
+                extrap_RMSE = 0,
+                extrap_accIMP = 0,
+                extrap_lulcIMP = 0,
+                extrap_natIMP = 0,
+                edited = "No"
+              )
+            mapping_param<-as.data.frame(mapping_param)
+            incProgress(amount = 0.6,message = "save your data")
+            # write to bq
+            insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
+            incProgress(amount = 1,message = "save your data")
+          }#/else
+          
+        })#/progress ini
         
-        if(nrow(poly_edited)>0){
-          poly_edited<-as.data.frame(poly_edited)
-          poly_edited$es_valu<-rep(NA,nrow(poly_edited))
-          sliderval<-list()
-          
-          # extract the values from the slider
-          res<-lapply(1:nrow(poly_edited),function(a){
-            var<-paste0("id_",poly_edited[a,]$`X_lflt_d`)
-            sliderval[[a]]<-input[[var]]
-            return(sliderval)
-          })
-          vecA <- unlist(res)
-          
-          # write attributes to geometry
-          poly_edited$es_valu <- vecA
-          
-          poly_edited<-st_as_sf(poly_edited)
-          poly_all<-rbind(poly_not_edited,poly_edited)
-          # polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
-          # ## save poly
-          # st_write(poly_all,polypath)
-          print(poly_all)
-          
-          ## write information to poly 2
-          mapping_param <-
-            list(
-              esID = esID_sel,
-              userID = userID_sel,
-              siteID = studyID,
-              mappingR2_UID = paste0(userID_sel,"_",esID_sel,"_", studyID),
-              area = as.integer(sum(st_area(poly_all))),
-              n_poly = as.integer(nrow(poly_all)),
-              blog = "test_blog",
-              map_adjust = input$remap_poss,
-              mapping_order = as.integer(mapping_round),
-              extrap_RMSE = 0,
-              extrap_accIMP = 0,
-              extrap_lulcIMP = 0,
-              extrap_natIMP = 0,
-              edited = "Yes"
-            )
-          mapping_param<-as.data.frame(mapping_param)
-          
-          # write to bq
-          # insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
-          
-        }else{
-          # polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
-          # ## save poly
-          # st_write(poly_all,polypath)
-          print(poly_not_edited)
-          
-          ## write information to poly 2
-          mapping_param <-
-            list(
-              esID = esID_sel,
-              userID = userID_sel,
-              siteID = studyID,
-              mappingR2_UID = paste0(userID_sel,"_",esID_sel,"_", studyID),
-              area = as.integer(sum(st_area(poly_not_edited))),
-              n_poly = as.integer(nrow(poly_not_edited)),
-              blog = "test_blog",
-              map_adjust = input$remap_poss,
-              mapping_order = as.integer(mapping_round),
-              extrap_RMSE = 0,
-              extrap_accIMP = 0,
-              extrap_lulcIMP = 0,
-              extrap_natIMP = 0,
-              edited = "No"
-            )
-          mapping_param<-as.data.frame(mapping_param)
-          
-          # write to bq
-          # insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
-          
-        }
-
         })#/observer
 
 #         
-        cond <- reactive({input$confirm2})
-
-        return(cond)
+        # cond <- reactive({input$confirm2})
+        # 
+        # return(cond)
 
     }#/function server session
   )#/module server
@@ -640,50 +677,56 @@ ui <- fluidPage(
               ))
 )
 #
-server <- function(input, output, session) {
-  userID_sel = "40PymeZHGl"
-  mapping_round<-1
-  
-  hideTab(inputId = "inTabset", target = "p2")
-
-
-  observeEvent(input$test, {
-    updateTabsetPanel(session, "inTabset",
-                      selected = "p2")
-  })
-  observeEvent(input$test, {
-    hideTab(inputId = "inTabset",
-            target = "p1")
-  })
-  observeEvent(input$test, {
-    showTab(inputId = "inTabset", target = "p2")
-    remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
-  })
-#
-#
-#
-#      val<- remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-#
-
-
-  # observeEvent(input$test,{
-  #   userID_sel<-userID_sel()
-  #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-  # })
-
-
-
-
-  # observeEvent(val(),{
-  #
-  #   updateTabsetPanel(session, "inTabset",
-  #                     selected = "p1")
-  #   hideTab(inputId = "inTabset",
-  #           target = "p2")
-  #   showTab(inputId = "inTabset", target = "p1")
-  #
-  # })
-#
-}
-
-shinyApp(ui, server)
+# server <- function(input, output, session) {
+#   userID_sel = reactive("40PymeZHGl")
+#   mapping_round<-1
+#   
+#   hideTab(inputId = "inTabset", target = "p2")
+# # 
+# # 
+# #   observeEvent(input$test, {
+# #     updateTabsetPanel(session, "inTabset",
+# #                       selected = "p2")
+# #   })
+# #   observeEvent(input$test, {
+# #     hideTab(inputId = "inTabset",
+# #             target = "p1")
+# # })
+#   observeEvent(input$test, {
+#     userID_sel<-userID_sel()
+#     hideTab(inputId = "inTabset", target = "p2")
+#     hideTab(inputId = "inTabset",
+#             target = "p1")
+#     showTab(inputId = "inTabset", target = "p2")
+#     remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
+# 
+#   })
+# #
+# 
+# 
+#      # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+# #
+# 
+# 
+#   # observeEvent(input$test,{
+#   #   userID_sel<-userID_sel()
+#   #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+#   # })
+# 
+# 
+# 
+# 
+#   # observeEvent(val(),{
+#   #   req(val)
+#   # 
+#   #   updateTabsetPanel(session, "inTabset",
+#   #                     selected = "p1")
+#   #   hideTab(inputId = "inTabset",
+#   #           target = "p2")
+#   #   showTab(inputId = "inTabset", target = "p1")
+#   # 
+#   # })
+# #
+# }
+# 
+# shinyApp(ui, server)
