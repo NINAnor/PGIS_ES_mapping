@@ -1,5 +1,13 @@
 function(input, output, session) { 
 
+  
+  ## define reactives
+  rv<-reactiveValues(
+    u = reactive({}),
+    v = reactive({}),
+    w = reactive({})
+  )
+  
   ## start and hide map tab
   hideTab(inputId = "inTabset", target = "p1")
   hideTab(inputId = "inTabset", target = "p2")
@@ -52,7 +60,7 @@ function(input, output, session) {
       showTab(inputId = "inTabset", target = "p1")
       userID_sel<-userID_sel()
 
-      remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
+      rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
 
     }else{
       output$login_res<-renderText("Mail adress NOT found")
@@ -62,7 +70,7 @@ function(input, output, session) {
 
   
   #mod es 2
-  observeEvent(input$sub1, {
+  observeEvent(rv$u(), {
 
       #update shiny content
       updateTabsetPanel(session, "inTabset",
@@ -72,7 +80,7 @@ function(input, output, session) {
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[2,]
-      remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
+      rv$v<-remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
 
   })
   # v<-eventReactive(u(),{
@@ -85,7 +93,7 @@ function(input, output, session) {
 
   
   #mod es 3
-  observeEvent(input$sub2, {
+  observeEvent(rv$v(), {
     
     #update shiny content
     updateTabsetPanel(session, "inTabset",
@@ -95,7 +103,7 @@ function(input, output, session) {
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[3,]
-      remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
+    rv$w<-remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
 
   })
   # w<-eventReactive(v(),{
@@ -107,7 +115,7 @@ function(input, output, session) {
   # })
 
   #stop app
-  observeEvent(input$sub3, {
+  observeEvent(rv$w(), {
       stopApp(returnValue = invisible())
   })
 

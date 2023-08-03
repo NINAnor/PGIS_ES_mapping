@@ -653,9 +653,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         })#/observer
 
 #         
-        # cond <- reactive({input$confirm2})
-        # 
-        # return(cond)
+        cond <- reactive({input$confirm2})
+
+        return(cond)
 
     }#/function server session
   )#/module server
@@ -664,18 +664,18 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
 
 ################# test App
 #
-ui <- fluidPage(
-  theme = bslib::bs_theme(bootswatch = "cerulean"),
-  titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
-  tabsetPanel(id = "inTabset",
-              tabPanel(title = "Your Task", value = "p1",
-                       h5("This explains what you are asked to do in the following task"),
-                       actionButton("test","next")
-              ),
-              tabPanel(title = "Mapping Task", value = "p2",
-                       remapUI("remap1", "mapping1")
-              ))
-)
+# ui <- fluidPage(
+#   theme = bslib::bs_theme(bootswatch = "cerulean"),
+#   titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
+#   tabsetPanel(id = "inTabset",
+#               tabPanel(title = "Your Task", value = "p1",
+#                        h5("This explains what you are asked to do in the following task"),
+#                        actionButton("test","next")
+#               ),
+#               tabPanel(title = "Mapping Task", value = "p2",
+#                        remapUI("remap1", "mapping1")
+#               ))
+# )
 #
 # server <- function(input, output, session) {
 #   userID_sel = reactive("40PymeZHGl")
