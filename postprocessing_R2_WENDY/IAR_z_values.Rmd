@@ -1,0 +1,483 @@
+---
+title: "Postprocessing R2 WENDY"
+author: "R.Spielhofer"
+date: "2023-08-02"
+output: html_document
+---
+
+# Scope
+This Markdown does the postprocessing for the second spatial delphi round of mapping ES. For each ES this will result in two main spatial explicit datasets to finally calculate the PDF per ES.Firstly, the invariability-Area relationship (IAR) of an ES in the study area. Secondly, the slope of the IAR, the z values per ES. 
+
+## setup
+```{r setup, include=FALSE}
+library(rgee)
+library(sf)
+library(raster)
+library(leaflet)
+library(leaflet.extras)
+library(terra)
+library(spdep)
+library(tmap)
+library(dplyr)
+library(ggplot2)
+library(mapview)
+library(stringi)
+library(fs)
+library(tidyverse)
+library(bigrquery)
+library(DBI)
+
+## load ee con
+studyID<-"NOR-SNJ"
+
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+ee_Initialize(user = 'r.spielhofer@bluewin.ch')
+
+# site <- tbl(con, "study_site")
+# adm_code <- select(site, siteID, siteADM2) %>%filter(siteID == studyID)%>%select(siteADM2)%>% collect()
+# adm_code<-as.numeric(adm_code)
+
+bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
+
+
+sf_bound <- ee_as_sf(x = bound_reg)
+A_roi<-as.numeric(st_area(sf_bound))
+
+## ee layers
+lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
+lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+lulc<-lulc$clip(bound_reg)
+
+
+acc_pat<-paste0(ee_get_assethome(), '/acc')
+acc<-ee$Image(acc_pat)
+acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+
+nat_pat<-paste0(ee_get_assethome(), '/natu')
+nat<-ee$Image(nat_pat)
+nat<-nat$clip(bound_reg)
+nat<-nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
+nat<-nat$rename("nat")
+
+# combine unique class count wdw and lulc
+comb<-ee$Image$cat(lulc,acc, nat)
+bands <- list("landcover","b1","nat")
+
+geometry <- ee$Geometry$Rectangle(
+  coords = c(10.30, 63.35, 10.50, 63.5),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
+
+cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+maxentviz = list(bands= 'probability',min= 0, max= 1, palette= cols)
+```
+
+# R2 extrapolation of ES
+Based on round two of the spatial delphi questionnaire, the individual ES maps are calculated and stored on gee.
+
+```{r cars}
+geom_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2"
+# Getting all file paths
+shapefiles <- geom_path |>
+  dir_ls(recurse = TRUE) |>
+  str_subset('.shp$')
+
+# Loading all files
+sfdf <- shapefiles |>
+  map(st_read) |>
+  bind_rows()
+
+## for each userID and esID --> maxent
+part_list<-sfdf%>%distinct(userID)
+
+for(i in 1: nrow(part_list)){
+  user_tmp<-part_list[i,]
+  print(user_tmp)
+  
+  user_es_list<-sfdf%>%filter(userID == user_tmp)%>%distinct(esID)
+  for(j in 1:nrow(user_es_list)){
+    es_tmp<-user_es_list[j,]
+    print(es_tmp)
+    # extract write polys
+    #do not consider old geom which have been modified!
+    poly_tmp<-sfdf%>%filter(userID == user_tmp & esID==es_tmp & status!="old_geom")
+    poly_area<-as.numeric(sum(st_area(poly_tmp)))
+    ## extrapolate like in R1
+    A_min<-as.numeric(min(st_area(poly_tmp)))
+          # area of largest poly
+          A_max<-as.numeric(max(st_area(poly_tmp)))
+          
+          # max pts for efficient extrapolation each 250x250 cell
+          max_pts<- round(A_roi/(300*300),0)
+          
+          
+          # ratio poly area vs whole area
+          ratio_A<-poly_area/A_roi
+          
+          ## although zooming on the map while drawing is limited, we assure that at least 10pts are within a poly
+          min_in_pts<-10
+          abs_min_res<-100
+          min_in_eff_pts<-(sqrt(A_min)/abs_min_res)^2
+          
+          
+          if(min_in_eff_pts<min_in_pts){
+            pts_min <- min_in_pts
+          } else {
+            pts_min <- min_in_eff_pts
+          }
+          
+          # amount of background pts
+          pts_out<-round(1/ratio_A*pts_min,0)
+          
+          # sample backgraound pts
+          # pts_out = st_sample(sf_bound, pts_out,type="random")
+          pts_out = st_sample(sf_bound, max_pts,type="random")
+          
+          # don`t allow intersection with polygons
+          pts_out <- st_difference(st_combine(pts_out), st_combine(poly_tmp)) %>% st_cast('POINT')
+          pts_out<-st_as_sf(pts_out)
+          pts_out$inside<-rep(0,nrow(pts_out))
+          pts_all<-pts_out
+          
+          # inside pts are area + es value weighted
+          for (o in 1:nrow(poly_tmp)) {
+            A_tmp <- as.numeric(st_area(poly_tmp[o,]))
+            #tmp_ratio<-A_tmp/A_min
+            tmp_ratio<-A_tmp/A_roi
+            # npts in this poly must be max_pts*tmp_ratio*es_value
+            #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
+            tmp_pts = st_sample(poly_tmp[o,], round(max_pts*tmp_ratio,0)*poly_tmp[o,]$es_valu,type="random")
+            tmp_pts<-st_as_sf(tmp_pts)
+            tmp_pts$inside<-rep(1,nrow(tmp_pts))
+            pts_ee<-rbind(pts_all,tmp_pts)
+            
+          }
+          # ee object of sampling pts 6k pts = 7sec
+          pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
+          
+          # define target bands of comb (indep. var) and sample vars by pts
+          pts_ee = comb$select(bands)$sampleRegions(collection= pts_ee,
+                                                    properties = list("inside"),
+                                                    geometries = T
+          )
+          
+          ############ maxent
+
+          mEntclass = ee$Classifier$amnhMaxent()$train(
+            features = pts_ee,
+            classProperty = 'inside',
+            inputProperties = bands
+          )
+          
+          imageClassified <- comb$select(bands)$classify(mEntclass)
+          
+          prediction<-imageClassified$select("probability")
+          
+          ############ save map
+
+          img_assetid <- paste0(ee_get_assethome(), '/R_2/ind_maps/',user_tmp,"_",es_tmp,"_", studyID)
+          
+          #set features of img
+          prediction <- prediction$set('es_id', es_tmp,
+                                       'userID', user_tmp,
+                                       'siteID', studyID,
+                                       'order_id', 1,
+                                       'delphi_round', 2)
+          
+          start_time<-Sys.time()
+          task_img <- ee_image_to_asset(
+            image = prediction,
+            assetId = img_assetid,
+            overwrite = T,
+            region = geometry
+          )
+          
+          task_img$start()
+          
+          
+          ############ vis
+          # Map$setCenter(10.38649, 63.40271,10)
+          # 
+          #   Map$addLayer(
+          #   eeObject = prediction,
+          #   maxentviz,
+          #   "Probability of ES",
+          #   opacity = 0.4)
+    
+    
+  }#/es
+  
+}#/participants
+
+```
+
+
+#IAR per ES
+Based on the individual ES maps the IAR is calculated as a coef. of variation for each pixel in the study area.
+
+```{r pressure, echo=FALSE}
+esID<-"drinking_wat"
+col_path<-paste0(ee_get_assethome(), '/R_2/ind_maps')
+es_col<-ee$ImageCollection(col_path)$filter(ee$Filter$eq("es_id",esID))
+ee_print(es_col)
+es_mean <- es_col$reduce(ee$Reducer$mean())
+# props<-ee_print(es_mean)
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# mean_viz = list(bands= props$img_bands_names,min= 0, max= 1, palette= cols)
+
+# Map$setCenter(10.38649, 63.40271,10)
+# Map$addLayer(
+#             eeObject = es_mean,
+#             mean_viz,
+#             opacity = 0.4,
+#             name = "es_mean"
+#           )
+
+es_stdDev = es_col$reduce(ee$Reducer$stdDev())
+es_coef_var = es_stdDev$divide(es_mean)
+props_coef<-ee_print(es_coef_var)
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# mean_viz = list(bands= props$props_coef,min= 0, max= 1, palette= cols)
+# 
+# Map$setCenter(10.38649, 63.40271,10)
+# Map$addLayer(
+#             eeObject = es_coef_var,
+#             mean_viz,
+#             opacity = 0.4,
+#             name = "es_coef_var"
+#           )
+
+
+
+
+    # Compute the SAVI using an expression.
+es_IAR <- es_coef_var$expression(
+        expression = '1/(es_coef_var)**2',
+        opt_map =  list(
+            'es_coef_var' = es_coef_var$select(as.character(props_coef$img_bands_names))
+        )
+    )
+
+# props<-ee_print(es_IAR)
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# IAR_viz = list(bands= props$img_bands_names,min= 0, max= 100, palette= cols)
+# 
+# Map$setCenter(10.38649, 63.40271,10)
+# Map$addLayer(
+#             eeObject = es_IAR,
+#             IAR_viz,
+#             opacity = 0.4,
+#             name = "es_mean"
+#           )
+
+### download image?
+
+# 
+# ee_as_raster(
+#   es_IAR,
+#   dsn = paste0(Sys.Date(),"_IAR_",esID),
+#   via = "drive",
+#   container = "Export_IAR_WENDY",
+#   maxPixels = 1e+09
+# )
+
+img_assetID<-paste0(ee_get_assethome(), '/R_2/IAR/',esID)
+task_img<-ee_image_to_asset(
+  image = es_IAR,
+  assetId = img_assetID,
+  overwrite = T,
+  region = geometry
+)
+task_img$start()
+```
+
+#Slope of IAR
+
+The slope of the IAR (z-value) is calculated, assuming a log-log linear relationship between distance and correlation of IAR from a single ES.
+```{r}
+
+main_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/postprocessing_R2_WENDY"
+in_path<-paste0(main_path,"/from_gee")
+out_path<-paste0(main_path,"/output")
+IAR<-raster(paste0(in_path,"/IAR.tif"))
+plot(IAR)
+#make polygons
+IAR_poly<-rasterToPolygons(IAR)
+IAR_poly<-st_as_sf(IAR_poly)
+
+
+## empty list to store z values
+z_list<-list()
+# define distance vector to evaluate log(dist) - log(correlation) [m]
+dist_vec<-c(1,100,1000,1500,2000,3000,10000)
+
+#loop through each raster cell
+for(a in 1:nrow(IAR_poly)){
+  print(a)
+  iar_list<-list()
+  area_list<-list()
+  tmp_center<-IAR_poly[a,]
+  ## loop through all distances
+  for(b in 1: length(dist_vec)){
+  
+  #for each cell and each distance create a raster that covers all the cells in the distance b
+  tmp_poly<-st_join(IAR_poly, tmp_center, st_is_within_distance, dist = dist_vec[b])
+  tmp_poly<-tmp_poly%>%filter(!is.na(constant.y))
+  #calculate the sum of all the polys in that area -- add to area list
+  area_list[b]<-sum(st_area(tmp_poly))
+  # and add the mean IAR of that area to the IAR list
+  iar_list[b]<-mean(tmp_poly$constant.x,na.rm=T)
+  #just for security
+  rm(tmp_poly)
+
+}#/loop distances
+  #a df with areas and means (for all the distances) of a single cell
+  IAR_df<-as.data.frame(cbind(unlist(area_list),unlist(iar_list)))
+  colnames(IAR_df)<-c("area","IAR_mean")
+  # the log of both
+  IAR_df$logA<-log(IAR_df$area)
+  IAR_df$logI<-log(IAR_df$IAR_mean)
+
+# plot(IAR_df$logA, IAR_df$logI)
+# 
+# ggplot(IAR_df, aes(logA, logI)) +
+#   geom_point() +
+#   stat_smooth(method = lm)
+# make a linear regresssion for each raster cell, containing the N=7 log(area), log(IAR_mean)
+  model <- lm(logI ~ logA, data = IAR_df)
+  # extract the slope of the model as z and store it in the z-list for the rastercell a
+  z_list[a]<-model$coefficients[2]
+  # remove the model, the df
+  rm(model, IAR_df, tmp_center)
+  
+}#/loop raster cells
+
+# attach z_values to raster cells (polys)
+IAR_poly$z_val<-unlist(z_list)
+
+z_rast<-raster::rasterize(IAR_poly,IAR,IAR_poly$z_val)
+plot(z_rast)
+writeRaster(z_rast,paste0(out_path,"/Z_raster/Z_rast_",esID,".tif"))
+
+```
+
+# PDF calculation for ex. WT area
+
+```{r}
+
+
+case_study<-"NOR-SNJ"
+main_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/postprocessing_R2_WENDY"
+IAR_path<-paste0(main_path,"/from_gee")
+z_path<-paste0(main_path,"/output/Z_raster/Z_rast_")
+esID<-"drinking_wat"
+
+IAR<-raster(paste0(IAR_path,"/IAR.tif"))
+z_rast<-raster(paste0(z_path,esID,".tif"))
+
+z_poly<-rasterToPolygons(z_rast)
+z_poly<-st_as_sf(z_poly)
+
+IAR_poly<-rasterToPolygons(IAR)
+IAR_poly<-st_as_sf(IAR_poly)
+
+## for selection on map
+poly<-st_as_sfc(IAR_poly)
+map_sel<- leaflet() %>%
+  addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
+  leafem::addFeatures(st_sf(poly), layerId = ~seq_len(length(poly)))
+
+########## PARAMETERS
+## single wind turbine (=wt) or wind farm (=wf)
+pdf_meth<-"wt"
+# land occupation (LO), disturbance (DS)
+imp_pathway<-"LO"
+#aEP is area lost per km2 and MW
+aEP<-0.003
+
+## EP is capacity of WT (e.g. 5MW)
+EP <-5
+## area lost due to occupation in km2:
+A_lost_LO<-aEP*EP
+
+## Aorig
+A_orig<-as.numeric(st_area(IAR_poly[1,])/1000000)
+
+## select a specific point or area for WT/WF
+if(pdf_meth == "wt"){
+  map<-map_sel%>%
+    addDrawToolbar(targetGroup='drawPoly',
+                   polylineOptions = F,
+                   polygonOptions = F,
+                   circleOptions = F,
+                   markerOptions = T,
+                   circleMarkerOptions = F,
+                   rectangleOptions = F,
+                   singleFeature = TRUE,
+                   editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
+  
+}else{
+  map<-map_sel%>%
+    addDrawToolbar(targetGroup='drawPoly',
+                   polylineOptions = F,
+                   polygonOptions = T,
+                   circleOptions = F,
+                   markerOptions = F,
+                   circleMarkerOptions = F,
+                   rectangleOptions = F,
+                   singleFeature = TRUE,
+                   editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
+  
+}
+
+edits<-mapedit::selectMap(map)
+
+poly_id<-as.numeric(edits$id[1]) 
+
+
+### PDF LO at selected raster cell
+PDF_LO<-IAR_poly$constant[poly_id]*(1-((A_orig-A_lost_LO)/A_orig)^z_poly$Z_rast_drinking_wat[poly_id])
+
+##??/sum(IAR_poly$constant)
+
+
+# if(imp_pathway == "LO"){
+#   
+# }
+
+### PDF DS at raster cell 1
+## get distances of siteID and esID R1
+dist <- tbl(con, "impact_dist")
+distances <- dplyr::select(dist, siteID, dist_cult,dist_aes, dist_recr, dist_wild_prod) %>%filter(siteID == studyID)%>%collect()
+# function to integrate f
+f_cult <- function(x) {    # Create own function
+  cult_max<-max(distances$dist_cult)
+  cult_min<-min(distances$dist_cult)
+  cult_mean<-mean(distances$dist_cult)
+  alpha<-0.1
+  beta<-log((2-alpha)/alpha)/(cult_min-cult_mean)
+  
+  out <- (1-(1/(1+exp(beta*(x-cult_mean)))))/12
+}
+#integration to get dk  
+dK_cult<-integrate(f_cult,0,max(distances$dist_cult))
+
+A_lost_disturbance_cult<-pi*(max(distances$dist_cult)*dK_cult$value)^2
+
+
+### PDF DS_cult at selected raster cell
+PDF_DS_cult<-IAR_poly$constant[PDF_LO]*(1-((A_orig-A_lost_disturbance_cult)/A_orig)^z_poly$Z_rast_drinking_wat[PDF_LO])
+##/sum??
+
+
+```
+
