@@ -18,7 +18,7 @@ ee_Initialize()
 
 pdf_meth<-"wt"
 case_study<-"NOR-SNJ"
-main_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/7_PDF"
+main_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/postprocessing_R2_WENDY"
 in_path<-paste0(main_path,"/from_gee")
 out_path<-paste0(main_path,"/output")
 
@@ -117,6 +117,7 @@ for(a in 1:nrow(IAR_poly)){
 }
 
 IAR_poly$z_val<-unlist(z_list)
+
 
 # poly that contains site
 # 
