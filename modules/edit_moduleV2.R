@@ -1,67 +1,67 @@
 ## editi moduleV2
 ############ UI of remapping module
-# library(shiny)
-# library(shinydashboard)
-# library(shinycssloaders)
-# library(shinyjs)
-# library(plotly)
-# library(sf)
-# library(leaflet)
-# library(leaflet.extras)
-# library(leaflet.extras2)
-# library(rgee)
-# library(DT)
-# library(mapedit)
-# library(tidyverse)
-# library(bigrquery)
-# library(DBI)
-# 
-# 
-# ee_Initialize()
-# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
-# 
-# studyID<-"NOR-SNJ"
-# 
-# userES <- tbl(con, "es_mappingR1")
-# #dplyr sql
-# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-#   collect()
-# 
-# 
-# geometry <- ee$Geometry$Rectangle(
-#   coords = c(10.30, 63.35, 10.50, 63.5),
-#   proj = "EPSG:4326",
-#   geodesic = FALSE
-# )
-# 
-# ## here modify code according to siteID!
-# sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
-#   filter(ee$Filter$eq("ADM2_CODE",23463))
-# sf_bound <- ee_as_sf(x = sf_bound)
-# 
-# labels <- c("low", "moderate", "intermediate", "high","very high")
-# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-# vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
-# 
-# 
-# ### download es_descr table from bq once
-# es_descr <- tbl(con, "es_descr")
-# es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
-# 
-# ### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
-# userES <- tbl(con, "es_mappingR1")
-# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-#   collect()
-# 
-# # userID_sel = "40PymeZHGl"
-# # mapping_round<-1
-# 
+library(shiny)
+library(shinydashboard)
+library(shinycssloaders)
+library(shinyjs)
+library(plotly)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+library(leaflet.extras2)
+library(rgee)
+library(DT)
+library(mapedit)
+library(tidyverse)
+library(bigrquery)
+library(DBI)
+
+
+ee_Initialize()
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+studyID<-"NOR-SNJ"
+
+userES <- tbl(con, "es_mappingR1")
+#dplyr sql
+userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+  collect()
+
+
+geometry <- ee$Geometry$Rectangle(
+  coords = c(10.30, 63.35, 10.50, 63.5),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
+## here modify code according to siteID!
+sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
+sf_bound <- ee_as_sf(x = sf_bound)
+
+labels <- c("low", "moderate", "intermediate", "high","very high")
+cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
+
+
+### download es_descr table from bq once
+es_descr <- tbl(con, "es_descr")
+es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
+
+### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
+userES <- tbl(con, "es_mappingR1")
+userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+  collect()
+
+# userID_sel = "40PymeZHGl"
+# mapping_round<-1
+
 
 
 remapUI<- function(id, label = "selector") {
@@ -261,6 +261,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             where = "afterEnd",
             ui = tagList(
               uiOutput(ns("remap")),
+              fluidRow(" -please adjust inside the boundaries"),
+              br(),
+              fluidRow(" -please do not overlap polygons"),
               fluidRow(
                 column(5,editModUI(ns("map_sel"))
                        ),
@@ -348,7 +351,8 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             sf = T,
             editor = c("leaflet.extras", "leafpm")) 
 
-
+    ## test if edited polys intersect
+          
 
 
 #    
@@ -664,69 +668,69 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
 
 ################# test App
 #
-# ui <- fluidPage(
-#   theme = bslib::bs_theme(bootswatch = "cerulean"),
-#   titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
-#   tabsetPanel(id = "inTabset",
-#               tabPanel(title = "Your Task", value = "p1",
-#                        h5("This explains what you are asked to do in the following task"),
-#                        actionButton("test","next")
-#               ),
-#               tabPanel(title = "Mapping Task", value = "p2",
-#                        remapUI("remap1", "mapping1")
-#               ))
-# )
+ui <- fluidPage(
+  theme = bslib::bs_theme(bootswatch = "cerulean"),
+  titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
+  tabsetPanel(id = "inTabset",
+              tabPanel(title = "Your Task", value = "p1",
+                       h5("This explains what you are asked to do in the following task"),
+                       actionButton("test","next")
+              ),
+              tabPanel(title = "Mapping Task", value = "p2",
+                       remapUI("remap1", "mapping1")
+              ))
+)
+
+server <- function(input, output, session) {
+  userID_sel = reactive("40PymeZHGl")
+  mapping_round<-1
+
+  hideTab(inputId = "inTabset", target = "p2")
 #
-# server <- function(input, output, session) {
-#   userID_sel = reactive("40PymeZHGl")
-#   mapping_round<-1
-#   
-#   hideTab(inputId = "inTabset", target = "p2")
-# # 
-# # 
-# #   observeEvent(input$test, {
-# #     updateTabsetPanel(session, "inTabset",
-# #                       selected = "p2")
-# #   })
-# #   observeEvent(input$test, {
-# #     hideTab(inputId = "inTabset",
-# #             target = "p1")
-# # })
+#
 #   observeEvent(input$test, {
-#     userID_sel<-userID_sel()
-#     hideTab(inputId = "inTabset", target = "p2")
+#     updateTabsetPanel(session, "inTabset",
+#                       selected = "p2")
+#   })
+#   observeEvent(input$test, {
 #     hideTab(inputId = "inTabset",
 #             target = "p1")
-#     showTab(inputId = "inTabset", target = "p2")
-#     remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
-# 
-#   })
-# #
-# 
-# 
-#      # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-# #
-# 
-# 
-#   # observeEvent(input$test,{
-#   #   userID_sel<-userID_sel()
-#   #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-#   # })
-# 
-# 
-# 
-# 
-#   # observeEvent(val(),{
-#   #   req(val)
-#   # 
-#   #   updateTabsetPanel(session, "inTabset",
-#   #                     selected = "p1")
-#   #   hideTab(inputId = "inTabset",
-#   #           target = "p2")
-#   #   showTab(inputId = "inTabset", target = "p1")
-#   # 
-#   # })
-# #
-# }
-# 
-# shinyApp(ui, server)
+# })
+  observeEvent(input$test, {
+    userID_sel<-userID_sel()
+    hideTab(inputId = "inTabset", target = "p2")
+    hideTab(inputId = "inTabset",
+            target = "p1")
+    showTab(inputId = "inTabset", target = "p2")
+    remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
+
+  })
+#
+
+
+     # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+#
+
+
+  # observeEvent(input$test,{
+  #   userID_sel<-userID_sel()
+  #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+  # })
+
+
+
+
+  # observeEvent(val(),{
+  #   req(val)
+  #
+  #   updateTabsetPanel(session, "inTabset",
+  #                     selected = "p1")
+  #   hideTab(inputId = "inTabset",
+  #           target = "p2")
+  #   showTab(inputId = "inTabset", target = "p1")
+  #
+  # })
+#
+}
+
+shinyApp(ui, server)
