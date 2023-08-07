@@ -242,17 +242,18 @@ sfdf <- shapefiles |>
 
 ```
 
-2) compute 10 maps RF with all participants available --> store RMSE & Varimp
+2) compute 10 maps Maxent with all participants available --> store RMSE & Varimp
 ```{r}
 sf_use_s2(FALSE)
 # overall map per es
 eslist<-sfdf%>%filter(siteID == studyID)%>%select(esID)%>%st_drop_geometry()%>%distinct()
 AUC_list<-list()
+varIMP_list<-list()
 A_roi<-as.numeric(st_area(sf_bound))
 # max pts for efficient extrapolation each 250x250 cell
 max_pts<- round(A_roi/(300*300),0)
 
-for (i in 3:nrow(eslist)) {
+for (i in 1:nrow(eslist)) {
   print(eslist[i,])
   polygon<-sfdf%>%filter(esID==eslist[i,])
   if(nrow(polygon)<1){
@@ -306,10 +307,10 @@ for (i in 3:nrow(eslist)) {
             # npts in this poly must be max_pts*tmp_ratio*es_value
             #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
             ## if user has not assigned poly value
-            if(is.na(polygon[a,]$es_valu)){
+            if(is.na(polygon[n,]$es_valu)){
               tmp_pts = st_sample(polygon[n,], round(max_pts*tmp_ratio,0)*1,type="random")
             }else{
-              tmp_pts = st_sample(polygon[n,], round(max_pts*tmp_ratio,0)*polygon[n,]$es_valu,type="random")
+              tmp_pts = st_sample(polygon[n,], round(max_pts*tmp_ratio,0)*polygon[n,]$es_valu, progress=F, type="random")
 
             }
 
