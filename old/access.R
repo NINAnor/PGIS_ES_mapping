@@ -143,31 +143,75 @@ writeRaster(rslt_df2_rst,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Pro
 ## osm
 library(osmdata)
 
-q <- opq(bbox = st_bbox(sf_bound)) %>%
+roads <- opq(bbox = st_bbox(sf_bound)) %>%
   add_osm_feature(key = 'highway', value = c("motorway","trunk","primary","secondary","tertiary","residential","unclassified"))%>%
   osmdata_sf ()
   #add_osm_feature(key = 'highway', value = c("motorway","trunk","primary"))%>% 
 
-a <- osm_poly2line(q)
-a <- a$osm_lines
-plot(st_geometry(a))
-b<-a%>%dplyr::select(osm_id)
+roads <- osm_poly2line(roads)
+roads <- roads$osm_lines
+roads<-roads%>%dplyr::select(osm_id)
 
-b<-st_transform(b,"ESRI:102103")
+roads<-st_transform(roads,"ESRI:102103")
 
-plot(b)
+plot(roads)
 
 
-## 30M RASTER
-rs <- raster(extent(b), crs=projection(b), resolution  = 30)
+all <- opq(bbox = st_bbox(sf_bound)) %>%
+  add_osm_feature(key = 'highway', value = c("path","motorway","trunk","primary","secondary","tertiary","residential","unclassified"))%>%
+  osmdata_sf ()
+#add_osm_feature(key = 'highway', value = c("motorway","trunk","primary"))%>%
+
+all <- osm_poly2line(all)
+all <- all$osm_lines
+all<-all%>%dplyr::select(osm_id)
+
+all<-st_transform(all,"ESRI:102103")
+
+plot(all)
+
+
+
+## 30M RASTER roads
+roads_rst <- raster(extent(roads), crs=projection(roads), resolution  = 30)
 t1<-Sys.time()
-rast<-rasterize(b,rs)
+roads_rst<-rasterize(roads,roads_rst)
 t2<-Sys.time()
 print(t2-t1)
-plot(rast)
+plot(roads_rst)
+
+## 50M RASTER paths
+all_rst <- raster(extent(all), crs=projection(all), resolution  = 30)
+t1<-Sys.time()
+all_rst<-rasterize(all,all_rst)
+t2<-Sys.time()
+print(t2-t1)
+plot(all_rst)
+
+#reclass to 0.85 where path is present and 1 where no path
+
+
+all_rst_recl<-reclassify(all_rst,
+                           cbind(NA, 1))
+
+all_rst_recl<-reclassify(all_rst_recl,
+                           cbind(1,14000, 0.85))
+
+plot(all_rst_recl)
+## upload to gee
+writeRaster(all_rst_recl,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/6_PGIS_TOOL_variables/tests_accessibility_raster/all_recl_30_test.tif",overwrite = T)
+writeRaster(roads_rst,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/6_PGIS_TOOL_variables/tests_accessibility_raster/road_30.tif",overwrite = T)
+
 
 ## reproject raster for gee upload
 
-writeRaster(rast,"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/osm_30.tif",overwrite = T)
 
 
+
+###### compare the nina computed raster and the EI (Burak et al, 2021)
+
+raster_path<-"C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/6_PGIS_TOOL_variables/tests_accessibility_raster"
+
+diff_acc<-raster(paste0(raster_path,"/diff.tif"))
+plot(diff_acc)
+hist(diff_acc)
