@@ -1,4 +1,68 @@
-## remapping module
+## editi moduleV2
+############ UI of remapping module
+# library(shiny)
+# library(shinydashboard)
+# library(shinycssloaders)
+# library(shinyjs)
+# library(plotly)
+# library(sf)
+# library(leaflet)
+# library(leaflet.extras)
+# library(leaflet.extras2)
+# library(rgee)
+# library(DT)
+# library(mapedit)
+# library(tidyverse)
+# library(bigrquery)
+# library(DBI)
+# 
+# 
+# ee_Initialize()
+# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# 
+# studyID<-"NOR-SNJ"
+# 
+# userES <- tbl(con, "es_mappingR1")
+# #dplyr sql
+# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+#   collect()
+# 
+# 
+# geometry <- ee$Geometry$Rectangle(
+#   coords = c(10.30, 63.35, 10.50, 63.5),
+#   proj = "EPSG:4326",
+#   geodesic = FALSE
+# )
+# 
+# ## here modify code according to siteID!
+# sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+#   filter(ee$Filter$eq("ADM2_CODE",23463))
+# sf_bound <- ee_as_sf(x = sf_bound)
+# 
+# labels <- c("low", "moderate", "intermediate", "high","very high")
+# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+# vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
+# 
+# 
+# ### download es_descr table from bq once
+# es_descr <- tbl(con, "es_descr")
+# es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
+# 
+# ### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
+# userES <- tbl(con, "es_mappingR1")
+# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+#   collect()
+# 
+# # userID_sel = "40PymeZHGl"
+# # mapping_round<-1
+# 
+# 
 
 remapUI<- function(id, label = "selector") {
   ns<-NS(id)
@@ -18,13 +82,16 @@ remapUI<- function(id, label = "selector") {
       ns=ns,
       textOutput(ns("text0")),
       br(),
-      leafletOutput(ns("map_res_ind")),
-      br(),
-      h6(paste0("Why people rated areas as high potential to benefit from ")),
-      DTOutput(ns("blog")),
+      fluidRow(
+        column(6,leafletOutput(ns("map_res_ind"))),
+        column(6, DTOutput(ns("blog")))
+      ),
       br(),
       uiOutput(ns("remap_poss")),
-      br(),
+      # conditionalPanel(
+      #   condition = "input.remap_poss != ''",
+      #  actionButton(ns("confirm1"),"confirm") 
+      # )
       uiOutput(ns("cond_b1"))
       
       
@@ -39,7 +106,13 @@ remapUI<- function(id, label = "selector") {
       leafletOutput(ns("map_res_all")),
       br(),
       uiOutput(ns("ui2"))
+      
+      
     ),#/cond ui 2
+    # conditionalPanel(
+    #   condition = "input.slider>0", ns=ns,
+    #   actionButton(ns("confirm2"),"Next task", class='btn-primary')
+    # )#/cond final btn
   )#/tag list
 }#/ui module
 
@@ -55,7 +128,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
     function(input,output,session){
       ns<-session$ns
       # 
-
+      
       userES_sel<-userES%>%dplyr::filter(userID == userID_sel)%>%slice(mapping_round)
       esID_sel<-userES_sel$esID
       es_descr_sel<-es_descr%>%dplyr::filter(esID %in% esID_sel)
@@ -63,7 +136,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       blog_data_sel<-userES%>%dplyr::filter(esID %in% esID_sel & (blog !="NA"))%>%filter(blog!="")%>%select(blog)
       output$blog<-renderDT(blog_data_sel,rownames= FALSE, colnames="Why people choosed their sites")
       output$descr_es<-renderUI(es_descr_sel$esDESCR)
-
+      
       output$remap<-renderUI(h6(paste0("Modify, add or delete areas that provide good ",es_descr_sel$esNAME)))
       output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
       
@@ -89,15 +162,15 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         
         Map$setCenter(10.38649, 63.40271,10)
         m1<-Map$addLayer(
-            eeObject = img_ind,
-            vis_qc,
-            opacity = 0.4,
-            name = "Your map"
-          )| Map$addLayer(
-            eeObject = img_all,
-            vis_qc,
-            opacity = 0.4,
-            name = "all participants")+
+          eeObject = img_ind,
+          vis_qc,
+          opacity = 0.4,
+          name = "Your map"
+        )| Map$addLayer(
+          eeObject = img_all,
+          vis_qc,
+          opacity = 0.4,
+          name = "all participants")+
           Map$addLegend(vis_qc, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
         
         output$text0<-renderText(paste0("In the previous mapping round you have mapped ", es_descr_sel$esNAME, ". The maps below show the areas of high probability to benefit form ",es_descr_sel$esNAME,
@@ -106,69 +179,69 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         output$map_res_ind <- renderLeaflet({
           m1
         })
-          
-          output$remap_poss<-renderUI({
-            tagList(
+        
+        output$remap_poss<-renderUI({
+          tagList(
             h6(paste0("Do you want to adjust your areas for good ", es_descr_sel$esNAME,"?")),
             selectizeInput(ns("remap_poss"),label="",choices = c("Yes","No"),options = list(
               onInitialize = I('function() { this.setValue(""); }')
             ))
-            )
-          })
-          
-          output$cond_b1<-renderUI({
-            validate(
-              need(input$remap_poss, 'Please select an option')
-            )
-            actionButton(ns("confirm1"), "confirm")
-          })
-          
-          
-          poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", studyID, ".shp")
-          print(poly_path1)
-          poly_r1<-st_read(poly_path1)
-          poly_r1<-st_as_sf(poly_r1)
-          poly_r1 <- st_transform(
-            poly_r1,
-            crs = 4326
           )
-          cent_poly <- st_centroid(poly_r1)
-          # prepare map for editing
-
-          map_edit<-leaflet(poly_r1)%>%
-            addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
-                        opacity = 1.0, fillOpacity = 0, group = "poly_r1")%>%
-            addLabelOnlyMarkers(data = cent_poly,
-                                lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = paste0("Your valuation in round 1: ",cent_poly$es_valu),
-                                labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
-                                                            style = list(
-                                                              "color" = "red",
-                                                              "font-family" = "serif",
-                                                              "font-style" = "bold",
-                                                              "font-size" = "20px"
-                                                            )))%>%
-            addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 14))%>%
-            leaflet.extras::addDrawToolbar(targetGroup='poly_r1',
-                                           polylineOptions = F,
-                                           polygonOptions = F,
-                                           circleOptions = F,
-                                           markerOptions = F,
-                                           circleMarkerOptions = F,
-                                           rectangleOptions = T,
-                                           editOptions = editToolbarOptions(),
-                                           singleFeature = F)+
-            m1
-          
-
+        })
+        
+        output$cond_b1<-renderUI({
+          validate(
+            need(input$remap_poss, 'Please select an option')
+          )
+          actionButton(ns("confirm1"), "confirm")
+        })
+        
+        
+        poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", studyID, ".shp")
+        print(poly_path1)
+        poly_r1<-st_read(poly_path1)
+        poly_r1<-st_as_sf(poly_r1)
+        poly_r1 <- st_transform(
+          poly_r1,
+          crs = 4326
+        )
+        cent_poly <- st_centroid(poly_r1)
+        # prepare map for editing
+        
+        map_edit<-leaflet(poly_r1)%>%
+          addPolygons(color = "orange", weight = 3, smoothFactor = 0.5,
+                      opacity = 1.0, fillOpacity = 0, group = "poly_r1")%>%
+          addLabelOnlyMarkers(data = cent_poly,
+                              lng = ~st_coordinates(cent_poly)[,1], lat = ~st_coordinates(cent_poly)[,2], label = paste0("Your valuation in round 1: ",cent_poly$es_valu),
+                              labelOptions = labelOptions(noHide = TRUE, direction = 'top', textOnly = TRUE,
+                                                          style = list(
+                                                            "color" = "red",
+                                                            "font-family" = "serif",
+                                                            "font-style" = "bold",
+                                                            "font-size" = "20px"
+                                                          )))%>%
+          addProviderTiles(providers$CartoDB.Positron,options = tileOptions(minZoom = 10, maxZoom = 14))%>%
+          leaflet.extras::addDrawToolbar(targetGroup='poly_r1',
+                                         polylineOptions = F,
+                                         polygonOptions = F,
+                                         circleOptions = F,
+                                         markerOptions = F,
+                                         circleMarkerOptions = F,
+                                         rectangleOptions = T,
+                                         editOptions = editToolbarOptions(),
+                                         singleFeature = F)+
+          m1
+        
+        
       }else{
         Map$setCenter(10.38649, 63.40271,10)
         m1<-Map$addLayer(
-            eeObject = img_all,
-            vis_qc,
-            opacity = 0.4,
-            name = "all participants")+
+          eeObject = img_all,
+          vis_qc,
+          opacity = 0.4,
+          name = "all participants")+
           Map$addLegend(vis_qc, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
-
+        
         
         output$map_res_all <- renderLeaflet({
           m1
@@ -193,11 +266,11 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               fluidRow(" -please do not overlap polygons"),
               fluidRow(
                 column(5,editModUI(ns("map_sel"))
-                       ),
+                ),
                 column(2,
-                       ),
+                ),
                 column(5,DTOutput(ns("blog2"))
-                       )
+                )
               ),
               br(),
               br(),
@@ -205,7 +278,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               actionButton(ns("savepoly"),"save polygons")
             )
           )
-
+          
           
           
         }else{
@@ -268,37 +341,37 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         return(edits)
       })#/observer
       
-                
-          edits<-callModule(
-            module = editMod,
-            leafmap = map_edit,
-            id = "map_sel",
-            targetLayerId = "poly_r1",
-            record = T,
-            sf = T,
-            editor = c("leaflet.extras", "leafpm")) 
-
-    ## test if edited polys intersect
-          
-
-
-#    
-#            
-#         # edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
-#       
+      
+      edits<-callModule(
+        module = editMod,
+        leafmap = map_edit,
+        id = "map_sel",
+        targetLayerId = "poly_r1",
+        record = T,
+        sf = T,
+        editor = c("leaflet.extras", "leafpm")) 
+      
+      ## test if edited polys intersect
+      
+      
+      
+      #    
+      #            
+      #         # edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
+      #       
       ## prepare the final edits, not changed, adjusted, new polys
       final_edits<-eventReactive(input$savepoly,{
         # copy old plyg
-          final_edits<-poly_r1
-          edits2<-edits()
-          #filter polys that have not been edited
-          ## attach values of R1 ES
-          ## if final_edits geom == p_all(feature type NA) -> status = no_edit
-          final_edits$status<-rep("old_geom",nrow(final_edits))
-
-          # if sth has been changed, moved deleted edited
+        final_edits<-poly_r1
+        edits2<-edits()
+        #filter polys that have not been edited
+        ## attach values of R1 ES
+        ## if final_edits geom == p_all(feature type NA) -> status = no_edit
+        final_edits$status<-rep("old_geom",nrow(final_edits))
+        
+        # if sth has been changed, moved deleted edited
         if(!is.null(edits2$all)){
-
+          
           for(i in 1: nrow(final_edits)){
             if(st_geometry(final_edits[i,]) %in% st_geometry(edits2$all)){
               final_edits[i,]$status<-"no_edit_R2"
@@ -321,14 +394,14 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             p_new<-p_new%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
             for(u in 1: nrow(p_new)){
               if(p_new$X_lflt_d[u] %in% final_edits$X_lflt_d){
-              a<-p_new[u,]%>%dplyr::filter(!p_new$X_lflt_d[u] %in% final_edits$X_lflt_d)
-              final_edits<-rbind(final_edits,a)
+                a<-p_new[u,]%>%dplyr::filter(!p_new$X_lflt_d[u] %in% final_edits$X_lflt_d)
+                final_edits<-rbind(final_edits,a)
               }else{
-              final_edits<-rbind(final_edits,p_new[u,])
+                final_edits<-rbind(final_edits,p_new[u,])
               }
             }
           }
-
+          
           ## old plyg edited
           if(!is_empty(edits2$edited)){
             p_edit<-edits2$edited
@@ -352,9 +425,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               }
             }
           }
-
-
-
+          
+          
+          
           if(!is_empty(edits2$deleted)){
             p_del<-edits2$deleted
             p_del$X_lflt_d<-p_del$`_leaflet_id`
@@ -374,16 +447,16 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               }
             }
           }
-
+          
         }
-
-          final_edits
-
-        })
-# 
+        
+        final_edits
+        
+      })
+      # 
       ## only for drawings and new drawn polys:
       observeEvent(input$savepoly, {
-
+        
         final_edits<-final_edits()
         poly_new<-final_edits%>%dplyr::filter(status == "edited" | status == "new_drawn")
         #background map to display edited polys
@@ -398,12 +471,12 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
                          rectangleOptions = F,
                          singleFeature = FALSE,
                          editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
-
+        
         # if edits were done:
         if(nrow(poly_new)>0){
           cent_poly <- st_centroid(poly_new)
           tbl<-poly_new%>%st_drop_geometry()
-
+          
           # final map with edited polys to adjust sliders
           output$map_res<-renderLeaflet(back_map1 %>%
                                           addPolygons(data=poly_new) %>%
@@ -416,8 +489,8 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
                                                                                             "font-style" = "bold",
                                                                                             "font-size" = "20px"
                                                                                           ))))
-
-
+          
+          
           output$slider <- renderUI({
             ns <- session$ns
             tagList(
@@ -431,9 +504,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
                 sliderInput(ns(id),lable, min = 1, max = 5, step = 1, value = 3)
               })
             )
-
+            
           })#/slider
-
+          
           insertUI(
             selector = paste0("#",ns("savepoly")),
             where = "afterEnd",
@@ -445,12 +518,12 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               uiOutput(ns("slider")),
               br(),
               actionButton(ns("confirm2"),"Confirm", class='btn-primary')
-
+              
             )
           )
           #if no edits were done
         }else{
-
+          
           cent_poly <- st_centroid(final_edits)
           # final map with edited polys to adjust sliders
           output$map_res<-renderLeaflet(back_map1 %>%
@@ -473,12 +546,12 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               leafletOutput(ns("map_res")),
               br(),
               actionButton(ns("confirm2"),"Confirm", class='btn-primary')
-
+              
             )
           )
-
+          
         }#/else no edits
-
+        
         removeUI(
           selector = paste0("#",ns("map_sel"),"-map"))
         removeUI(
@@ -490,10 +563,10 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         removeUI(
           selector = paste0("#",ns("remap"))
         )
-
-        })#/observer
-#         
-#       ## save the values of the polys in bq - recalculation of map will be postprocessing R2...
+        
+      })#/observer
+      #         
+      #       ## save the values of the polys in bq - recalculation of map will be postprocessing R2...
       observeEvent(input$confirm2,{
         withProgress(message = "save your data",value = 0.1,{
           poly_all<-final_edits()
@@ -581,14 +654,83 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           
         })#/progress ini
         
-        })#/observer
-
-#         
-        cond <- reactive({input$confirm2})
-
-        return(cond)
-
+      })#/observer
+      
+      #         
+      cond <- reactive({input$confirm2})
+      
+      return(cond)
+      
     }#/function server session
   )#/module server
   
 }#/server
+
+################# test App
+#
+ui <- fluidPage(
+  theme = bslib::bs_theme(bootswatch = "cerulean"),
+  titlePanel( title =  div(img(src="wendy_logo.png", width ='90'), 'POC remapping ecosystem services'), windowTitle = "ES remapping" ),
+  tabsetPanel(id = "inTabset",
+              tabPanel(title = "Your Task", value = "p1",
+                       h5("This explains what you are asked to do in the following task"),
+                       actionButton("test","next")
+              ),
+              tabPanel(title = "Mapping Task", value = "p2",
+                       remapUI("remap1", "mapping1")
+              ))
+)
+
+server <- function(input, output, session) {
+  userID_sel = reactive("40PymeZHGl")
+  mapping_round<-1
+  
+  hideTab(inputId = "inTabset", target = "p2")
+  #
+  #
+  #   observeEvent(input$test, {
+  #     updateTabsetPanel(session, "inTabset",
+  #                       selected = "p2")
+  #   })
+  #   observeEvent(input$test, {
+  #     hideTab(inputId = "inTabset",
+  #             target = "p1")
+  # })
+  #   observeEvent(input$test, {
+  #     userID_sel<-userID_sel()
+  #     hideTab(inputId = "inTabset", target = "p2")
+  #     hideTab(inputId = "inTabset",
+  #             target = "p1")
+  #     showTab(inputId = "inTabset", target = "p2")
+  #     remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
+  # 
+  #   })
+  # #
+  # 
+  # 
+  #      # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+  # #
+  # 
+  # 
+  #   # observeEvent(input$test,{
+  #   #   userID_sel<-userID_sel()
+  #   #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+  #   # })
+  # 
+  # 
+  # 
+  # 
+  #   # observeEvent(val(),{
+  #   #   req(val)
+  #   #
+  #   #   updateTabsetPanel(session, "inTabset",
+  #   #                     selected = "p1")
+  #   #   hideTab(inputId = "inTabset",
+  #   #           target = "p2")
+  #   #   showTab(inputId = "inTabset", target = "p1")
+  #   #
+  #   # })
+  # #
+  # }
+  # 
+  # shinyApp(ui, server)
