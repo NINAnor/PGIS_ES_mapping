@@ -37,7 +37,7 @@ mapselectUI<- function(id, label = "selector") {
         condition = "input.map_poss == 'Yes'", ns = ns ,
         # h5("where do you find good spots of ESx?"),
         uiOutput(ns("es_quest_where")),
-        fluidRow(" -please adjust inside the boundaries"),
+        fluidRow(" -please draw & adjust inside the boundaries"),
         br(),
         fluidRow(" -please do not overlap polygons"),
         

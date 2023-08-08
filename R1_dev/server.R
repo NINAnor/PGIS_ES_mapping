@@ -156,7 +156,7 @@ function(input, output, session) {
     
     quest <-  data.frame(
       userID = userID,
-      studyID = studyID,
+      siteID = studyID,
       edu = input$edu,
       fam = input$fam,
       liv = input$liv,
@@ -290,7 +290,7 @@ function(input, output, session) {
         "The final map shows you the probability to benefit from the respective ecosystem service, based on your inputs.",
         "Press next and this procedure will repeat four times in total",
         br(),
-        actionButton('sub3', 'Go to firs mapping task', class='btn-primary')
+        actionButton('sub3', 'Go to first mapping task', class='btn-primary')
       )
     })
 

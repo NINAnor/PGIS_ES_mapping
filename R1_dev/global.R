@@ -81,7 +81,7 @@ lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 lulc<-lulc$clip(bound_reg)
 
 
-acc_pat<-paste0(ee_get_assethome(), '/acc')
+acc_pat<-paste0(ee_get_assethome(), '/acc_old')
 acc<-ee$Image(acc_pat)
 acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 
