@@ -1,6 +1,6 @@
 
 fluidPage(
-  theme = bslib::bs_theme(bootswatch = "cerulean"),
+  # theme = bslib::bs_theme(bootswatch = "cerulean"),
   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC mapping ecosystem services'), windowTitle = "ES mapping"),
   tabsetPanel(id = "inTabset",
           ## Study description and user signup
@@ -190,9 +190,8 @@ fluidPage(
           ## Pairwise ES
           tabPanel(title = "Compare ES",
                    value = "p7",
-            mainPanel(
               ahpUI("ahp")
-            )#/main panel
+
           ),#/panel
           
           ## Influence distance

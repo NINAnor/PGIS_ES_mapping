@@ -1,5 +1,5 @@
 fluidPage(
-  theme = bslib::bs_theme(bootswatch = "cerulean"),
+  # theme = bslib::bs_theme(bootswatch = "cerulean"),
   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC remapping ecosystem services'), windowTitle = "ES remapping"),
   tabsetPanel(id = "inTabset",
            tabPanel(title = "Overview", value = "p0",

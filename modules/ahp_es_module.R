@@ -386,14 +386,20 @@ ahpServer<-function(id, userID, siteID, es_all){
   )
 }
 
-#
+# 
 # ui <- fluidPage(
-#   fluidRow(
-#     column(width = 12,
-#            ahpUI("ahp1", "Counter #1")
-#            )
-#   ),
-#   textOutput("text1")
+#   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC mapping ecosystem services'), windowTitle = "ES mapping"),
+#   tabsetPanel(id = "inTabset",
+#               tabPanel(title = "AHP all",
+#                 ahpUI("ahp1"),       
+#                  textOutput("text1")
+#               )
+#               )
+# 
+#            
+# 
+# 
+#  
 # 
 # 
 # )
