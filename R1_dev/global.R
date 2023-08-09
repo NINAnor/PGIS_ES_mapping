@@ -114,8 +114,12 @@ if(site$siteWIND == "on"){
   off_nat<-ee$Image(off_nat)
   off_nat<-off_nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)$clip(bound_reg)$rename("OFF_NAT")
   
-  comb<-ee$Image$cat(bath,off_dist, off_nat)
-  bands <- list("OFF_BAT","OFF_DIST","OFF_NAT")
+  off_lulc<-paste0(ee_get_assethome(), '/descriptor_var/OFF_LULC')
+  off_lulc<-ee$Image(off_lulc)
+  off_lulc<-off_lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)$clip(bound_reg)$rename("OFF_LULC")
+  
+  comb<-ee$Image$cat(bath,off_dist, off_nat, off_lulc)
+  bands <- list("OFF_BAT","OFF_DIST","OFF_NAT", "OFF_LULC")
   
 }
 
