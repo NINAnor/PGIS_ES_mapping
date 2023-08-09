@@ -25,7 +25,32 @@ con <- dbConnect(
   billing = "rgee-381312"
 )
 
+
+####### parameters
+#study site:
 studyID<-"NOR-SNJ"
+
+
+# if offshore how long should the study site edge length be [m]?
+study_size_edge_length<-10000 ##!! same as in R1
+
+### load study site
+site<-tbl(con, "study_site")
+site<-select(site, siteID, siteLNG, siteLAT, siteADM2, siteNAME, siteWIND, siteAREA, sitePOP, siteHIGH, siteLOW, siteLINK, siteECONOMY, siteECOLOGY, siteCUL)%>%filter(siteID == studyID)%>%collect()
+
+if(site$siteWIND == "on"){
+  bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+    filter(ee$Filter$eq("ADM2_CODE", as.integer(site$siteADM2)))
+}else{
+  p1 <- st_point(c(site$siteLNG,site$siteLAT))
+  pts_cen <- st_sfc(p1, crs = 'WGS84')
+  bound_reg<-st_buffer(pts_cen,study_size_edge_length/2)%>%st_bbox()
+  bound_reg<-st_as_sfc(bound_reg)
+  #make ee object
+  bound_reg<-sf_as_ee(bound_reg)
+}
+
+sf_bound <- ee_as_sf(x = bound_reg)
 
 
 geometry <- ee$Geometry$Rectangle(
@@ -34,30 +59,7 @@ geometry <- ee$Geometry$Rectangle(
   geodesic = FALSE
 )
 
-## here modify code according to siteID!
-sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
-   filter(ee$Filter$eq("ADM2_CODE",23463))
-sf_bound <- ee_as_sf(x = sf_bound)
-# 
-# lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
-# lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
-# lulc<-lulc$clip(bound_reg)
-# 
-# 
-# acc_pat<-paste0(ee_get_assethome(), '/acc')
-# acc<-ee$Image(acc_pat)
-# acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
-# 
-# nat_pat<-paste0(ee_get_assethome(), '/natu')
-# nat<-ee$Image(nat_pat)
-# nat<-nat$clip(bound_reg)
-# nat<-nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
-# nat<-nat$rename("nat")
-# 
-# # combine unique class count wdw and lulc
-# comb<-ee$Image$cat(lulc,acc, nat)
-# bands <- list("landcover","b1","nat")
-# 
+
 # # mapping
 # ### vis parameter for img, mean
 labels <- c("low", "moderate", "intermediate", "high","very high")
