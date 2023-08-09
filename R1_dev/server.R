@@ -147,7 +147,7 @@ function(input, output, session) {
     # rand_es_sel<-rand_es_sel()
     es_order<-paste0(rand_es_sel$esNUM[1],"_",rand_es_sel$esNUM[2],"_",rand_es_sel$esNUM[3],"_",rand_es_sel$esNUM[4])
     
-    liv_pol<-st_sf(plz[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
+    liv_pol<-st_sf(grd[as.numeric(liv_pol[which(liv_pol$selected==TRUE),"id"])])
     # only take first poly if user selected multiple
     liv_pol<-liv_pol[1,]
     cent<-st_centroid(liv_pol)
