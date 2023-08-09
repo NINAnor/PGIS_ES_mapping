@@ -131,7 +131,7 @@ sf_bound <- ee_as_sf(x = bound_reg)
 #                                                                                                     4)]))/60, offset = st_bbox(sf_bound)[1:2],  what = "polygons")
 
 grd<-sf::st_read("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/postnummeromrade_wgs.shp")
-grd<-st_as_sfc(plz)
+grd<-st_as_sfc(grd)
 map_liv<- leaflet() %>%
   addProviderTiles(provider= "CartoDB.Positron")%>%setView(10.42,63.44,10)%>%
   addFeatures(st_sf(grd), layerId = ~seq_len(length(grd)))
