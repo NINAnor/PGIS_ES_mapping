@@ -64,7 +64,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       output$blog<-renderDT(blog_data_sel,rownames= FALSE, colnames="Why people choosed their sites")
       output$descr_es<-renderUI(es_descr_sel$esDESCR)
 
-      output$remap<-renderUI(h6(paste0("Modify, add or delete areas that provide good ",es_descr_sel$esNAME)))
+      output$remap<-renderUI(h4(paste0("Modify, add or delete areas that provide good ",es_descr_sel$esNAME)))
       output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
       
       output$image_es<-renderUI({
@@ -83,7 +83,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       imgpath1<-paste0(ee_get_assethome(), '/R_1/all_part/',"recr", "_", studyID)
       img_all<-ee$Image(imgpath1)$select("probability")
       
-      if(userES_sel$mapping== "Yes"){
+      if(userES_sel$mapping == "Yes"){
         imgpath2<-paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",userID_sel, "_", esID_sel, "_", studyID)
         img_ind<-ee$Image(imgpath2)
         
@@ -109,7 +109,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           
           output$remap_poss<-renderUI({
             tagList(
-            h6(paste0("Do you want to adjust your areas for good ", es_descr_sel$esNAME,"?")),
+            h4(paste0("Do you want to adjust your areas for good ", es_descr_sel$esNAME,"?")),
             selectizeInput(ns("remap_poss"),label="",choices = c("Yes","No"),options = list(
               onInitialize = I('function() { this.setValue(""); }')
             ))
@@ -188,9 +188,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             where = "afterEnd",
             ui = tagList(
               uiOutput(ns("remap")),
-              fluidRow(" -please adjust inside the boundaries"),
+              fluidRow(strong(" -please adjust inside the boundaries")),
               br(),
-              fluidRow(" -please do not overlap polygons"),
+              fluidRow(strong(" -please do not overlap polygons")),
               fluidRow(
                 column(5,editModUI(ns("map_sel"))
                        ),

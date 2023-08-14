@@ -30,26 +30,24 @@ fluidPage(
                                 value = "",
                                 width = NULL,
                                 placeholder = NULL),
+                      br(),
                         textOutput("login_res"),
                         actionButton('sub0', 'login')
 
                     )),
            tabPanel(title= "Remapping ES 1", value = "p1",
                     mainPanel(
-                      remapUI("remap1"),
-                      # actionButton("sub1","next ES", class='btn-primary')
+                      remapUI("remap1")
                     )
                     ),
            tabPanel(title= "Remapping ES 2", value = "p2",
                     mainPanel(
-                      remapUI("remap2"),
-                      # actionButton("sub2","next ES", class='btn-primary')
+                      remapUI("remap2")
                     )
            ),
            tabPanel(title= "Remapping ES 3", value = "p3",
                     mainPanel(
-                      remapUI("remap3"),
-                      # actionButton("sub3","next ES", class='btn-primary')
+                      remapUI("remap3")
                     )
            ),
            # tabPanel(title= "Remapping ES 4", value = "p4",
