@@ -2,6 +2,7 @@
 fluidPage(
   # theme = bslib::bs_theme(bootswatch = "cerulean"),
   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC mapping ecosystem services'), windowTitle = "ES mapping"),
+  progressBar(id = "pb1", value = 5, striped = TRUE, title = "Your progress", display_pct = TRUE),
   tabsetPanel(id = "inTabset",
           ## Study description and user signup
           tabPanel(title = "About the study",

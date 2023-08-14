@@ -79,6 +79,11 @@ function(input, output, session) {
       showTab(inputId = "inTabset", target = "p1")
       
     }
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 10
+    )
     
   })
 
@@ -136,11 +141,17 @@ function(input, output, session) {
       tagList(
       h6("Mapping ecosystem services"),
       br(),
-      "Read carefully the following instructions",
+      "Read the following instructions carefully",
       br(),
       actionButton("proc1", "proceed")
       )
     })
+    
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 20
+    )
     
     userID<-userID()
     liv_pol<-liv_pol()
@@ -214,6 +225,11 @@ function(input, output, session) {
     })
 
     removeUI(selector = "#task_1")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 21
+    )
 
     
   })
@@ -235,6 +251,11 @@ function(input, output, session) {
     })
 
     removeUI(selector = "#task_2")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 22
+    )
     
   })
   
@@ -257,6 +278,11 @@ function(input, output, session) {
       )
     })
     removeUI(selector = "#task_3")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 23
+    )
     
   })  
   
@@ -277,6 +303,11 @@ function(input, output, session) {
       )
     })
     removeUI(selector = "#task_4")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 24
+    )
     
   })  
   
@@ -293,6 +324,11 @@ function(input, output, session) {
         actionButton('sub3', 'Go to first mapping task', class='btn-primary')
       )
     })
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 25
+    )
 
   })  
   
@@ -304,6 +340,11 @@ function(input, output, session) {
             target = "p2")
     showTab(inputId= "inTabset",
             target = "p3")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 26
+    )
   })
 
   # call the mapping maxent module
@@ -317,6 +358,11 @@ function(input, output, session) {
             target = "p3")
     showTab(inputId= "inTabset",
             target = "p4")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 40
+    )
   })
   
   # call the mapping maxent module
@@ -330,6 +376,11 @@ function(input, output, session) {
             target = "p4")
     showTab(inputId= "inTabset",
             target = "p5")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 55
+    )
     
   })
 
@@ -344,6 +395,11 @@ function(input, output, session) {
             target = "p5")
     showTab(inputId= "inTabset",
             target = "p6")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 70
+    )
     
   })
   
@@ -357,6 +413,11 @@ function(input, output, session) {
             target = "p6")
     showTab(inputId= "inTabset",
             target = "p7")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 85
+    )
   })
   
   m5<-ahpServer("ahp", isolate(userID()), studyID, es_all)
@@ -369,6 +430,11 @@ function(input, output, session) {
             target = "p7")
     showTab(inputId= "inTabset",
             target = "p8")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 90
+    )
   })
 
   ## save and terminate app
@@ -389,6 +455,11 @@ function(input, output, session) {
       dist_wild_prod = as.integer(dist_wild_prod))
     
     insert_upload_job("rgee-381312", "data_base", "impact_dist", dist_table)
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 100
+    )
     
     stopApp(returnValue = invisible())
   })
