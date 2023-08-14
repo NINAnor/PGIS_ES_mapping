@@ -17,19 +17,19 @@ ahp_secUI<- function(id, label = "ahp") {
   ns <- NS(id)
   tagList(
     mainPanel(
-      h5("Comparison of ecosystem services"),
+      h3("Comparison of ecosystem services"),
       br(),
       "First, you are going to compare the importance of grouped ecosystem services. Keep in mind that you should refer your ratings to the study area. The comparison might look different in other areas. In particular, you will compare the importance of the following three groups:",
       br(),
-      h6(" - Cultural ecosystem services"), 
+      h4(" - Cultural ecosystem services"), 
       " Benefits that you and others gain from interactions with different areas and with people 
       in these areas through a wide range of activities. This includes exploring areas on site with all our senses. In additon benefits we gain indirectly even if we are not
       present in the area. This might include learning from landscapes, feeling at home which gives us identity and cultural importance of certain areas.",
       br(),
-      h6("  - Provisioning ecosystem services"),
+      h4("  - Provisioning ecosystem services"),
       "These includes benefits that people can extract from the nature in a certain area. Along with food, other types of provisioning services include drinking water, timber, wood fuel, natural gas, oils, plants that can be made into clothes and other materials.",
       br(),
-      h6("  - Regulation ecosystem services"),
+      h4("  - Regulation ecosystem services"),
       "Services that provides the basic needs and make our life possible. Plants clean air and filter water, bacteria decompose wastes, bees pollinate flowers, and tree roots hold soil in place to prevent erosion.",
       br(),
       

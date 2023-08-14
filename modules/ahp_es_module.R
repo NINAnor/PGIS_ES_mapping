@@ -19,7 +19,7 @@ ahpUI<- function(id, label = "ahp2") {
   ns <- NS(id)
   tagList(
     mainPanel(
-      h6("Comparison of single ecosystem services"),
+      h3("Comparison of single ecosystem services"),
       br(),
       "You will now compare the importance of different ecosystem services within the 
          study region. Click on the name of the respective ecosysystem service, if you need further information.",

@@ -13,10 +13,10 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p8")
   
   
-  url <- a(site$siteNAME, href=site$siteLINK)
+  url <- a(paste0("Read more about ", site$siteNAME), href=site$siteLINK)
   output$study_area<-renderUI(
     tagList(
-      h6(site$siteNAME),
+      h3(paste0("Study area: ",site$siteNAME)),
       fluidRow(
         column(7,
          renderLeaflet(map_area)      
@@ -34,7 +34,7 @@ function(input, output, session) {
                  class = "centerFigure",
                  tags$img(
                    src = paste0("/study_areas/",studyID,"_1",".jpg"),
-                   width = 600,
+                   width = 300,
                    alt = "Picture of an astragalus (bone die)"
                  ),
                  tags$figcaption("Image of Astragalus by Yaan, 2007")
@@ -45,7 +45,7 @@ function(input, output, session) {
                  class = "centerFigure",
                  tags$img(
                    src = paste0("/study_areas/",studyID,"_2",".jpg"),
-                   width = 600,
+                   width = 300,
                    alt = "Picture of an astragalus (bone die)"
                  ),
                  tags$figcaption("Image of Astragalus by Yaan, 2007")
@@ -56,7 +56,7 @@ function(input, output, session) {
                  class = "centerFigure",
                  tags$img(
                    src = paste0("/study_areas/",studyID,"_3",".jpg"),
-                   width = 600,
+                   width = 300,
                    alt = "Picture of an astragalus (bone die)"
                  ),
                  tags$figcaption("Image of Astragalus by Yaan, 2007")
@@ -141,7 +141,7 @@ function(input, output, session) {
       tagList(
       h6("Mapping ecosystem services"),
       br(),
-      "Read the following instructions carefully",
+      "Please read the following instructions carefully",
       br(),
       actionButton("proc1", "proceed")
       )
@@ -213,10 +213,11 @@ function(input, output, session) {
   observeEvent(input$proc1,{
     output$task_2<-renderUI({
       tagList(
-        h6("1. Description of ecosystem service"),
-        "Ecosystem services are complex, thus it is important that you first read the description of the ecosystem service.",
+        h3("1. Description of ecosystem service"),
         br(),
-        h6("2. Indicating the importance"),
+        "In the mapping window, we show you an image and a description of the ecosystem service. Ecosystem services are complex, thus it is important that you first read this description and that you reflect on where, when or in which form you already experienced benefits from this service.",
+        br(),
+        h3("2. Indicating the importance"),
         br(),
         "Subsequently you are asked to indicate how important this ecosystem service is for you personally and in general for the society. You can ask yourselfe How much you might benefit from this particular service. Please make sure that you refer your rating only to the study area indicated in the introduction of the study.",
         br(),
@@ -238,10 +239,11 @@ function(input, output, session) {
   observeEvent(input$ok1,{
     output$task_3<-renderUI({
       tagList(
-        h6("3. Can you map it?"),
-        "You are now going to be asked if you feel comfortable to indicate on a map of the study area areas where you think you or other can benefit from this eoscystem service",
+        h3("3. Can you map it?"),
         br(),
-        "3.1. If not",
+        "You are now going to be asked if you feel comfortable to indicate on a map within the study area where you think you or other can benefit from this eoscystem service",
+        br(),
+        h4("3.1. If not"),
         br(),
         "No problem, you are now just beeing asked if you would trust a map of this ecosystem service that has been developed by experts or national authorities.",
         "A next ecosystem service will appear which you might be able to map.",
@@ -263,18 +265,21 @@ function(input, output, session) {
   observeEvent(input$ok2,{
     output$task_4<-renderUI({
       tagList(
-        h6("4. You can map"),
+        h3("4. You can map"),
         br(),
         "An interactive map with orange borders indicating the study area will appear. You can pan and zoom the map.",
+        br(),
         "As shown below you can create and modify one or several rectangles.",
         "The rectangle(s) should meet the following aspects:",
-        "- deliniate as precise as possible areas of high ecosystem service benefit",
-        "- not too small areas: The squares should have an edge length of min 300m",
+        br(),
+        fluidRow(strong("- deliniate as precise as possible areas of high ecosystem service benefit")),
+        fluidRow(strong("- not too small areas: The squares should have an edge length of min 300m")),
         "Press save polygons once you are done!",
         br(),
-        img(src="tutorial_selecting.gif", align = "left",height='620px',width='836px'),
+        fluidRow(img(src="tutorial_selecting.gif", align = "central",height='310px',width='418px')),
         br(),
-        actionButton("ok3","proceed")
+        fluidRow(actionButton("ok3","proceed"))
+        
       )
     })
     removeUI(selector = "#task_3")
@@ -290,16 +295,16 @@ function(input, output, session) {
   observeEvent(input$ok3,{
     output$task_5<-renderUI({
       tagList(
-        h6("5. Rate your polygons"),
+        h3("5. Rate your polygons"),
         br(),
-        "As soon as you have saved the polygons they will appear on the map with a red number. Below you find for each polygon a slider with the same number.",
-        "Please set now the slider value for each polygon. Higher values indicate that the area serves very high quality to benefit from the ecosystem service",
+        "As soon as you have saved the polygons, they will appear on the map with a red number. Below you find for each polygon a slider with the same number.",
+        "Now you can set the slider value for each polygon. Higher values indicate that the area serves very high quality to benefit from the ecosystem service",
         "Finally you need to write a few keywords why you choosed these areas",
         "Press submit",
         br(),
-        img(src="tutorial_rating.gif", align = "left",height='620px',width='836px'),
-
-        actionButton("ok4","proceed")
+        fluidRow(img(src="tutorial_rating.gif", align = "central",height='310px',width='418px')),
+        br(),
+        fluidRow(actionButton("ok4","proceed"))
       )
     })
     removeUI(selector = "#task_4")
@@ -315,7 +320,7 @@ function(input, output, session) {
   observeEvent(input$ok4,{
     output$task_5<-renderUI({
       tagList(
-        h6("6. Your Result"),
+        h3("6. Your Result"),
         br(),
         "Your polygons and ratings are stored and extrapolated to the whole study region - this can take up to 30 seconds. Please wait until the new map appears",
         "The final map shows you the probability to benefit from the respective ecosystem service, based on your inputs.",

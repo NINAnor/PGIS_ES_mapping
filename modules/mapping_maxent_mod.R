@@ -81,12 +81,12 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       
       #render various texts for UI
       esID<-rand_es_sel[order,]$esID
-      output$title_es<-renderUI(h5(rand_es_sel[order,]$esNAME))
+      output$title_es<-renderUI(h3(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
-      output$res_text<-renderUI(h6(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
-      output$es_quest_where<-renderUI(h6(paste0("Where do you find good areas for ", rand_es_sel[order,]$esNAME,"?")))
-      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",rand_es_sel[order,]$esNAME, " for each of area")))
-      output$imp_text<-renderUI(h6(paste0("How important is ", rand_es_sel[order,]$esNAME,"...")))
+      output$res_text<-renderUI(h3(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
+      output$es_quest_where<-renderUI(h4(paste0("Where do you find good areas for ", rand_es_sel[order,]$esNAME,"?")))
+      output$es_quest_how<-renderUI(h4(paste0("How do you rate the quality of ",rand_es_sel[order,]$esNAME, " for each of area")))
+      output$imp_text<-renderUI(h4(paste0("How important is ", rand_es_sel[order,]$esNAME,"...")))
       
       #render the corresponding image to es
       output$image_es<-renderUI({
@@ -181,6 +181,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             br(),
             leafletOutput(ns("map_res")),
             br(),
+            h4(paste0("Indicate how good the areas are to benefit from ",rand_es_sel[order,]$esNAME, " (1 = ok, 5= very good)")),
             uiOutput(ns("slider")),
             br(),
             # a short expl. why this sites
@@ -231,7 +232,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         })
       })
       output$blogdescr<-renderUI({
-        h6(paste0("Please provide us a short explanation why you choosed these areas of good quality to provide ",rand_es_sel[order,]$esNAME))
+        h4(paste0("Please provide us a short explanation why you choosed these areas of good quality to provide ",rand_es_sel[order,]$esNAME))
       })
 
       
