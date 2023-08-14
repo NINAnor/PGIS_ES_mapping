@@ -349,10 +349,42 @@ IAR_poly<-rasterToPolygons(IAR)
 IAR_poly<-st_as_sf(IAR_poly)
 
 
+
+st_multiringbuffer<-function(x,n,d, overlap=F){
+  buf<-function(dist){st_buffer(x,dist) %>% mutate(dist=dist)}
+  out<-purrr::map_df(seq(1:n)*d, buf) %>% arrange(desc(dist))
+  if (overlap==F) { 
+    out<-out %>% st_intersection() %>% dplyr::select(dist) %>%
+             mutate(dist=row_number()*d)
+  }
+}
+
 ## empty list to store z values
 z_list<-list()
 # define distance vector to evaluate log(dist) - log(correlation) [m]
 dist_vec<-c(1,100,1000,1500,2000,3000,10000)
+
+## areas are always the same
+distances<-seq(from = 500, to = 10000, by = 500)
+a_list<-list()
+for(h in 1:length(distances)){
+  if(h==1){
+    a_list[h] <-distances[h]^2*pi
+  }else if(h==length(distances)){
+    a_list[h]<-pi*((distances[h]+500)^2 - distances[h]^2)
+  }else{
+    a_list[h]<-pi*(distances[h+1]^2 - distances[h]^2)
+  }
+}
+
+for(a in 1:nrow(IAR_poly)){
+  tmp_center<-IAR_poly[a,] 
+  ring_temp<-st_multiringbuffer(tmp_center, 20,500, overlap = F)
+  ring_temp$sumIAR<-raster::extract(IAR,ring_temp,fun=sum,na.rm=T)
+  ring_temp$area<-unlist(a_list)
+}
+
+
 
 #loop through each raster cell
 for(a in 1:nrow(IAR_poly)){
@@ -366,6 +398,8 @@ for(a in 1:nrow(IAR_poly)){
   
   #for each cell and each distance create a raster that covers all the cells in the distance b
   tmp_poly<-st_join(IAR_poly, tmp_center, st_is_within_distance, dist = dist_vec[b])
+  
+
   tmp_poly<-tmp_poly%>%filter(!is.na(constant.y))
   #calculate the sum of all the polys in that area -- add to area list
   area_list[b]<-as.numeric(sum(st_area(tmp_poly)))
@@ -448,6 +482,7 @@ esID<-"drinking_wat"
 
 IAR<-raster(paste0(IAR_path,"/IAR.tif"))
 z_rast<-raster(paste0(z_path,esID,".tif"))
+plot(IAR)
 
 z_poly<-rasterToPolygons(z_rast)
 z_poly<-st_as_sf(z_poly)
@@ -475,10 +510,10 @@ EP <-5
 ## area lost due to occupation in km2:
 A_lost_LO<-aEP*EP
 
-## Aorig
-A_orig<-as.numeric(st_area(IAR_poly[1,])/1000000)
-# total study area
-a_tot<-as.numeric(sum(st_area(IAR_poly)))/1000000
+## Acell area [km2]
+A_cell<-as.numeric(st_area(IAR_poly[1,])/1000000)
+# total study area [km2]
+A_tot<-as.numeric(sum(st_area(IAR_poly)))/1000000
 
 ## select a specific point or area for WT/WF
 if(pdf_meth == "wt"){
@@ -513,8 +548,7 @@ poly_id<-as.numeric(edits$id[1])
 
 
 ### PDF LO at selected raster cell
-PDF_LO<-IAR_poly$constant[poly_id]*(1-((a_tot-A_lost_LO)/a_tot)^z_poly$Z_rast_drinking_wat[poly_id])
-##??/sum(IAR_poly$constant)
+PDF_LO<-(IAR_poly$constant[poly_id]*(1-((A_cell-A_lost_LO)/A_cell)^mean(z_poly$Z_rast_testdrinking_wat)))/sum(IAR_poly$constant)
 
 
 PDF_LO_ist<-list()
