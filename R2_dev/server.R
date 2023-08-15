@@ -42,12 +42,7 @@ function(input, output, session) {
     }
 
   })
-  # userES<-eventReactive(input$sub0,{
-  #   userID_sel<-userID_sel()
-  #   userES <- tbl(con, "es_mappingR1")
-  #   userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID, userID == userID_sel)%>%
-  #     collect()
-  # })
+
 
   # userID_sel<-"vnt2jZiP8U"
   #mod es 1
@@ -66,11 +61,10 @@ function(input, output, session) {
           br(),
           "Please read the following instructions carefully",
           br(),
-          actionButton("proc1", "proceed")
+          actionButton("ok0", "proceed")
         )
       })
 
-      # rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
 
     }else{
       output$login_res<-renderText("Mail address NOT found")
@@ -78,7 +72,7 @@ function(input, output, session) {
     }
     })
 
-  observeEvent(input$proc1,{
+  observeEvent(input$ok0,{
     output$task_2<-renderUI({
       tagList(
         h3("Thank you very much for your participation in the first round"),
@@ -128,16 +122,22 @@ function(input, output, session) {
   observeEvent(input$ok2,{
     output$task_4<-renderUI({
       tagList(
-        h3("Delete"),
+        h3("General rules"),
         fluidRow(strong("- deliniate as precise as possible areas of high ecosystem service benefit")),
         fluidRow(strong("- not too small areas: The squares should have an edge length of min 300m")),
         "Press save polygons once you are done!",
+        h4("Delete"),
         br(),
-        # fluidRow(img(src="tutorial_selecting.gif", align = "central",height='310px',width='418px')),
+        "Press save, after delete!",
+        # fluidRow(img(src="delete.gif", align = "central",height='310px',width='418px')),
         br(),
-        h3("Add"),
+        h4("Add"),
+        # fluidRow(img(src="add.gif", align = "central",height='310px',width='418px')),
         br(),
-        h3("Adjust"),
+        h4("Adjust"),
+        "Press save, after adjust!",
+        # fluidRow(img(src="adjust.gif", align = "central",height='310px',width='418px')),
+        br(),
         fluidRow(actionButton("ok3","Go to task"))
         
       )
@@ -156,6 +156,7 @@ function(input, output, session) {
                       selected = "p2")
     hideTab(inputId = "inTabset", target = "p1")
     showTab(inputId = "inTabset", target = "p2")
+    userID_sel<-userID_sel()
     rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
     updateProgressBar(
       session = session,
@@ -164,10 +165,6 @@ function(input, output, session) {
     )
     
   })
-  
-  
-
-  
   
   #mod es 2
   observeEvent(rv$u(), {
