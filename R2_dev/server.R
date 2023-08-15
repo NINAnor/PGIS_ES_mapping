@@ -12,7 +12,7 @@ function(input, output, session) {
   hideTab(inputId = "inTabset", target = "p1")
   hideTab(inputId = "inTabset", target = "p2")
   hideTab(inputId = "inTabset", target = "p3")
-  # hideTab(inputId = "tabset", target = "p4")
+  hideTab(inputId = "inTabset", target = "p4")
 
   #show some plots
   output$age<-renderPlotly(
@@ -59,28 +59,133 @@ function(input, output, session) {
       hideTab(inputId = "inTabset", target = "p0")
       showTab(inputId = "inTabset", target = "p1")
       userID_sel<-userID_sel()
+      
+      output$task_1<-renderUI({
+        tagList(
+          h6("Remapping ecosystem services"),
+          br(),
+          "Please read the following instructions carefully",
+          br(),
+          actionButton("proc1", "proceed")
+        )
+      })
 
-      rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
+      # rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
 
     }else{
-      output$login_res<-renderText("Mail adress NOT found")
+      output$login_res<-renderText("Mail address NOT found")
       
     }
     })
 
+  observeEvent(input$proc1,{
+    output$task_2<-renderUI({
+      tagList(
+        h3("Thank you very much for your participation in the first round"),
+        br(),
+        "You will now see your mapped ecosystem services again.",
+        br(),
+        h3("If you couldn't map the ecosystem service"),
+        br(),
+        "You are then just able to see the areas of high es benefits based on other peoples responses. In addition you can see, why they choosed these sites. However, in this case you can not remap anything and are asked to proceed with the next ecosystem service.",
+        br(),
+        actionButton("ok1","What if I have mapped?")
+      )
+    })
+    
+    removeUI(selector = "#task_1")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 10
+    )
+
+  })
+  
+  observeEvent(input$ok1,{
+    output$task_3<-renderUI({
+      tagList(
+        h3("Adjust, delete or add areas"),
+        br(),
+        "If you were able to map the areas with high ES benefits in round 1, you can adjust, delete or redraw areas where you think you or other benefit from the shown ecosystem service",
+        br(),
+        "You should do that by considering the general map of all other participants and their explanation why they have mapped these areas. You might agree or disagree and adjust your polygons accordingly.",
+        "If you think the general map represents your areas good enough just indicate that you do not want to adjust anything",
+        br(),
+        actionButton("ok2","How to adjust?")
+      )
+    })
+    
+    removeUI(selector = "#task_2")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 13
+    )
+    
+  })
+  
+  observeEvent(input$ok2,{
+    output$task_4<-renderUI({
+      tagList(
+        h3("Delete"),
+        fluidRow(strong("- deliniate as precise as possible areas of high ecosystem service benefit")),
+        fluidRow(strong("- not too small areas: The squares should have an edge length of min 300m")),
+        "Press save polygons once you are done!",
+        br(),
+        # fluidRow(img(src="tutorial_selecting.gif", align = "central",height='310px',width='418px')),
+        br(),
+        h3("Add"),
+        br(),
+        h3("Adjust"),
+        fluidRow(actionButton("ok3","Go to task"))
+        
+      )
+    })
+    removeUI(selector = "#task_3")
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 15
+    )
+    
+  })  
+  
+  observeEvent(input$ok3,{
+    updateTabsetPanel(session, "inTabset",
+                      selected = "p2")
+    hideTab(inputId = "inTabset", target = "p1")
+    showTab(inputId = "inTabset", target = "p2")
+    rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,1)
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 17
+    )
+    
+  })
+  
+  
+
+  
   
   #mod es 2
   observeEvent(rv$u(), {
 
       #update shiny content
       updateTabsetPanel(session, "inTabset",
-                        selected = "p2")
-      hideTab(inputId = "inTabset", target = "p1")
-      showTab(inputId = "inTabset", target = "p2")
+                        selected = "p3")
+      hideTab(inputId = "inTabset", target = "p2")
+      showTab(inputId = "inTabset", target = "p3")
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[2,]
       rv$v<-remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
+      updateProgressBar(
+        session = session,
+        id = "pb1",
+        value = 50
+      )
 
   })
   # v<-eventReactive(u(),{
@@ -97,13 +202,18 @@ function(input, output, session) {
     
     #update shiny content
     updateTabsetPanel(session, "inTabset",
-                      selected = "p3")
-    hideTab(inputId = "inTabset", target = "p2")
-    showTab(inputId = "inTabset", target = "p3")
+                      selected = "p4")
+    hideTab(inputId = "inTabset", target = "p3")
+    showTab(inputId = "inTabset", target = "p4")
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[3,]
     rv$w<-remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 75
+    )
 
   })
   # w<-eventReactive(v(),{
@@ -116,6 +226,11 @@ function(input, output, session) {
 
   #stop app
   observeEvent(rv$w(), {
+    updateProgressBar(
+      session = session,
+      id = "pb1",
+      value = 100
+    )
       stopApp(returnValue = invisible())
   })
 

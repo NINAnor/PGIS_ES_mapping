@@ -13,6 +13,7 @@ library(mapedit)
 library(tidyverse)
 library(bigrquery)
 library(DBI)
+library(shinyWidgets)
 
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/edit_moduleV2.R")
 

@@ -1,6 +1,7 @@
 fluidPage(
   # theme = bslib::bs_theme(bootswatch = "cerulean"),
   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC remapping ecosystem services'), windowTitle = "ES remapping"),
+  progressBar(id = "pb1", value = 5, striped = TRUE, title = "Your progress", display_pct = TRUE),
   tabsetPanel(id = "inTabset",
            tabPanel(title = "Overview", value = "p0",
                     mainPanel(
@@ -35,17 +36,24 @@ fluidPage(
                         actionButton('sub0', 'login')
 
                     )),
-           tabPanel(title= "Remapping ES 1", value = "p1",
+           tabPanel(title = "Your task", value = "p1",
+                    mainPanel(
+                      uiOutput("task_1"),
+                      uiOutput("task_2"),
+                      uiOutput("task_3"),
+                      uiOutput("task_4") 
+                    )),
+           tabPanel(title= "Remapping ES 1", value = "p2",
                     mainPanel(
                       remapUI("remap1")
                     )
                     ),
-           tabPanel(title= "Remapping ES 2", value = "p2",
+           tabPanel(title= "Remapping ES 2", value = "p3",
                     mainPanel(
                       remapUI("remap2")
                     )
            ),
-           tabPanel(title= "Remapping ES 3", value = "p3",
+           tabPanel(title= "Remapping ES 3", value = "p4",
                     mainPanel(
                       remapUI("remap3")
                     )
