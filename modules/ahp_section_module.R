@@ -1,16 +1,19 @@
-# library(shinyWidgets)
-# library(dplyr)
-# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# # connection to bq
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
-# 
-# es_all<-tbl(con, "es_descr")
-# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
+library(shinyWidgets)
+library(dplyr)
+library(tidyverse)
+library(bigrquery)
+library(DBI)
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# connection to bq
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+es_all<-tbl(con, "es_descr")
+es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
 
 
 ahp_secUI<- function(id, label = "ahp") {
@@ -32,7 +35,7 @@ ahp_secUI<- function(id, label = "ahp") {
       h4("  - Regulation ecosystem services"),
       "Services that provides the basic needs and make our life possible. Plants clean air and filter water, bacteria decompose wastes, bees pollinate flowers, and tree roots hold soil in place to prevent erosion.",
       br(),
-      
+      br(),
       uiOutput(ns("slider")),
       
       
@@ -57,10 +60,11 @@ ahp_secServer<-function(id, userID, siteID, es_all){
       
       output$slider <- shiny::renderUI({
         ns <- session$ns
-        tagList(
+        
           lapply(1:nrow(sec_comb),function(n){
             pair_id <- paste0(sec_comb[n,]$V1,"_",sec_comb[n,]$V2)
-            pair_lable<-paste0(sec_comb[n,]$V1," - ",sec_comb[n,]$V2)
+            # pair_lable<-paste0(sec_comb[n,]$V1," - ",sec_comb[n,]$V2)
+            pair_lable<-""
             choice1<-paste0(sec_comb[n,]$V1, " is overwhelmingly more important")
             choice2<-paste0(sec_comb[n,]$V1, " is very strongly more important")
             choice3<-paste0(sec_comb[n,]$V1, " is strongly more important")
@@ -70,22 +74,29 @@ ahp_secServer<-function(id, userID, siteID, es_all){
             choice6<-paste0(sec_comb[n,]$V2, " is very strongly more important")
             choice7<-paste0(sec_comb[n,]$V2, " is strongly more important")
             choice8<-paste0(sec_comb[n,]$V2, " is moderately more important")
+            choices<-c(choice1, 
+              choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5)
             
-            
+            id_left<-paste0(sec_comb[n,]$V1," ecosystem services")
+            id_right<-paste0(sec_comb[n,]$V2," ecosystem services")
+
+          tagList(  
+            column(6, id_left),
+            column(6, id_right),
             sliderTextInput(ns(pair_id),
                             pair_lable, 
                             grid = F,
                             force_edges = TRUE,
-                            choices = c(choice1, 
-                                        choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
-                            width = "75%"
+                            choices = choices,
+                            width = "75%",
+                            selected = choices[5]
                             
-            )
-            
+              )#/slider
+            )#/tagList
             
           })
           
-        )
+        
         
       })
       
@@ -149,23 +160,23 @@ ahp_secServer<-function(id, userID, siteID, es_all){
   )
 }
 
-# # 
-# ui <- fluidPage(
-#   fluidRow(
-#     column(width = 12,
-#            ahp_secUI("ahp1", "Counter #1")
-#            )
-#   )
-# 
-# 
-# )
-# 
-# server <- function(input, output, session) {
-# #
-# 
-# 
-#   ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
-# 
-# }
-# 
-# shinyApp(ui, server)
+#
+ui <- fluidPage(
+  fluidRow(
+    column(width = 12,
+           ahp_secUI("ahp1", "Counter #1")
+           )
+  )
+
+
+)
+
+server <- function(input, output, session) {
+#
+
+
+  ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
+
+}
+
+shinyApp(ui, server)
