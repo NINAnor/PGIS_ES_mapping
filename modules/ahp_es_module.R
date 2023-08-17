@@ -109,7 +109,8 @@ ahpServer<-function(id, userID, siteID, es_all){
             choice7<-paste0(reg_full%>%filter(esID %in% es1[n,]$V2)%>%select(esNAME), " is strongly more important")
             choice8<-paste0(reg_full%>%filter(esID %in% es1[n,]$V2)%>%select(esNAME), " is moderately more important")
             
-            
+            choices = c(choice1, 
+                        choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5)
             
             es_id_left<-es1[n,]$V1
             es_id_right<-es1[n,]$V2
@@ -149,16 +150,17 @@ ahpServer<-function(id, userID, siteID, es_all){
                       ), easyClose = TRUE, footer = NULL),
 
               
-            column(6,actionLink(inputId = ns(paste0("l_",es_id_left)), label = reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esNAME))),
+            column(6, actionLink(inputId = ns(paste0("l_",es_id_left)), label = reg_full%>%filter(esID %in% es1[n,]$V1)%>%select(esNAME))),
             column(6, actionLink(inputId = ns(paste0("r_",es_id_right)), label = reg_full%>%filter(esID %in% es1[n,]$V2)%>%select(esNAME))),
+
             
             sliderTextInput(ns(pair_id),
                             pair_lable, 
                             grid = F,
                             force_edges = F,
-                            choices = c(choice1, 
-                                        choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
-                            width = "75%"
+                            choices = choices,
+                            width = "75%",
+                            selected = choices[5]
             ))#/slider
           })#/lapply
       })#/ui es 1
@@ -187,7 +189,8 @@ ahpServer<-function(id, userID, siteID, es_all){
           es_id_right<-es2[m,]$V2
           mod_id_left<-paste0(es_id_left,"_mod_left")
           mod_id_right<-paste0(es_id_right,"_mod_right")
-          
+          choices<-c(choice1, 
+                     choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5)
           
           tagList(
             bsModal(id = ns(paste0(mod_id_left,m)), title = cul_full%>%filter(esID %in% es2[m,]$V1)%>%select(esNAME), trigger = ns(paste0("l_",es_id_left)),
@@ -228,9 +231,9 @@ ahpServer<-function(id, userID, siteID, es_all){
                             pair_lable, 
                             grid = F,
                             force_edges = F,
-                            choices = c(choice1, 
-                                        choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
-                            width = "75%"
+                            choices = choices,
+                            width = "75%",
+                            selected = choices[5]
             ))#/slider
         })#/lapply
         
@@ -259,7 +262,8 @@ ahpServer<-function(id, userID, siteID, es_all){
           es_id_right<-es3[o,]$V2
           mod_id_left<-paste0(es_id_left,"_mod_left")
           mod_id_right<-paste0(es_id_right,"_mod_right")
-          
+          choices<-c(choice1, 
+                     choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5)
           
           tagList(
             bsModal(id = ns(paste0(mod_id_left,o)), title = prov_full%>%filter(esID %in% es3[o,]$V1)%>%select(esNAME), trigger = ns(paste0("l_",es_id_left)),
@@ -300,9 +304,9 @@ ahpServer<-function(id, userID, siteID, es_all){
                             pair_lable, 
                             grid = F,
                             force_edges = F,
-                            choices = c(choice1, 
-                                        choice2,choice3,choice4, "both are equally important",choice8,choice7,choice6, choice5),
-                            width = "75%"
+                            choices = choices,
+                            width = "75%",
+                            selected = choices[5]
             ))#/slider
         })#/lapply
       })      
@@ -386,20 +390,20 @@ ahpServer<-function(id, userID, siteID, es_all){
   )
 }
 
-# 
+
 # ui <- fluidPage(
 #   titlePanel(title =  div(img(src="wendy_logo.png", width ='110'), 'POC mapping ecosystem services'), windowTitle = "ES mapping"),
 #   tabsetPanel(id = "inTabset",
 #               tabPanel(title = "AHP all",
-#                 ahpUI("ahp1"),       
+#                 ahpUI("ahp1"),
 #                  textOutput("text1")
 #               )
 #               )
 # 
-#            
 # 
 # 
-#  
+# 
+# 
 # 
 # 
 # )
