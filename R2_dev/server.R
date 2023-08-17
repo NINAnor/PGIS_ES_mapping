@@ -228,7 +228,18 @@ function(input, output, session) {
       id = "pb1",
       value = 100
     )
-      stopApp(returnValue = invisible())
+    
+    removeUI(
+      selector = "#remap3"
+    )
+    showModal(modalDialog(
+      title = "Thanks for your time",
+      "You can now close your browser",
+      easyClose = TRUE
+    ))
+    
+    
+      # stopApp(returnValue = invisible())
   })
 
   

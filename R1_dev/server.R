@@ -466,6 +466,35 @@ function(input, output, session) {
       value = 100
     )
     
-    stopApp(returnValue = invisible())
+    removeUI(
+      selector = "div:has(>> #dist_aest)"
+    )
+    removeUI(
+      selector = "div:has(>> #dist_cult)"
+    )
+    removeUI(
+      selector = "div:has(>> #dist_wild_prod)"
+
+    )
+    removeUI(
+      selector = "#sub8"
+    )
+    
+    if(input$email!=""){
+      showModal(modalDialog(
+        title = "Thank you very much!",
+        "We send you an email as soon as round 2 is ready. You can now close your browser",
+        easyClose = TRUE
+      ))
+      
+    }else{
+      showModal(modalDialog(
+        title = "Thanks for your time",
+        "You can now close your browser",
+        easyClose = TRUE
+      ))
+    }
+
+    # stopApp(returnValue = invisible())
   })
 }
