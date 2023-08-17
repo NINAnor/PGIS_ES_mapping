@@ -1,19 +1,19 @@
-library(shinyWidgets)
-library(dplyr)
-library(tidyverse)
-library(bigrquery)
-library(DBI)
-bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# connection to bq
-con <- dbConnect(
-  bigrquery::bigquery(),
-  project = "rgee-381312",
-  dataset = "data_base",
-  billing = "rgee-381312"
-)
-
-es_all<-tbl(con, "es_descr")
-es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
+# library(shinyWidgets)
+# library(dplyr)
+# library(tidyverse)
+# library(bigrquery)
+# library(DBI)
+# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+# # connection to bq
+# con <- dbConnect(
+#   bigrquery::bigquery(),
+#   project = "rgee-381312",
+#   dataset = "data_base",
+#   billing = "rgee-381312"
+# )
+# 
+# es_all<-tbl(con, "es_descr")
+# es_all<-select(es_all,esID,esNUM,esDESCR,esNAME,esSECTION)%>%collect()
 
 
 ahp_secUI<- function(id, label = "ahp") {
@@ -160,23 +160,23 @@ ahp_secServer<-function(id, userID, siteID, es_all){
   )
 }
 
-#
-ui <- fluidPage(
-  fluidRow(
-    column(width = 12,
-           ahp_secUI("ahp1", "Counter #1")
-           )
-  )
-
-
-)
-
-server <- function(input, output, session) {
-#
-
-
-  ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
-
-}
-
-shinyApp(ui, server)
+# #
+# ui <- fluidPage(
+#   fluidRow(
+#     column(width = 12,
+#            ahp_secUI("ahp1", "Counter #1")
+#            )
+#   )
+# 
+# 
+# )
+# 
+# server <- function(input, output, session) {
+# #
+# 
+# 
+#   ahp_secServer("ahp1","KcdePm2lep","NOR-SNJ", es_all)
+# 
+# }
+# 
+# shinyApp(ui, server)
