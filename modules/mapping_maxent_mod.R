@@ -37,9 +37,9 @@ mapselectUI<- function(id, label = "selector") {
         condition = "input.map_poss == 'Yes'", ns = ns ,
         # h5("where do you find good spots of ESx?"),
         uiOutput(ns("es_quest_where")),
-        fluidRow(" -please draw & adjust inside the boundaries"),
+        # fluidRow(" -please draw & adjust inside the boundaries"),
         br(),
-        fluidRow(" -please do not overlap polygons"),
+        # fluidRow(" -please do not overlap polygons"),
         
         editModUI(ns("map_sel")),
         br(),
@@ -83,10 +83,11 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       esID<-rand_es_sel[order,]$esID
       output$title_es<-renderUI(h3(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
-      output$res_text<-renderUI(h3(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
+      output$res_text<-renderUI(h4(paste0("Your personal map of ",rand_es_sel[order,]$esNAME)))
       output$es_quest_where<-renderUI(h4(paste0("Where do you find good areas for ", rand_es_sel[order,]$esNAME,"?")))
       output$es_quest_how<-renderUI(h4(paste0("How do you rate the quality of ",rand_es_sel[order,]$esNAME, " for each of area")))
       output$imp_text<-renderUI(h4(paste0("How important is ", rand_es_sel[order,]$esNAME,"...")))
+      output$rating_task<-renderUI(h4(paste0("Indicate how good the areas are to benefit from ",rand_es_sel[order,]$esNAME, " (1 = ok, 5= very good)")))
       
       #render the corresponding image to es
       output$image_es<-renderUI({
@@ -153,6 +154,12 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             selector = paste0("#",ns("map_poss")))
           removeUI(
             selector = paste0("#",ns("imp_text")))
+          removeUI(
+            selector = paste0("div:has(>> #",ns("imp_own"),")")
+            )
+          removeUI(
+            selector = paste0("div:has(>> #",ns("imp_other"),")")
+            )
         }
       })
 
@@ -181,7 +188,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             br(),
             leafletOutput(ns("map_res")),
             br(),
-            h4(paste0("Indicate how good the areas are to benefit from ",rand_es_sel[order,]$esNAME, " (1 = ok, 5= very good)")),
+            uiOutput(ns("rating_task")),
             uiOutput(ns("slider")),
             br(),
             # a short expl. why this sites
@@ -262,6 +269,12 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         )
         removeUI(
           selector = paste0("#",ns("submit"))
+        )
+        removeUI(
+          selector = paste0("#",ns("es_quest_how"))
+        )
+        removeUI(
+          selector = paste0("#",ns("rating_task"))
         )
         
       })
