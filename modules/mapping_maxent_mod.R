@@ -33,21 +33,21 @@ mapselectUI<- function(id, label = "selector") {
       # are you able to map the ES?
       uiOutput(ns("map_poss")),
       br(),
-      conditionalPanel(
-        condition = "input.map_poss == 'Yes'", ns = ns ,
-        # h5("where do you find good spots of ESx?"),
-        uiOutput(ns("es_quest_where")),
-        # fluidRow(" -please draw & adjust inside the boundaries"),
-        br(),
-        # fluidRow(" -please do not overlap polygons"),
-        
-        editModUI(ns("map_sel")),
-        br(),
-        # initial button to save the map
-        actionButton(ns("savepoly"),"save polygons")
-        
-        
-      ),
+      # conditionalPanel(
+      #   condition = "input.map_poss == 'Yes'", ns = ns ,
+      #   # h5("where do you find good spots of ESx?"),
+      #   uiOutput(ns("es_quest_where")),
+      #   # fluidRow(" -please draw & adjust inside the boundaries"),
+      #   br(),
+      #   # fluidRow(" -please do not overlap polygons"),
+      #   
+      #   editModUI(ns("map_sel")),
+      #   br(),
+      #   # initial button to save the map
+      #   actionButton(ns("savepoly"),"save polygons")
+      #   
+      #   
+      # ),
       # if ES not mappable
       conditionalPanel(
         condition = "input.map_poss == 'No'", ns = ns ,
@@ -141,11 +141,78 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
       
       ### call the edit map module from the mapedit package
-      edits<-callModule(
-        module = editMod,
-        leafmap = map,
-        id = "map_sel")
+      rv<-reactiveValues(
+        edits = reactive({})
+      )
+      
+      # edits<-callModule(
+      #   module = editMod,
+      #   leafmap = map,
+      #   id = "map_sel")
       # edits<-mapedit::editMap(map)
+      
+      observeEvent(input$map_poss,{
+        if(input$map_poss == "Yes"){
+          
+          rv$edits<-callModule(
+            module = editMod,
+            leafmap = map,
+            id = "map_sel")
+          # print(rv$edits())
+          
+          insertUI(selector =paste0("#",ns("map_poss")),
+                   where = "afterEnd",
+                   ui=tagList(
+                     uiOutput(ns("es_quest_where")),
+                     br(),
+                     editModUI(ns("map_sel")),
+                     
+                     htmlOutput(ns("overlay_result")),
+                     uiOutput(ns("btn1")),
+                     
+                   )
+          )
+          
+        }#/if yes
+      })#/map_poss
+      
+      ## check for intersecting polys
+      observe({
+        req(rv$edits)
+        rectangles <- rv$edits()$finished
+        n_poly<-nrow(as.data.frame(rectangles))
+        if(n_poly<=1){
+          output$btn1<-renderUI(
+            actionButton(ns("savepoly"),"save polygons") 
+          )
+          output$overlay_result <- renderText({
+            "You can save the polygons or draw more"
+          })
+        }else if (n_poly>1){
+          n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
+          q=n_inter-n_poly
+
+          if(q!=0){
+            
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons, remove overlaps first","</b></font>")
+            })
+            
+          }else{
+            output$btn1<-renderUI(
+              actionButton(ns("savepoly"),"save polygons") 
+            )
+            output$overlay_result <- renderText({
+              "You can save the polygons or draw more"
+            })
+            
+          }
+        }
+        
+      })
+      
       
       ## remove mapping question as soon as decided
       observeEvent(input$map_poss,{
@@ -165,7 +232,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
 
       ### confirm the drawings and render the results table
       tbl_out<-eventReactive(input$savepoly,{
-        tbl<-edits()$finished
+        tbl<-rv$edits()$finished
         req(tbl, cancelOutput = FALSE)
         tbl<-tbl%>%st_drop_geometry()
         tbl$value_es<-rep(NA,(nrow(tbl)))
@@ -175,7 +242,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       ### create a slider and map with leaflet ids for each of the polygons, remove UI content
       observeEvent(input$savepoly,{
         tbl<-tbl_out()
-        polygon<-edits()$finished
+        polygon<-rv$edits()$finished
         # do not give possibility to submit map without polygons
         req(polygon, cancelOutput = FALSE)
 
@@ -284,7 +351,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       ### gather poly
       prediction<-eventReactive(input$submit, {
         withProgress(message = "save your drawings",value = 0.1,{
-          polygon<-edits()$finished
+          polygon<-rv$edits()$finished
           req(polygon, cancelOutput = FALSE)
           polygon<-as.data.frame(polygon)
           polygon$es_value<-rep(NA,nrow(polygon))
