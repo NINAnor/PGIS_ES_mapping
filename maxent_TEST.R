@@ -296,51 +296,70 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       
       
       ## remove mapping question as soon as decided
-      observe({
-        req(rv$edits)
-        rectangles <- rv$edits()$finished
-        n_poly<-nrow(as.data.frame(rectangles))
-        if(n_poly<=1){
-          output$btn1<-renderUI(
-            actionButton(ns("savepoly"),"save polygons") 
-          )
-          output$overlay_result <- renderText({
-            "You can save the polygons or draw more"
-          })
-        }else if (n_poly>1){
-          n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
-          q=n_inter-n_poly
-          # output$overlay_result <- renderPrint({
-          #   "You can save the polygons or draw more"
-          #   # print(n_poly)
-          #   # print(n_inter)
-          #   # print(q)  
-          # })
-          if(q!=0){
-
-            removeUI(
-              selector = paste0("#",ns("savepoly")))
-              output$overlay_result <- renderText({
-              
-              # print(n_poly)
-              # print(n_inter)
-              # print(q)  
-              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons, remove overlaps first","</b></font>")
-                # p("You can`t save the polygons, remove overlaps first", style = "color:red")
-            })
-            
-          }else{
-            output$btn1<-renderUI(
-              actionButton(ns("savepoly"),"save polygons") 
-            )
-            output$overlay_result <- renderText({
-              "You can save the polygons or draw more"
-            })
-            
-          }
-        }
-
-      })
+     observe({
+       req(rv$edits)
+       rectangles <- rv$edits()$finished
+       n_poly<-nrow(as.data.frame(rectangles))
+       
+       if(n_poly==1){
+         n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+         if(n_within<n_poly){
+           output$overlay_result <- renderText({
+             paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+           })
+           removeUI(
+             "#save"
+           )
+         }else{
+           output$btn1<-renderUI(
+             actionButton("save","save")
+           )
+           output$overlay_result <- renderText({
+             "Save or draw further polygons"
+           })
+         }
+         
+       }else if (n_poly>1){
+         n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+         n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
+         q=n_inter-n_poly
+         if(q!=0 & n_within<n_poly){
+           removeUI(
+             "#save"
+           )
+           output$overlay_result <- renderText({
+             paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b><li>Place your polygon completely into the the study area<li/><li>Remove overlays<li/></font>")
+             
+           })
+         }else if(q==0 & n_within<n_poly){
+           removeUI(
+             "#save"
+           )
+           output$overlay_result <- renderText({
+             paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+             
+           })
+         }else if(q!=0 & n_within==n_poly){
+           removeUI(
+             "#save"
+           )
+           output$overlay_result <- renderText({
+             paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Remove overlays<li/></font>")
+             
+           })
+         }else if(q==0 & n_within==n_poly){
+           output$btn1<-renderUI(
+             actionButton("save","save")
+           )
+           output$overlay_result <- renderText({
+             "Save or draw further polygons"
+           })
+         }
+       }
+       
+     })
+     
+    
       
       observeEvent(input$map_poss,{
         if(input$map_poss !=""){
