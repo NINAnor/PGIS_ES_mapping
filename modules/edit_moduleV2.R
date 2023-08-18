@@ -180,8 +180,22 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         map_edit<-leaflet()
       }
       
+      rv<-reactiveValues(
+        edits = reactive({})
+      )
+      
       observeEvent(input$confirm1,{
         if(input$remap_poss == "Yes"){
+          
+          rv$edits<-callModule(
+            module = editMod,
+            leafmap = map_edit,
+            id = "map_sel",
+            targetLayerId = "poly_r1",
+            record = T,
+            sf = T,
+            editor = c("leaflet.extras", "leafpm")) 
+          
           output$blog2<-renderDT(blog_data_sel,rownames= FALSE, colnames="Blog entries")
           insertUI(
             selector = paste0("#",ns("confirm1")),
@@ -200,14 +214,13 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
                        )
               ),
               br(),
-              br(),
+              htmlOutput(ns("overlay_result")),
+              uiOutput(ns("btn1"))
               # initial button to save the remap
-              actionButton(ns("savepoly"),"save polygons")
+              
             )
           )
 
-          
-          
         }else{
           insertUI(
             selector = paste0("#",ns("confirm1")),
@@ -223,7 +236,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           # polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
           # ## save poly
           # st_write(poly_r1,polypath)
-          print(poly_r1)
+          # print(poly_r1)
           
           ## write information to poly 2
           mapping_param <-
@@ -265,21 +278,74 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           selector = paste0("#",ns("text0"))
         )
         
-        return(edits)
+        return(rv$edits)
       })#/observer
       
                 
-          edits<-callModule(
-            module = editMod,
-            leafmap = map_edit,
-            id = "map_sel",
-            targetLayerId = "poly_r1",
-            record = T,
-            sf = T,
-            editor = c("leaflet.extras", "leafpm")) 
+
 
     ## test if edited polys intersect
+      observe({
+        req(rv$edits)
+        rectangles <- rv$edits()$all
+        n_poly<-nrow(as.data.frame(rectangles))
+        
+        if(n_poly==1){
+          n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+          if(n_within<n_poly){
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+            })
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+          }else{
+            output$btn1<-renderUI(
+              actionButton(ns("savepoly"),"save")
+            )
+            output$overlay_result <- renderText({
+              "Save or draw further polygons"
+            })
+          }
           
+        }else if (n_poly>1){
+          n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+          n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
+          q=n_inter-n_poly
+          if(q!=0 & n_within<n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b><li>Place your polygon completely into the the study area<li/><li>Remove overlays<li/></font>")
+              
+            })
+          }else if(q==0 & n_within<n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+              
+            })
+          }else if(q!=0 & n_within==n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Remove overlays<li/></font>")
+              
+            })
+          }else if(q==0 & n_within==n_poly){
+            output$btn1<-renderUI(
+              actionButton(ns("savepoly"),"save")
+            )
+            output$overlay_result <- renderText({
+              "Save or draw further polygons"
+            })
+          }
+        }
+        
+      })
 
 
 #    
@@ -290,7 +356,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       final_edits<-eventReactive(input$savepoly,{
         # copy old plyg
           final_edits<-poly_r1
-          edits2<-edits()
+          edits2<-rv$edits()
           #filter polys that have not been edited
           ## attach values of R1 ES
           ## if final_edits geom == p_all(feature type NA) -> status = no_edit

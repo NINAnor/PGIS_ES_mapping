@@ -1,68 +1,68 @@
-## editi moduleV2
-############ UI of remapping module
-# library(shiny)
-# library(shinydashboard)
-# library(shinycssloaders)
-# library(shinyjs)
-# library(plotly)
-# library(sf)
-# library(leaflet)
-# library(leaflet.extras)
-# library(leaflet.extras2)
-# library(rgee)
-# library(DT)
-# library(mapedit)
-# library(tidyverse)
-# library(bigrquery)
-# library(DBI)
-# 
-# 
-# ee_Initialize()
-# bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
-# con <- dbConnect(
-#   bigrquery::bigquery(),
-#   project = "rgee-381312",
-#   dataset = "data_base",
-#   billing = "rgee-381312"
-# )
-# 
-# studyID<-"NOR-SNJ"
-# 
-# userES <- tbl(con, "es_mappingR1")
-# #dplyr sql
-# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-#   collect()
-# 
-# 
-# geometry <- ee$Geometry$Rectangle(
-#   coords = c(10.30, 63.35, 10.50, 63.5),
-#   proj = "EPSG:4326",
-#   geodesic = FALSE
-# )
-# 
-# ## here modify code according to siteID!
-# sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
-#   filter(ee$Filter$eq("ADM2_CODE",23463))
-# sf_bound <- ee_as_sf(x = sf_bound)
-# 
-# labels <- c("low", "moderate", "intermediate", "high","very high")
-# cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-# vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
-# 
-# 
-# ### download es_descr table from bq once
-# es_descr <- tbl(con, "es_descr")
-# es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
-# 
-# ### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
-# userES <- tbl(con, "es_mappingR1")
-# userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
-#   collect()
-# 
-# # userID_sel = "40PymeZHGl"
-# # mapping_round<-1
-# 
-# 
+# editi moduleV2
+########### UI of remapping module
+library(shiny)
+library(shinydashboard)
+library(shinycssloaders)
+library(shinyjs)
+library(plotly)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+library(leaflet.extras2)
+library(rgee)
+library(DT)
+library(mapedit)
+library(tidyverse)
+library(bigrquery)
+library(DBI)
+
+
+ee_Initialize()
+bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "rgee-381312",
+  dataset = "data_base",
+  billing = "rgee-381312"
+)
+
+studyID<-"NOR-SNJ"
+
+userES <- tbl(con, "es_mappingR1")
+#dplyr sql
+userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+  collect()
+
+
+geometry <- ee$Geometry$Rectangle(
+  coords = c(10.30, 63.35, 10.50, 63.5),
+  proj = "EPSG:4326",
+  geodesic = FALSE
+)
+
+## here modify code according to siteID!
+sf_bound<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
+  filter(ee$Filter$eq("ADM2_CODE",23463))
+sf_bound <- ee_as_sf(x = sf_bound)
+
+labels <- c("low", "moderate", "intermediate", "high","very high")
+cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
+vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
+
+
+### download es_descr table from bq once
+es_descr <- tbl(con, "es_descr")
+es_descr <- select(es_descr, esID, esNAME, esDESCR) %>% collect()
+
+### download blog with not null blog and siteID given pass this to mapping module R2 (need only blog col and esID col)
+userES <- tbl(con, "es_mappingR1")
+userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
+  collect()
+
+userID_sel = "OGln2sNZS4"
+mapping_round<-1
+
+
 
 remapUI<- function(id, label = "selector") {
   ns<-NS(id)
@@ -253,8 +253,22 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         map_edit<-leaflet()
       }
       
+      rv<-reactiveValues(
+        edits = reactive({})
+      )
+      # edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
+      
       observeEvent(input$confirm1,{
         if(input$remap_poss == "Yes"){
+          rv$edits<-callModule(
+            module = editMod,
+            leafmap = map_edit,
+            id = "map_sel",
+            targetLayerId = "poly_r1",
+            record = T,
+            sf = T,
+            editor = c("leaflet.extras", "leafpm")) 
+          
           output$blog2<-renderDT(blog_data_sel,rownames= FALSE, colnames="Blog entries")
           insertUI(
             selector = paste0("#",ns("confirm1")),
@@ -264,23 +278,13 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               fluidRow(" -please adjust inside the boundaries"),
               br(),
               fluidRow(" -please do not overlap polygons"),
-              fluidRow(
-                column(5,editModUI(ns("map_sel"))
-                ),
-                column(2,
-                ),
-                column(5,DTOutput(ns("blog2"))
-                )
-              ),
-              br(),
-              br(),
-              # initial button to save the remap
-              actionButton(ns("savepoly"),"save polygons")
+              editModUI(ns("map_sel")),
+              htmlOutput(ns("overlay_result")),
+              uiOutput(ns("btn1")),
+              column(5,DTOutput(ns("blog2")),
             )
-          )
-          
-          
-          
+          ))
+
         }else{
           insertUI(
             selector = paste0("#",ns("confirm1")),
@@ -296,7 +300,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           # polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
           # ## save poly
           # st_write(poly_r1,polypath)
-          print(poly_r1)
+          # print(poly_r1)
           
           ## write information to poly 2
           mapping_param <-
@@ -338,32 +342,77 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           selector = paste0("#",ns("text0"))
         )
         
-        return(edits)
+        # return(edits)
       })#/observer
       
+      observe({
+        req(rv$edits)
+        rectangles <- rv$edits()$all
+        
+        n_poly<-nrow(as.data.frame(rectangles))
+        print(n_poly)
+        output$btn1<-renderUI(
+          actionButton(ns("savepoly"),"save")
+        )
+        output$overlay_result <- renderText({
+          "Save or draw further polygons"
+        })
+        
+        if(n_poly==1){
+          n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+          if(n_within<n_poly){
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+            })
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+          }
+          
+        }else if (n_poly>1){
+          n_within<-nrow(as.data.frame(st_within(rectangles,sf_bound)))
+          n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
+          q=n_inter-n_poly
+          if(q!=0 & n_within<n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b><li>Place your polygon completely into the the study area<li/><li>Remove overlays<li/></font>")
+              
+            })
+          }else if(q==0 & n_within<n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
+              
+            })
+          }else if(q!=0 & n_within==n_poly){
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+            
+            output$overlay_result <- renderText({
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Remove overlays<li/></font>")
+              
+            })
+          }else if(q==0 & n_within==n_poly){
+            output$btn1<-renderUI(
+              actionButton(ns("savepoly"),"save")
+            )
+            output$overlay_result <- renderText({
+              "Save or draw further polygons"
+            })
+          }
+        }
+        
+      })
       
-      edits<-callModule(
-        module = editMod,
-        leafmap = map_edit,
-        id = "map_sel",
-        targetLayerId = "poly_r1",
-        record = T,
-        sf = T,
-        editor = c("leaflet.extras", "leafpm")) 
-      
-      ## test if edited polys intersect
-      
-      
-      
-      #    
-      #            
-      #         # edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
-      #       
       ## prepare the final edits, not changed, adjusted, new polys
       final_edits<-eventReactive(input$savepoly,{
         # copy old plyg
         final_edits<-poly_r1
-        edits2<-edits()
+        edits2<-rv$edits()
         #filter polys that have not been edited
         ## attach values of R1 ES
         ## if final_edits geom == p_all(feature type NA) -> status = no_edit
@@ -682,55 +731,55 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  userID_sel = reactive("40PymeZHGl")
+  userID_sel = reactive("OGln2sNZS4")
   mapping_round<-1
   
   hideTab(inputId = "inTabset", target = "p2")
+
+
+    observeEvent(input$test, {
+      updateTabsetPanel(session, "inTabset",
+                        selected = "p2")
+    })
+    observeEvent(input$test, {
+      hideTab(inputId = "inTabset",
+              target = "p1")
+  })
+    observeEvent(input$test, {
+      userID_sel<-userID_sel()
+      hideTab(inputId = "inTabset", target = "p2")
+      hideTab(inputId = "inTabset",
+              target = "p1")
+      showTab(inputId = "inTabset", target = "p2")
+      remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
+
+    })
   #
+
+
+       # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
   #
-  #   observeEvent(input$test, {
-  #     updateTabsetPanel(session, "inTabset",
-  #                       selected = "p2")
-  #   })
-  #   observeEvent(input$test, {
-  #     hideTab(inputId = "inTabset",
-  #             target = "p1")
-  # })
-  #   observeEvent(input$test, {
-  #     userID_sel<-userID_sel()
-  #     hideTab(inputId = "inTabset", target = "p2")
-  #     hideTab(inputId = "inTabset",
-  #             target = "p1")
-  #     showTab(inputId = "inTabset", target = "p2")
-  #     remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, mapping_round)
-  # 
-  #   })
-  # #
-  # 
-  # 
-  #      # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-  # #
-  # 
-  # 
-  #   # observeEvent(input$test,{
-  #   #   userID_sel<-userID_sel()
-  #   #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
-  #   # })
-  # 
-  # 
-  # 
-  # 
-  #   # observeEvent(val(),{
-  #   #   req(val)
-  #   #
-  #   #   updateTabsetPanel(session, "inTabset",
-  #   #                     selected = "p1")
-  #   #   hideTab(inputId = "inTabset",
-  #   #           target = "p2")
-  #   #   showTab(inputId = "inTabset", target = "p1")
-  #   #
-  #   # })
-  # #
-  # }
-  # 
-  # shinyApp(ui, server)
+
+
+    # observeEvent(input$test,{
+    #   userID_sel<-userID_sel()
+    #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+    # })
+
+
+
+
+    # observeEvent(val(),{
+    #   req(val)
+    #
+    #   updateTabsetPanel(session, "inTabset",
+    #                     selected = "p1")
+    #   hideTab(inputId = "inTabset",
+    #           target = "p2")
+    #   showTab(inputId = "inTabset", target = "p1")
+    #
+    # })
+  #
+  }
+
+  shinyApp(ui, server)
