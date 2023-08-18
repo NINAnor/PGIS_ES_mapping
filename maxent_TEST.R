@@ -268,9 +268,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       # edits<-mapedit::editMap(map)
 
       ## call the edit map module from the mapedit package
-      observeEvent(input$map_poss,{
-
-        if(input$map_poss == "Yes"){
+     observeEvent(input$map_poss,{
+      if(input$map_poss == "Yes"){
 
           rv$edits<-callModule(
             module = editMod,
@@ -283,100 +282,66 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                    ui=tagList(
                     uiOutput(ns("es_quest_where")),
                      br(),
-                     editModUI(ns("map_sel")),   
-                    actionButton(ns("savepoly"),"save polygons")  
+                     editModUI(ns("map_sel")),
+                    
+                    htmlOutput(ns("overlay_result")),
+                    uiOutput(ns("btn1")),
+                     
                    )
                    )
           
             }#/if yes
-        
         })#/map_poss 
       
       
       
-      # observeEvent(input$test,{
-      #   # print(rv$edits()$finished)
-      # 
-      #   edits2<-rv$edits()$finished
-      #   # print(edits2)
-      #   n_polys<-nrow(as.data.frame(edits2))
-      #   print(n_polys)
-      #   if(n_polys>1){
-      #     a<-st_intersects(edits2)
-      #     n_inters<-nrow(as.data.frame(a))
-      #     # print(n_inters)
-      #     q<-n_inters-n_polys
-      # 
-      #     if(q!=0){
-      #       showNotification("Do not draw overlapping polygons")
-      #       rv$edits <- NULL
-      #       rm(edits2)
-      #       rv$edits<-callModule(
-      #         module = editMod,
-      #         leafmap = map,
-      #         id = "map_sel")
-      #       # print(rv$edits())
-      #       
-      #       insertUI(selector =paste0("#",ns("test")),
-      #                where = "afterEnd",
-      #                ui=tagList(
-      #                  uiOutput(ns("es_quest_where")),
-      #                  br(),
-      #                  editModUI(ns("map_sel")),   
-      #                  actionButton(ns("test"),"check polygons")  
-      #                )
-      #       )
-      #       
-      #       
-      #     }else{
-      #       showNotification("Thanks!")
-      #       
-      #       insertUI(selector =paste0("#",ns("test")),
-      #                where = "afterEnd",
-      #                ui=tagList(
-      #                  actionButton(ns("savepoly"),"save polygons")  
-      #                )
-      #       )
-      #     }
-      # 
-      #   }else if(n_polys==1){
-      #     showNotification("Thanks!")
-      #     insertUI(selector =paste0("#",ns("test")),
-      #              where = "afterEnd",
-      #              ui=tagList(
-      #                actionButton(ns("savepoly"),"save polygons")  
-      #              )
-      #     )
-      # 
-      #   }else if(n_polys == 0){
-      # 
-      #     showNotification("Please draw at least one polygon")
-      #     rv$edits <- NULL
-      #     rm(edits2)
-      #     rv$edits<-callModule(
-      #       module = editMod,
-      #       leafmap = map,
-      #       id = "map_sel")
-      #     # print(rv$edits())
-      #     
-      #     insertUI(selector =paste0("#",ns("test")),
-      #              where = "afterEnd",
-      #              ui=tagList(
-      #                uiOutput(ns("es_quest_where")),
-      #                br(),
-      #                editModUI(ns("map_sel")),   
-      #                actionButton(ns("test"),"check polygons")  
-      #              )
-      #     )
-      #   }
-      # 
-      # 
-      # 
-      # })
-      # 
-
-
       ## remove mapping question as soon as decided
+      observe({
+        req(rv$edits)
+        rectangles <- rv$edits()$finished
+        n_poly<-nrow(as.data.frame(rectangles))
+        if(n_poly<=1){
+          output$btn1<-renderUI(
+            actionButton(ns("savepoly"),"save polygons") 
+          )
+          output$overlay_result <- renderText({
+            "You can save the polygons or draw more"
+          })
+        }else if (n_poly>1){
+          n_inter<-nrow(as.data.frame(st_intersects(rectangles)))
+          q=n_inter-n_poly
+          # output$overlay_result <- renderPrint({
+          #   "You can save the polygons or draw more"
+          #   # print(n_poly)
+          #   # print(n_inter)
+          #   # print(q)  
+          # })
+          if(q!=0){
+
+            removeUI(
+              selector = paste0("#",ns("savepoly")))
+              output$overlay_result <- renderText({
+              
+              # print(n_poly)
+              # print(n_inter)
+              # print(q)  
+              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons, remove overlaps first","</b></font>")
+                # p("You can`t save the polygons, remove overlaps first", style = "color:red")
+            })
+            
+          }else{
+            output$btn1<-renderUI(
+              actionButton(ns("savepoly"),"save polygons") 
+            )
+            output$overlay_result <- renderText({
+              "You can save the polygons or draw more"
+            })
+            
+          }
+        }
+
+      })
+      
       observeEvent(input$map_poss,{
         if(input$map_poss !=""){
           removeUI(
