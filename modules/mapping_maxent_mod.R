@@ -179,7 +179,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       ## check for intersecting polys
       observe({
         req(rv$edits)
-        rectangles <- rv$edits()$finished
+        rectangles <- rv$edits()$all
         n_poly<-nrow(as.data.frame(rectangles))
         
         if(n_poly==1){
@@ -189,11 +189,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
               paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
             })
             removeUI(
-              "#save"
-            )
+              selector = paste0("#",ns("savepoly")))
           }else{
             output$btn1<-renderUI(
-              actionButton("save","save")
+              actionButton(ns("savepoly"),"save")
             )
             output$overlay_result <- renderText({
               "Save or draw further polygons"
@@ -206,31 +205,31 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           q=n_inter-n_poly
           if(q!=0 & n_within<n_poly){
             removeUI(
-              "#save"
-            )
+              selector = paste0("#",ns("savepoly")))
+            
             output$overlay_result <- renderText({
               paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b><li>Place your polygon completely into the the study area<li/><li>Remove overlays<li/></font>")
               
             })
           }else if(q==0 & n_within<n_poly){
             removeUI(
-              "#save"
-            )
+              selector = paste0("#",ns("savepoly")))
+            
             output$overlay_result <- renderText({
               paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
               
             })
           }else if(q!=0 & n_within==n_poly){
             removeUI(
-              "#save"
-            )
+              selector = paste0("#",ns("savepoly")))
+            
             output$overlay_result <- renderText({
               paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Remove overlays<li/></font>")
               
             })
           }else if(q==0 & n_within==n_poly){
             output$btn1<-renderUI(
-              actionButton("save","save")
+              actionButton(ns("savepoly"),"save")
             )
             output$overlay_result <- renderText({
               "Save or draw further polygons"
