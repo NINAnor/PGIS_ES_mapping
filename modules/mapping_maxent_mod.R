@@ -417,32 +417,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           st_write(polygon,polypath)
           
           poly_area<-as.numeric(sum(st_area(polygon)))
-          
-          # make ee object and save
-          gee_poly<-rgee::sf_as_ee(polygon, via = "getInfo")
-          #set features
-          # gee_poly <- gee_poly$set('es_id', esID,
-          #                          'userID', userID,
-          #                          'siteID', siteID,
-          #                          'order_id', order,
-          #                          'delphi_round', 1)
-          
-          ## load full collection
-          # ee_asset_path<-paste0(ee_get_assethome(), "/train_polys")
-          # ee_poly_old<-ee$FeatureCollection(ee_asset_path)
-          # 
-          # #merge
-          # ee_poly_old<-ee_poly_old$merge(gee_poly)
-          # 
-          # # #save poly old with added gee poly
-          # poly_load<-ee_table_to_asset(ee_poly_old,
-          #                              description = "upload poly",
-          #                              assetId = ee_asset_path,
-          #                              overwrite = T
-          # )
-          # poly_load$start()
-          
-          
+
           ############ training pts
           incProgress(amount = 0.2,message = "prepare training data")
           
@@ -485,22 +460,26 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           pts_out <- st_difference(st_combine(pts_out), st_combine(polygon)) %>% st_cast('POINT')
           pts_out<-st_as_sf(pts_out)
           pts_out$inside<-rep(0,nrow(pts_out))
-          pts_all<-pts_out
-          
+
           # inside pts are area + es value weighted
           for (i in 1:nrow(polygon)) {
             A_tmp <- as.numeric(st_area(polygon[i,]))
             #tmp_ratio<-A_tmp/A_min
             tmp_ratio<-A_tmp/A_roi
             # npts in this poly must be max_pts*tmp_ratio*es_value
-            #tmp_pts = st_sample(polygon[i,], round(tmp_ratio*pts_min,0)*polygon[i,]$es_value,type="random")
             tmp_pts = st_sample(polygon[i,], round(max_pts*tmp_ratio,0)*polygon[i,]$es_value,type="random")
             tmp_pts<-st_as_sf(tmp_pts)
             tmp_pts$inside<-rep(1,nrow(tmp_pts))
-            pts_ee<-rbind(pts_all,tmp_pts)
+            # pts_ee<-rbind(pts_all,tmp_pts)
+            if(i==1){
+              pts_in<-tmp_pts
+            }else{
+              pts_in<-rbind(pts_in,tmp_pts)
+            }
             
           }
           # ee object of sampling pts 6k pts = 7sec
+          pts_ee<-rbind(pts_out,pts_in)
           pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
           
           # define target bands of comb (indep. var) and sample vars by pts

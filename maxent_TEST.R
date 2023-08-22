@@ -308,11 +308,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
            })
            removeUI(
-             "#save"
-           )
+             selector = paste0("#",ns("savepoly")))
          }else{
            output$btn1<-renderUI(
-             actionButton("save","save")
+             actionButton(ns("savepoly"),"save")
            )
            output$overlay_result <- renderText({
              "Save or draw further polygons"
@@ -325,31 +324,28 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
          q=n_inter-n_poly
          if(q!=0 & n_within<n_poly){
            removeUI(
-             "#save"
-           )
+             selector = paste0("#",ns("savepoly")))
            output$overlay_result <- renderText({
              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b><li>Place your polygon completely into the the study area<li/><li>Remove overlays<li/></font>")
              
            })
          }else if(q==0 & n_within<n_poly){
            removeUI(
-             "#save"
-           )
+             selector = paste0("#",ns("savepoly")))
            output$overlay_result <- renderText({
              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Place your polygon completely into the the study area<li/></font>")
              
            })
          }else if(q!=0 & n_within==n_poly){
            removeUI(
-             "#save"
-           )
+             selector = paste0("#",ns("savepoly")))
            output$overlay_result <- renderText({
              paste("<font color=\"#FF0000\"><b>","You can`t save the polygons:","</b> <li>Remove overlays<li/></font>")
              
            })
          }else if(q==0 & n_within==n_poly){
            output$btn1<-renderUI(
-             actionButton("save","save")
+             actionButton(ns("savepoly"),"save")
            )
            output$overlay_result <- renderText({
              "Save or draw further polygons"
@@ -615,7 +611,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           pts_out <- st_difference(st_combine(pts_out), st_combine(polygon)) %>% st_cast('POINT')
           pts_out<-st_as_sf(pts_out)
           pts_out$inside<-rep(0,nrow(pts_out))
-          pts_all<-pts_out
+
           
           # inside pts are area + es value weighted
           for (i in 1:nrow(polygon)) {
@@ -627,9 +623,14 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             tmp_pts = st_sample(polygon[i,], round(max_pts*tmp_ratio,0)*polygon[i,]$es_value,type="random")
             tmp_pts<-st_as_sf(tmp_pts)
             tmp_pts$inside<-rep(1,nrow(tmp_pts))
-            pts_ee<-rbind(pts_all,tmp_pts)
+            if(i==1){
+              pts_in<-tmp_pts
+            }else{
+              pts_in<-rbind(pts_in,tmp_pts)
+            }
             
           }
+          pts_ee<-rbind(pts_out,pts_in)
           # ee object of sampling pts 6k pts = 7sec
           pts_ee<-rgee::sf_as_ee(pts_ee, via = "getInfo")
           
@@ -701,7 +702,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           ############ maxent
           incProgress(amount = 0.1,message = "update data base")
           # write to bq
-          insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
+          # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
           
           prediction<-imageClassified$select("probability")
           
