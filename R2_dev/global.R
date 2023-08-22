@@ -35,8 +35,12 @@ con <- dbConnect(
 studyID<-"NOR-SNJ"
 
 
+#Resolution ES mapping
+res_on<-100
+res_off<-1000
+
 # if offshore how long should the study site edge length be [m]?
-study_size_edge_length<-10000 ##!! same as in R1
+study_size_edge_length<-10000
 
 ### load study site
 site<-tbl(con, "study_site")

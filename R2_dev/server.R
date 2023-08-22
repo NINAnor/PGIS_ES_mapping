@@ -157,7 +157,7 @@ function(input, output, session) {
     hideTab(inputId = "inTabset", target = "p1")
     showTab(inputId = "inTabset", target = "p2")
     userID_sel<-userID_sel()
-    rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind,1)
+    rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, 1, comb, bands)
     updateProgressBar(
       session = session,
       id = "pb1",
@@ -177,7 +177,7 @@ function(input, output, session) {
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[2,]
-      rv$v<-remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind,2)
+      rv$v<-remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, 2, comb, bands)
       updateProgressBar(
         session = session,
         id = "pb1",
@@ -185,15 +185,7 @@ function(input, output, session) {
       )
 
   })
-  # v<-eventReactive(u(),{
-  #   
-  #   userID_sel<-userID_sel()
-  #   userES<-userES()
-  #   userES_sel<-userES[2,]
-  #   remapServer("remap2", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,2)
-  # })
 
-  
   #mod es 3
   observeEvent(rv$v(), {
     
@@ -205,7 +197,7 @@ function(input, output, session) {
       userID_sel<-userID_sel()
       # userES<-userES%>%filter(userID == userID_sel)
       # userES_sel<-userES[3,]
-    rv$w<-remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind,3)
+    rv$w<-remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, 3, comb, bands)
     updateProgressBar(
       session = session,
       id = "pb1",
@@ -213,13 +205,6 @@ function(input, output, session) {
     )
 
   })
-  # w<-eventReactive(v(),{
-  #   
-  #   userID_sel<-userID_sel()
-  #   userES<-userES()
-  #   userES_sel<-userES[3,]
-  #   remapServer("remap3", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc,3)
-  # })
 
   #stop app
   observeEvent(rv$w(), {
