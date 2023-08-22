@@ -287,7 +287,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       rv<-reactiveValues(
         edits = reactive({})
       )
-      edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
+      # edits<-mapedit::editMap(map_edit, targetLayerId = "poly_r1", record = T,sf = T,editor = c("leaflet.extras", "leafpm"))
       
       observeEvent(input$confirm1,{
         if(input$remap_poss == "Yes"){
@@ -327,12 +327,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             )
           )
           
-          ## save R1 poly values in R2!
-          # polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
-          # ## save poly
-          # st_write(poly_r1,polypath)
-          # print(poly_r1)
-          
+
           ## write information to poly 2
           mapping_param <-
             list(
@@ -525,9 +520,6 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               if(st_geometry(final_edits[w,])%in%st_geometry(p_del)){
                 final_edits$status[w] <-"deleted"
               }
-
-
-
             }
           }
           
@@ -538,7 +530,6 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       })
       # 
       ## only for drawings and new drawn polys:
-      ev = reactiveValues()
       observeEvent(input$savepoly, {
         
         final_edits<-final_edits()
@@ -616,7 +607,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             br(),
             uiOutput(ns("slider")),
             br(),
-            actionButton(ns("test1"),"save values")
+            actionButton(ns("save_val"),"save values")
             
           )
         )
@@ -635,10 +626,10 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         
       })#/observer
       #       
-      observeEvent(input$test1, {
+      observeEvent(input$save_val, {
         
         insertUI(
-          selector = paste0("#",ns("test1")),
+          selector = paste0("#",ns("save_val")),
           where = "afterEnd",
           ui = tagList(
             leafletOutput(ns("gee_map")),
