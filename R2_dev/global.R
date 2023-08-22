@@ -15,6 +15,9 @@ library(bigrquery)
 library(DBI)
 library(shinyWidgets)
 
+## if participant decides to map although he/she has not mapped in R1:
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_maxent_mod.R")
+
 source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/edit_moduleV2.R")
 
 ee_Initialize()
@@ -42,6 +45,23 @@ site<-select(site, siteID, siteLNG, siteLAT, siteADM2, siteNAME, siteWIND, siteA
 if(site$siteWIND == "on"){
   bound_reg<-ee$FeatureCollection("FAO/GAUL_SIMPLIFIED_500m/2015/level2")$
     filter(ee$Filter$eq("ADM2_CODE", as.integer(site$siteADM2)))
+  
+  lulc <- ee$Image("COPERNICUS/CORINE/V20/100m/2018")
+  lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_on)
+  lulc<-lulc$clip(bound_reg)$rename("ON_LULC")
+  
+  
+  acc_pat<-paste0(ee_get_assethome(), '/acc_old')
+  acc<-ee$Image(acc_pat)
+  acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_on)$clip(bound_reg)$rename("ON_ACC")
+  
+  nat_pat<-paste0(ee_get_assethome(), '/natu')
+  nat<-ee$Image(nat_pat)
+  nat<-nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_on)$clip(bound_reg)$rename("ON_INT")
+  
+  comb<-ee$Image$cat(lulc,acc, nat)
+  bands <- list("ON_LULC","ON_ACC","ON_INT")
+  
 }else{
   p1 <- st_point(c(site$siteLNG,site$siteLAT))
   pts_cen <- st_sfc(p1, crs = 'WGS84')
@@ -49,6 +69,30 @@ if(site$siteWIND == "on"){
   bound_reg<-st_as_sfc(bound_reg)
   #make ee object
   bound_reg<-sf_as_ee(bound_reg)
+  
+  
+  bath <- ee$Image("NOAA/NGDC/ETOPO1")$select("bedrock")
+  bath<-bath$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)
+  bath<-bath$clip(bound_reg)$rename("OFF_BAT")
+  
+  
+  off_dist<-paste0(ee_get_assethome(), '/descriptor_var/OFF_DIST')
+  off_dist<-ee$Image(off_dist)
+  off_dist<-off_dist$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)$clip(bound_reg)$rename("OFF_DIST")
+  
+  off_nat<-paste0(ee_get_assethome(), '/descriptor_var/OFF_NAT')
+  off_nat<-ee$Image(off_nat)
+  off_nat<-off_nat$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)$clip(bound_reg)$rename("OFF_NAT")
+  
+  off_lulc<-paste0(ee_get_assethome(), '/descriptor_var/OFF_LULC')
+  off_lulc<-ee$Image(off_lulc)
+  off_lulc<-off_lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=res_off)$clip(bound_reg)$rename("OFF_LULC")
+  
+  comb<-ee$Image$cat(bath,off_dist, off_nat, off_lulc)
+  bands <- list("OFF_BAT","OFF_DIST","OFF_NAT", "OFF_LULC")
+  
+  
+  
 }
 
 sf_bound <- ee_as_sf(x = bound_reg)
@@ -65,7 +109,7 @@ geometry <- ee$Geometry$Rectangle(
 # ### vis parameter for img, mean
 labels <- c("low", "moderate", "intermediate", "high","very high")
 cols   <- c("#e80909", "#fc8803", "#d8e03f", "#c4f25a","#81ab1f")
-vis_qc <- list(min = 0, max = 1, palette = cols, values = labels)
+vis_ind <- list(min = 0, max = 1, palette = cols, values = labels)
 # 
 # 
 # cols2   <- c("red", "red")
