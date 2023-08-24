@@ -522,23 +522,32 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         
       })#/observeEvent
       
-      observeEvent(input$save_val, {
+    observeEvent(input$save_val, {
+        
+        insertUI(
+          selector = paste0("#",ns("save_val")),
+          where = "afterEnd",
+          ui = tagList(
+            fluidRow(
+              column(5,
+                     leafletOutput(ns("gee_map1"))
+              ),
+              column(1),
+              column(5,
+                     leafletOutput(ns("gee_map2"))
+              )
+            ),#/row
+            br(),
+            h4(paste0("Which of your maps do you think represents the probability to benefit from ", es_descr_sel$esNAME," better?")),
+            selectizeInput(ns("select_map"),label="",choices = c("Map round 1","Map round 2", "I don`t know"),options = list(
+              onInitialize = I('function() { this.setValue(""); }')
+            )),
+            uiOutput(ns("cond_final"))
+            
+          )#/taglist
+        )#/inserUI
     
-    insertUI(
-      selector = paste0("#",ns("save_val")),
-      where = "afterEnd",
-      ui = tagList(
-        leafletOutput(ns("gee_map")),
-        br(),
-        h4(paste0("Which of your maps do you think represents the probability to benefit from ", es_descr_sel$esNAME," better?")),
-        selectizeInput(ns("select_map"),label="",choices = c("Map round 1","Map round 2", "I don`t know"),options = list(
-          onInitialize = I('function() { this.setValue(""); }')
-        )),
-        uiOutput(ns("cond_final"))
-        
-        
-      )
-    )
+
     output$cond_final<-renderUI({
         validate(
           need(input$select_map, 'Please select an option'),
@@ -562,9 +571,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
     })#/observeEvent
     
       ## save the values of the polys in bq - recalculation of map will be postprocessing R2...
-      prediction<-eventReactive(input$save_val,{
+     img_ind_R2<-eventReactive(input$save_val,{
       
-      withProgress(message = "save your data",value = 0.1,{
+        withProgress(message = "save your data",value = 0.1,{
         poly_all<-final_edits()
         poly_train<-poly_all%>%dplyr::filter(status == "edited" | status == "new_drawn" | status == "no_edit_R2")
         # poly_del<-poly_all%>%dplyr::filter(status == "deleted")
@@ -715,14 +724,14 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         
         ############ save map
         incProgress(amount = 0.7,message = "store your map")
-        # img_assetid <- paste0(ee_get_assethome(), '/R_2/ind_maps/',userID_sel,"_",esID_sel,"_", studyID)
-        # # 
-        # # #set features of img
-        # img_ind_R2 <- img_ind_R2$set('es_id', esID_sel,
-        #                              'userID', userID_sel,
-        #                              'siteID', studyID,
-        #                              'order_id', mapping_round,
-        #                              'delphi_round', 2)
+        img_assetid <- paste0(ee_get_assethome(), '/R_2/ind_maps/',userID_sel,"_",esID_sel,"_", studyID)
+        #
+        # #set features of img
+        img_ind_R2 <- img_ind_R2$set('es_id', esID_sel,
+                                     'userID', userID_sel,
+                                     'siteID', studyID,
+                                     'order_id', mapping_round,
+                                     'delphi_round', 2)
         # # 
         # start_time<-Sys.time()
         # task_img <- ee_image_to_asset(
@@ -737,35 +746,55 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         # ind_diff<-img_ind_R2$subtract(img_ind_R1)
         
         
-        ############ prepare map
-        incProgress(amount = 0.9,message = "prepare interactive map")
-        Map$setCenter(10.38649, 63.40271,10)
-        
-        prediction<-Map$addLayer(
-          eeObject = img_ind_R2,
-          vis_ind,
-          "Your new probability of ES",
-          opacity = 0.4)|
-          Map$addLayer(
-            eeObject = img_ind_R1,
-            vis_ind,
-            "Your old probability of ES",
-            opacity = 0.4)
-        # +Map$addLayer(
-        #       eeObject = ind_diff,
-        #       vis_ind,
-        #       "Difference between R1 - R2",
-        #       opacity = 0.4)
-        
-        
-        
       })#/progress ini
-      return(prediction)
+      return(img_ind_R2)
     })#/eventReactive prediction
     
-      output$gee_map <- renderLeaflet({
-      prediction()
-    })#/output gee
+      observe({
+        req(img_ind_R2)
+        img_ind_R2<-img_ind_R2()
+        withProgress(message = "prepare interactive map 1",value = 0.8,{
+          
+          
+          Map$setCenter(10.38649, 63.40271,10) 
+          result<-Map$addLayer(
+            eeObject = img_ind_R2,
+            vis_ind,
+            "Your new probability of ES",
+            opacity = 0.4)|
+            Map$addLayer(
+              eeObject = img_ind_R1,
+              vis_ind,
+              "Your old probability of ES",
+              opacity = 0.4)+
+            Map$addLegend(vis_ind, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character",  position = "topright")
+          
+          incProgress(amount = 0.9,message = "prepare interactive map 2")
+          
+          ind_diff<-img_ind_R2$subtract(img_ind_R1)
+          ind_diff<-ind_diff$divide(img_ind_R2)
+          
+          Map$setCenter(10.38649, 63.40271,10)
+          result2<- Map$addLayer(
+            eeObject = ind_diff,
+            vis_ind,
+            "Difference between R1 - R2",
+            opacity = 0.4)+
+            Map$addLegend(vis_ind, name ="Relative difference new and old map" , color_mapping = "character", position = "topright")
+          
+          output$gee_map1 <- renderLeaflet({
+            result%>%
+              addControl(h3("Your new probability of ES"), position = "bottomleft", className="map-title")%>%
+              addControl(h3("Your old probability of ES"), position = "bottomright", className="map-title")
+            
+          })
+          output$gee_map2 <- renderLeaflet({
+            result2
+          })
+          incProgress(amount = 1,message = "done")
+          
+        })
+      })
     
       observeEvent(input$select_map,{
       ### save input decision here
