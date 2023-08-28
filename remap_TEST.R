@@ -22,7 +22,7 @@ library(tidyverse)
 library(bigrquery)
 library(DBI)
 
-
+source("C:/Users/reto.spielhofer/git/PGIS_ES_mapping/modules/mapping_light.R")
 ee_Initialize()
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
 con <- dbConnect(
@@ -92,8 +92,12 @@ userES <- tbl(con, "es_mappingR1")
 userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID == studyID)%>%
   collect()
 
-userID_sel = "OGln2sNZS4"
-mapping_round<-1
+##mapping yes
+# userID_sel = "OGln2sNZS4"
+##mapping no:
+# userID_sel = "nsZ9ySJo2K"
+# 
+# mapping_round<-1
 
 
 
@@ -138,7 +142,11 @@ remapUI<- function(id, label = "selector") {
       br(),
       leafletOutput(ns("map_res_all")),
       br(),
-      uiOutput(ns("ui2"))
+      h6(paste0("Based on the map you see, do you feel now able to map good spots for ", es_descr_sel$esNAME,"?")),
+      selectizeInput(ns("map_ini"),label="",choices = c("Yes","No"),options = list(
+        onInitialize = I('function() { this.setValue(""); }')
+      )),
+      actionButton(ns("confirm3"), "confirm")
       
       
     ),#/cond ui 2
@@ -270,28 +278,17 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         Map$setCenter(10.38649, 63.40271,10)
         m1<-Map$addLayer(
           eeObject = img_all,
-          vis_qc,
+          vis_ind,
           opacity = 0.4,
           name = "all participants")+
-          Map$addLegend(vis_qc, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
+          Map$addLegend(vis_ind, name =paste0("Probability to benefit from ",es_descr_sel$esNAME) , color_mapping = "character")
         
         
         output$map_res_all <- renderLeaflet({
           m1
         })
         output$text1<-renderText(paste0("In the previous mapping round you have not mapped ", es_descr_sel$esNAME))
-        output$ui2<-renderUI({
-          # actionButton(ns("confirm2"),"Confirm", class='btn-primary')
-          h6(paste0("Based on the map you see now, do you feel able to map good spots for ", es_descr_sel$esNAME,"?"))
-          selectizeInput(ns("map_ini"),label="",choices = c("Yes","No"),options = list(
-            onInitialize = I('function() { this.setValue(""); }')
-          ))
-          validate(
-            need(input$map_ini, 'Please select an option')
-          )
-          actionButton(ns("confirm3"), "confirm")
-          
-        })
+        
         map_edit<-leaflet()
       }
       
@@ -300,9 +297,18 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       observeEvent(input$confirm3,{
         if(input$map_ini == "Yes"){
           #mapping light?
+          insertUI(
+            selector = paste0("#",ns("confirm3")),
+            where = "afterEnd",
+            ui=tagList(
+              maplight_UI(ns("newmap_R1"))
+            )
+          )
+          m3 = maplight_server("newmap_R1",sf_bound, comb, bands, esID_sel, userID_sel, studyID, img_all, geometry, vis_ind, es_descr_sel)
+          
 
         }else{
-          
+          print("nothing")
         }
         
       })
@@ -912,7 +918,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  userID_sel = reactive("OGln2sNZS4")
+  userID_sel = reactive("nsZ9ySJo2K")
   mapping_round<-1
   
   hideTab(inputId = "inTabset", target = "p2")
@@ -938,13 +944,13 @@ server <- function(input, output, session) {
   #
 
 
-       # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+       # val<- remapServer("remap1", isolate(userID_sel), es_descr, userES, studyID, geometry, sf_bound, vis_ind, 1)
   #
 
 
     # observeEvent(input$test,{
     #   userID_sel<-userID_sel()
-    #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_qc, 1)
+    #   remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, 1)
     # })
 
 
