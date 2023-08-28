@@ -230,7 +230,6 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           actionButton(ns("confirm1"), "confirm")
         })
         
-        
         poly_path1<-paste0("C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/", userID_sel, "_", esID_sel, "_", studyID, ".shp")
         # print(poly_path1)
         poly_r1<-st_read(poly_path1)
@@ -479,6 +478,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               final_edits[i,]$status<-"old_geom"
             }
           }
+          ##newdrawn
           if(!is_empty(edits2$drawn)){
             p_new<-edits2$drawn
             p_new$X_lflt_d<-p_new$`_leaflet_id`
@@ -504,7 +504,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           
           ## old plyg edited
           if(!is_empty(edits2$edited)){
-            p_edit<-edits2$edited
+            ## just filter the last edit stage otherwise there will be several edits per poly possible which are not intersting!
+            p_edit<-edits2$edited%>%filter(st_geometry(edits2$edited) %in% st_geometry(edits2$all))
+            # p_edit<-edits2$edited
             p_edit$X_lflt_d<-p_edit$`_leaflet_id`
             p_edit$ftr_typ<-rep("rectangle",nrow(p_edit))
             p_edit$es_valu<-rep(NA,nrow(p_edit))
