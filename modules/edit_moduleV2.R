@@ -385,7 +385,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
 
           ## old plyg edited
           if(!is_empty(edits2$edited)){
-            p_edit<-edits2$edited
+            ## just filter the last edit stage otherwise there will be several edits per poly possible which are not intersting!
+            p_edit<-edits2$edited%>%filter(st_geometry(edits2$edited) %in% st_geometry(edits2$all))
+            # p_edit<-edits2$edited
             p_edit$X_lflt_d<-p_edit$`_leaflet_id`
             p_edit$ftr_typ<-rep("rectangle",nrow(p_edit))
             p_edit$es_valu<-rep(NA,nrow(p_edit))
