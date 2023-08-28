@@ -342,90 +342,68 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
 
       ## prepare the final edits, not changed, adjusted, new polys
       final_edits<-eventReactive(input$savepoly,{
-        # copy old plyg
-          final_edits<-poly_r1
-          edits2<-rv$edits()
-          #filter polys that have not been edited
-          ## attach values of R1 ES
-          ## if final_edits geom == p_all(feature type NA) -> status = no_edit
-          final_edits$status<-rep("old_geom",nrow(final_edits))
-
-          # if sth has been changed, moved deleted edited
-        if(!is.null(edits2$all)){
-
+        final_edits<-poly_r1
+        r2_edits<-rv$edits()
+        
+        
+        ## indicate all R1 as old_geom
+        final_edits$status<-rep("no_edit_R2",nrow(final_edits))
+        # replace delphi round
+        final_edits$dlph_rn<-rep(2,nrow(final_edits))
+        
+        if(!is_empty(r2_edits$all)){
           for(i in 1: nrow(final_edits)){
-            if(st_geometry(final_edits[i,]) %in% st_geometry(edits2$all)){
+            if(st_geometry(final_edits[i,]) %in% st_geometry(r2_edits$all)){
               final_edits[i,]$status<-"no_edit_R2"
             }else{
-              final_edits[i,]$status<-"old_geom"
-            }
-          }
-          if(!is_empty(edits2$drawn)){
-            p_new<-edits2$drawn
-            p_new$X_lflt_d<-p_new$`_leaflet_id`
-            p_new$ftr_typ<-rep("rectangle",nrow(p_new))
-            p_new$es_valu<-rep(NA,nrow(p_new))
-            p_new$esID<-rep(esID_sel,nrow(p_new))
-            p_new$userID<-rep(userID_sel,nrow(p_new))
-            p_new$siteID<-rep(studyID,nrow(p_new))
-            p_new$mppng_r<-rep(mapping_round,nrow(p_new))
-            p_new$dlph_rn<-rep(2,nrow(p_new))
-            p_new$drwng_r<-rep(NA,nrow(p_new))
-            p_new$status<-rep("new_drawn",nrow(p_new))
-            p_new<-p_new%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
-            for(u in 1: nrow(p_new)){
-              if(p_new$X_lflt_d[u] %in% final_edits$X_lflt_d){
-              a<-p_new[u,]%>%dplyr::filter(!p_new$X_lflt_d[u] %in% final_edits$X_lflt_d)
-              final_edits<-rbind(final_edits,a)
-              }else{
-              final_edits<-rbind(final_edits,p_new[u,])
-              }
-            }
-          }
-
-          ## old plyg edited
-          if(!is_empty(edits2$edited)){
-            ## just filter the last edit stage otherwise there will be several edits per poly possible which are not intersting!
-            p_edit<-edits2$edited%>%filter(st_geometry(edits2$edited) %in% st_geometry(edits2$all))
-            # p_edit<-edits2$edited
-            p_edit$X_lflt_d<-p_edit$`_leaflet_id`
-            p_edit$ftr_typ<-rep("rectangle",nrow(p_edit))
-            p_edit$es_valu<-rep(NA,nrow(p_edit))
-            p_edit$esID<-rep(esID_sel,nrow(p_edit))
-            p_edit$userID<-rep(userID_sel,nrow(p_edit))
-            p_edit$siteID<-rep(studyID,nrow(p_edit))
-            p_edit$mppng_r<-rep(mapping_round,nrow(p_edit))
-            p_edit$dlph_rn<-rep(2,nrow(p_edit))
-            p_edit$drwng_r<-rep(NA,nrow(p_edit))
-            p_edit$status<-rep("edited",nrow(p_edit))
-            p_edit<-p_edit%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
-            for(v in 1: nrow(p_edit)){
-              if(p_edit$X_lflt_d[v] %in% final_edits$X_lflt_d){
-                a<-p_edit[v,]%>%dplyr::filter(!p_edit$X_lflt_d[v] %in% final_edits$X_lflt_d)
-                final_edits<-rbind(final_edits,a)
-              }else{
-                final_edits<-rbind(final_edits,p_edit[v,])
-              }
-            }
-          }
-
-
-
-          if(!is_empty(edits2$deleted)){
-            p_del<-edits2$deleted
-            for(w in 1: nrow(final_edits)){
-              if(st_geometry(final_edits[w,])%in%st_geometry(p_del)){
-                final_edits$status[w] <-"deleted"
-              }
-            }
-
-          }
-
-        }
-
-          final_edits
-
-        })#/eventReactive final_edits
+              final_edits[i,]$status<-"old_geom_r1"
+            }#/if else
+          }#/for
+          ##drawings
+          if(!is.null(r2_edits$drawn)){
+            for(k in 1:nrow(r2_edits$drawn)){
+              if(st_geometry(r2_edits$drawn[k,])%in%st_geometry(r2_edits$all) & !st_geometry(r2_edits$drawn[k,])%in%st_geometry(final_edits)){
+                p_new<-r2_edits$finished[k,]
+                p_new<-r2_edits$drawn[k,]
+                p_new$X_lflt_d<-p_new$`_leaflet_id`
+                p_new$ftr_typ<-"rectangle"
+                p_new$es_valu<-NA
+                p_new$esID<-esID_sel
+                p_new$userID<-userID_sel
+                p_new$siteID<-studyID
+                p_new$mppng_r<-mapping_round
+                p_new$dlph_rn<-2
+                p_new$drwng_r<-NA
+                p_new$status<-"new_drawn"
+                p_new<-p_new%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
+                final_edits<-rbind(final_edits,p_new)
+              }#/if geom is in final edits
+            }#/for
+          }#/not null edits
+          if(!is.null(r2_edits$edited)){
+            for(l in 1:nrow(r2_edits$edited)){
+              if(st_geometry(r2_edits$edited[l,])%in%st_geometry(r2_edits$all)){
+                p_edit<-r2_edits$edited[l,]
+                p_edit<-r2_edits$edited[l,]
+                p_edit$X_lflt_d<-p_edit$`_leaflet_id`
+                p_edit$ftr_typ<-"rectangle"
+                p_edit$es_valu<-NA
+                p_edit$esID<-esID_sel
+                p_edit$userID<-userID_sel
+                p_edit$siteID<-studyID
+                p_edit$mppng_r<-mapping_round
+                p_edit$dlph_rn<-2
+                p_edit$drwng_r<-NA
+                p_edit$status<-"edited"
+                p_edit<-p_edit%>%select(X_lflt_d,ftr_typ,es_valu,esID,userID,siteID,mppng_r,dlph_rn,drwng_r,status)
+                final_edits<-rbind(final_edits,p_edit)
+              }#/if geom is in final edits
+            }#/for
+          }#/not null edits
+        }#/ not null any edits
+        final_edits<-final_edits%>%filter(status!="old_geom_r1")
+        final_edits
+      })
 
       ## only for drawings and new drawn polys:
       observeEvent(input$savepoly, {
