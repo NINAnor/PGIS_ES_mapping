@@ -187,9 +187,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         )
       })
       
-      ## all raster path (adjust!!! recr)
-      imgpath1<-paste0(ee_get_assethome(), '/R_1/all_part/',"recr", "_", studyID)
-      img_all<-ee$Image(imgpath1)$select("probability")
+      ## here comes the convergence zone map from R1 (ADJUST this)
+      img_all_path<-paste0(ee_get_assethome(), '/R_1/all_part/',"recr", "_", studyID)
+      img_all<-ee$Image(img_all_path)$select("probability")
       
       if(userES_sel$mapping== "Yes"){
         imgpath2<-paste0(ee_get_assethome(), '/R_1/ind_maps/',"1_",userID_sel, "_", esID_sel, "_", studyID)
@@ -420,7 +420,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           mapping_param<-as.data.frame(mapping_param)
           
           # write to bq
-          insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
+          # insert_upload_job("rgee-381312", "data_base", "es_mappingR2", mapping_param)
           
         }#/else
         removeUI(
@@ -684,10 +684,11 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               column(5,
                      leafletOutput(ns("gee_map2"))
                      ),
-              br(),
-              uiOutput(ns("btn"))
-            )#/row
-            
+            ),#/row
+            br(),
+            ## conditional button as soon as selection has been made
+            uiOutput(ns("map_quest_fin")),
+            uiOutput(ns("cond_fin"))
             
           )#/taglist
         )#/inserUI
@@ -928,9 +929,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           Map$addLegend(vis_ind, name ="Relative difference new and old map" , color_mapping = "character", position = "topright")
         
         output$gee_map1 <- renderLeaflet({
-          result%>%
-            addControl(h3("Your new probability of ES"), position = "bottomleft", className="map-title")%>%
-            addControl(h3("Your old probability of ES"), position = "bottomright", className="map-title")
+          result
+            # addControl(h3("Your new probability of ES"), position = "bottomleft", className="map-title")%>%
+            # addControl(h3("Your old probability of ES"), position = "bottomright", className="map-title")
 
           })
         output$gee_map2 <- renderLeaflet({
@@ -939,8 +940,21 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         incProgress(amount = 1,message = "done")
          
         ## render the confirm btn to proceed further in the main app
-        output$btn<-renderUI({
+        output$map_quest_fin<-renderUI({
           req(img_ind_R2)
+          h4(paste0("Which of your maps do you think represents the probability to benefit from ", es_descr_sel$esNAME," better?"))
+          selectizeInput(ns("select_map"),label="",choices = c("Map round 1","Map round 2", "I don`t know"),options = list(
+            onInitialize = I('function() { this.setValue(""); }')
+          ))
+          
+          # actionButton(ns("confirm_main"), "Next task", class='btn-primary')
+        })#/map quest fin
+        
+        output$cond_fin<-renderUI({
+          req(img_ind_R2)
+          validate(
+            need(input$select_map, 'Please select an option above')
+          )
           actionButton(ns("confirm_main"), "Next task", class='btn-primary')
         })
           
