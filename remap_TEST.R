@@ -126,10 +126,6 @@ remapUI<- function(id, label = "selector") {
       ),
       br(),
       uiOutput(ns("remap_poss")),
-      # conditionalPanel(
-      #   condition = "input.remap_poss != ''",
-      #  actionButton(ns("confirm1"),"confirm") 
-      # )
       uiOutput(ns("cond_b1"))
       
       
@@ -144,15 +140,10 @@ remapUI<- function(id, label = "selector") {
       leafletOutput(ns("map_res_all")),
       br(),
       uiOutput(ns("map_ini")),
-      actionButton(ns("confirm3"), "confirm"),
-      uiOutput(ns("cond_btn"))
+      uiOutput(ns("cond_b2"))
       
       
     ),#/cond ui 2
-    # conditionalPanel(
-    #   condition = "input.slider>0", ns=ns,
-    #   actionButton(ns("confirm2"),"Next task", class='btn-primary')
-    # )#/cond final btn
   )#/tag list
 }#/ui module
 
@@ -168,7 +159,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
     function(input,output,session){
       ns<-session$ns
       
-      ## for th buttons
+      ## for the buttons
       rv1<-reactiveValues(
         u = reactive({})
       )
@@ -182,7 +173,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       output$descr_es<-renderUI(es_descr_sel$esDESCR)
       
       output$remap<-renderUI(h6(paste0("Modify, add or delete areas that provide good ",es_descr_sel$esNAME)))
-      output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
+      output$es_quest_how<-renderUI(h5(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
       
       output$image_es<-renderUI({
         tags$figure(
@@ -225,6 +216,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           m1
         })
         
+        ### ask if part wants to adjust polygons
         output$remap_poss<-renderUI({
           tagList(
             h6(paste0("Do you want to adjust your areas for good ", es_descr_sel$esNAME,"?")),
@@ -234,9 +226,10 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           )
         })
         
+        ### render confirm btn as soon as selection of remapping has been made
         output$cond_b1<-renderUI({
           validate(
-            need(input$remap_poss, 'Please select an option')
+            need(input$remap_poss, 'Please select an option above')
           )
           actionButton(ns("confirm1"), "confirm")
         })
@@ -291,44 +284,54 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           m1
         })
         output$text1<-renderText(paste0("In the previous mapping round you have not mapped ", es_descr_sel$esNAME))
-        lable<-paste0("Based on the map you see, do you feel now able to map good spots for ", es_descr_sel$esNAME,"?")
+        lable<-paste0("Based on the map you see, do you now feel able to map good spots for ", es_descr_sel$esNAME,"?")
         map_edit<-leaflet()
         
         
+        ### ask if now mapping possible
         output$map_ini<-renderUI({
           selectizeInput(ns("map_ini"),label=lable,choices = c("Yes","No"),options = list(
-            placeholder = 'Please select an option below',
+            placeholder = '',
             onInitialize = I('function() { this.setValue(""); }')
           ))
         })
+        
+        ### based on that the confirm btn only when a selection has been made
+        output$cond_b2<-renderUI({
+          validate(
+            need(input$map_ini, 'Please select an option above')
+            )
+          actionButton(ns("confirm2"), "proceed")
+        })
 
-
-      }
+      }#/if no mapping R1
       
 
       
-      observeEvent(input$confirm3,{
+      observeEvent(input$confirm2,{
         if(input$map_ini == "Yes"){
           #mapping light?
           insertUI(
-            selector = paste0("#",ns("confirm3")),
+            selector = paste0("#",ns("confirm2")),
             where = "afterEnd",
             ui=tagList(
               maplight_UI(ns("newmap_R1"))
             )
           )
-       rv1$u <- maplight_server("newmap_R1",sf_bound, comb, bands, esID_sel, userID_sel, studyID, img_all, geometry, vis_ind, es_descr_sel)
+          ## trigger reactive value as a feedback of the maplight module
+          rv1$u <- maplight_server("newmap_R1",sf_bound, comb, bands, esID_sel, userID_sel, studyID, img_all, geometry, vis_ind, es_descr_sel)
 
         }else{
           
           ## switch in main app and continue!
           insertUI(
-            selector = paste0("#",ns("confirm3")),
+            selector = paste0("#",ns("confirm2")),
             where = "afterEnd",
             ui=tagList(
               "We will use the data of experts as you have indicated in R1",
               br(),
-              actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+              ### btn to exit the module and trigger the main app to change pages
+              actionButton(ns("confirm_main"), "Next task", class='btn-primary')
             )
           )
           
@@ -341,7 +344,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           selector = paste0("#",ns("text1"))
         )
         removeUI(
-          selector = paste0("#",ns("confirm3"))
+          selector = paste0("#",ns("confirm2"))
         )
         removeUI(
           selector = paste0("#",ns("map_ini"))
@@ -349,20 +352,10 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
       })
       
       ## should work for if not mapped in R1 and no mapping now, mapped in R1 and no adjustment now & for the adjustment procedure
-      observeEvent(input$confirm,{
+      observeEvent(input$confirm_main,{
         rv1$u <-reactive({1})
       })
-      
-      
-      # observeEvent(m3(), {
-      #   output$cond_btn<-renderUI({
-      #     tagList(
-      #      actionButton(ns("confirm"), "Next task", class='btn-primary') 
-      #     )
-      #   })  
-      #   
-      # })
-      
+     
       
       rv<-reactiveValues(
         edits = reactive({})
@@ -386,9 +379,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             where = "afterEnd",
             ui = tagList(
               uiOutput(ns("remap")),
-              fluidRow(" -please adjust inside the boundaries"),
               br(),
-              fluidRow(" -please do not overlap polygons"),
               editModUI(ns("map_sel")),
               htmlOutput(ns("overlay_result")),
               uiOutput(ns("btn1")),
@@ -403,7 +394,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             ui = tagList(
               "We will use your data from the previous round!",
               br(),
-              actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+              actionButton(ns("confirm_main"), "Next task", class='btn-primary')
             )
           )
           
@@ -672,6 +663,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         )
         removeUI(
           selector = paste0("#",ns("remap"))
+        )
+        removeUI(
+          selector = paste0("#",ns("overlay_result"))
         )
         
       })#/observer
@@ -947,16 +941,13 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         ## render the confirm btn to proceed further in the main app
         output$btn<-renderUI({
           req(img_ind_R2)
-          actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+          actionButton(ns("confirm_main"), "Next task", class='btn-primary')
         })
           
         })
       })
-      # observeEvent(input$confirm,{
-      #   #change the reactive value u as soon as confirm is changed
-      #   rv1$u<-reactive({1})
-      # })
-      #         
+       
+      ## the modules output is dep. on the status of reactive value rv1 (can be the map result or the btn status)
       cond <- reactive({rv1$u()})
       
       return(cond)

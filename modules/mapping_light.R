@@ -159,11 +159,8 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
             # a short expl. why this sites
             uiOutput(ns("blogdescr")),
             textInput(ns("blog"), label = ""),
-            br(),
-            conditionalPanel(
-              condition = "input.blog != ''", ns=ns,
-              actionButton(ns("submit"),"save and show map (wait app. 30 sec)")
-            )
+            ## as soon as blog text filled
+            uiOutput(ns("cond_blog"))
           )
         )
         
@@ -204,6 +201,16 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
           
         })
       })#/observer
+      
+      
+      ### conditional submit poly as soon as blog filled
+      ### ask if now mapping possible
+      output$cond_blog<-renderUI({
+        validate(
+          need(input$blog, 'Please select an option above')
+        )
+        actionButton(ns("submit"),"save and show map (wait app. 30 sec)")
+      })
 
       #4. maxent
       ## remove map UI and sliders show result
