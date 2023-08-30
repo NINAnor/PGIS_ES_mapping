@@ -18,6 +18,8 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
       output$es_quest_where<-renderUI(h4(paste0("Where do you find good areas for ", es_descr_sel$esNAME,"?")))
       output$es_quest_how<-renderUI(h6(paste0("How do you rate the quality of ",es_descr_sel$esNAME, " for your adjusted areas?")))
       output$rating_task<-renderUI(h4(paste0("Indicate how good the areas are to benefit from ",es_descr_sel$esNAME, " (1 = ok, 5= very good)")))
+      output$res_text<-renderUI(h4(paste0("Your personal map of ",es_descr_sel$esNAME)))
+      output$blogdescr<-renderUI({h4(paste0("Please provide us a short explanation why you choosed these areas of good quality to provide ",es_descr_sel$esNAME))})
       Map$setCenter(10.38649, 63.40271,10)
       R1_map_all<-Map$addLayer(
                     eeObject = img_all,
@@ -160,7 +162,7 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
             br(),
             conditionalPanel(
               condition = "input.blog != ''", ns=ns,
-              actionButton(ns("submit"),"save values (wait app. 30 sec)")
+              actionButton(ns("submit"),"save and show map (wait app. 30 sec)")
             )
           )
         )
@@ -171,6 +173,8 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
           selector = paste0("#",ns("map_sel"),"-map"))
         removeUI(
           selector = paste0("#",ns("es_quest_where")))
+        removeUI(
+          selector = paste0("#",ns("overlay_result")))
         
         cent_poly <- st_centroid(polygon)
         output$map_res<-renderLeaflet(map_res %>% 
@@ -204,16 +208,19 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
       #4. maxent
       ## remove map UI and sliders show result
       observeEvent(input$submit, {
-        
+
         insertUI(
           selector = paste0("#",ns("submit")),
           where = "afterEnd",
           ui = tagList(
             textOutput(ns("res_text")),
-            leafletOutput(ns("gee_map"))
+            br(),
+            leafletOutput(ns("gee_map")),
+            br(),
+            uiOutput(ns("btn"))
           )
         )
-        
+
         removeUI(
           selector = paste0("#",ns("map_res"))
         )
@@ -235,10 +242,11 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
         removeUI(
           selector = paste0("#",ns("rating_task"))
         )
-        
+
       })
       
       prediction<-eventReactive(input$submit, {
+        
         withProgress(message = "save your drawings",value = 0.1,{
           polygon<-rv$edits()$finished
           req(polygon, cancelOutput = FALSE)
@@ -277,7 +285,7 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
           ## save as shp (up to now)
           polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R2/',userID_sel,"_",esID_sel,"_",studyID,".shp")
           ## save poly
-          st_write(polygon,polypath)
+          # st_write(polygon,polypath)
           
           poly_area<-as.numeric(sum(st_area(polygon)))
           
@@ -435,14 +443,10 @@ maplight_server<-function(id,sf_bound, comb, bands, esID_sel, userID_sel, studyI
       })
       
       #6. next btn as output
-      insertUI(
-        selector = paste0("#",ns("submit")),
-        where = "afterEnd",
-        ui = tagList(
-          actionButton(ns("confirm"), "Next task", class='btn-primary')
-        )
-      )
-      
+      output$btn<-renderUI({
+        req(prediction)
+        actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+      })
       cond <- reactive({input$confirm})
       
       return(cond) 

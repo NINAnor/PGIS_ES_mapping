@@ -176,7 +176,7 @@ mapselectUI<- function(id, label = "selector") {
     ),
 
     conditionalPanel(
-      condition = "input.expert_map != '' || input.submit > 0", ns=ns,
+      condition = "input.expert_map != ''", ns=ns,
       actionButton(ns("confirm"), "Next task", class='btn-primary')
     )
     )
@@ -197,6 +197,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
     function(input, output, session){
       ns<-session$ns
       
+      prediction = 0
       esID<-rand_es_sel[order,]$esID
       output$title_es<-renderUI(h5(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
@@ -472,6 +473,8 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             textOutput(ns("res_text")),
             br(),
             leafletOutput(ns("gee_map")),
+            br(),
+            uiOutput(ns("btn"))
 
           )
         )
@@ -540,7 +543,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           ## save as shp (up to now)
           polypath <- paste0( 'C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/PGIS_ES/data_base/poly_R1/',userID,"_",esID,"_",siteID,".shp")
           ## save poly
-          st_write(polygon,polypath)
+          # st_write(polygon,polypath)
           
           poly_area<-as.numeric(sum(st_area(polygon)))
           
@@ -748,6 +751,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         prediction()
              })
       # outputOptions(output, "gee_map", suspendWhenHidden = FALSE)
+      output$btn<-renderUI({
+        req(prediction)
+        actionButton(ns("confirm"), "Next task", class='btn-primary')
+      })
       
 
       ### store infos if mapping is not possible

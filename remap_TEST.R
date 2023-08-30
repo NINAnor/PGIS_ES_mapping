@@ -93,11 +93,12 @@ userES <- select(userES, userID, esID, mapping, siteID, blog) %>% filter(siteID 
   collect()
 
 ##mapping yes
-# userID_sel = "OGln2sNZS4"
+userID_sel = "OGln2sNZS4"
+
 ##mapping no:
 # userID_sel = "nsZ9ySJo2K"
-# 
-# mapping_round<-1
+
+mapping_round<-1
 
 
 
@@ -142,11 +143,9 @@ remapUI<- function(id, label = "selector") {
       br(),
       leafletOutput(ns("map_res_all")),
       br(),
-      h6(paste0("Based on the map you see, do you feel now able to map good spots for ", es_descr_sel$esNAME,"?")),
-      selectizeInput(ns("map_ini"),label="",choices = c("Yes","No"),options = list(
-        onInitialize = I('function() { this.setValue(""); }')
-      )),
-      actionButton(ns("confirm3"), "confirm")
+      uiOutput(ns("map_ini")),
+      actionButton(ns("confirm3"), "confirm"),
+      uiOutput(ns("cond_btn"))
       
       
     ),#/cond ui 2
@@ -168,7 +167,11 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
     id,
     function(input,output,session){
       ns<-session$ns
-      # 
+      
+      ## for th buttons
+      rv1<-reactiveValues(
+        u = reactive({})
+      )
       
       userES_sel<-userES%>%dplyr::filter(userID == userID_sel)%>%slice(mapping_round)
       esID_sel<-userES_sel$esID
@@ -288,11 +291,21 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           m1
         })
         output$text1<-renderText(paste0("In the previous mapping round you have not mapped ", es_descr_sel$esNAME))
-        
+        lable<-paste0("Based on the map you see, do you feel now able to map good spots for ", es_descr_sel$esNAME,"?")
         map_edit<-leaflet()
+        
+        
+        output$map_ini<-renderUI({
+          selectizeInput(ns("map_ini"),label=lable,choices = c("Yes","No"),options = list(
+            placeholder = 'Please select an option below',
+            onInitialize = I('function() { this.setValue(""); }')
+          ))
+        })
+
+
       }
       
-      
+
       
       observeEvent(input$confirm3,{
         if(input$map_ini == "Yes"){
@@ -304,14 +317,51 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               maplight_UI(ns("newmap_R1"))
             )
           )
-          m3 = maplight_server("newmap_R1",sf_bound, comb, bands, esID_sel, userID_sel, studyID, img_all, geometry, vis_ind, es_descr_sel)
-          
+       rv1$u <- maplight_server("newmap_R1",sf_bound, comb, bands, esID_sel, userID_sel, studyID, img_all, geometry, vis_ind, es_descr_sel)
 
         }else{
-          print("nothing")
+          
+          ## switch in main app and continue!
+          insertUI(
+            selector = paste0("#",ns("confirm3")),
+            where = "afterEnd",
+            ui=tagList(
+              "We will use the data of experts as you have indicated in R1",
+              br(),
+              actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+            )
+          )
+          
+
         }
-        
+        removeUI(
+          selector = paste0("#",ns("map_res_all"))
+        )
+        removeUI(
+          selector = paste0("#",ns("text1"))
+        )
+        removeUI(
+          selector = paste0("#",ns("confirm3"))
+        )
+        removeUI(
+          selector = paste0("#",ns("map_ini"))
+        )
       })
+      
+      ## should work for if not mapped in R1 and no mapping now, mapped in R1 and no adjustment now & for the adjustment procedure
+      observeEvent(input$confirm,{
+        rv1$u <-reactive({1})
+      })
+      
+      
+      # observeEvent(m3(), {
+      #   output$cond_btn<-renderUI({
+      #     tagList(
+      #      actionButton(ns("confirm"), "Next task", class='btn-primary') 
+      #     )
+      #   })  
+      #   
+      # })
       
       
       rv<-reactiveValues(
@@ -353,7 +403,7 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
             ui = tagList(
               "We will use your data from the previous round!",
               br(),
-              actionButton(ns("confirm2"),"Confirm", class='btn-primary')
+              actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
             )
           )
           
@@ -639,7 +689,9 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
               column(1),
               column(5,
                      leafletOutput(ns("gee_map2"))
-                     )
+                     ),
+              br(),
+              uiOutput(ns("btn"))
             )#/row
             
             
@@ -847,6 +899,8 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
         return(img_ind_R2)
       })#/eventReactive
       
+      
+      
       observe({
         req(img_ind_R2)
         img_ind_R2<-img_ind_R2()
@@ -889,11 +943,21 @@ remapServer<-function(id, userID_sel, es_descr, userES, studyID, geometry, sf_bo
           result2
         })
         incProgress(amount = 1,message = "done")
-           
+         
+        ## render the confirm btn to proceed further in the main app
+        output$btn<-renderUI({
+          req(img_ind_R2)
+          actionButton(ns("confirm"), "Next task in mod", class='btn-primary')
+        })
+          
         })
       })
+      # observeEvent(input$confirm,{
+      #   #change the reactive value u as soon as confirm is changed
+      #   rv1$u<-reactive({1})
+      # })
       #         
-      cond <- reactive({input$confirm2})
+      cond <- reactive({rv1$u()})
       
       return(cond)
       
@@ -914,12 +978,19 @@ ui <- fluidPage(
               ),
               tabPanel(title = "Mapping Task", value = "p2",
                        remapUI("remap1", "mapping1")
-              ))
+              ),
+              tabPanel(title = "Thanks", value = "p3",
+                       # remapUI("remap1", "mapping1")
+              )
+              )
 )
 
 server <- function(input, output, session) {
-  userID_sel = reactive("nsZ9ySJo2K")
+  userID_sel = reactive("OGln2sNZS4")
   mapping_round<-1
+  rv<-reactiveValues(
+    u = reactive({})
+  )
   
   hideTab(inputId = "inTabset", target = "p2")
 
@@ -938,8 +1009,18 @@ server <- function(input, output, session) {
       hideTab(inputId = "inTabset",
               target = "p1")
       showTab(inputId = "inTabset", target = "p2")
-      remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, mapping_round, comb, bands)
+      rv$u<-remapServer("remap1", userID_sel, es_descr, userES, studyID, geometry, sf_bound, vis_ind, mapping_round, comb, bands)
 
+    })
+
+    observeEvent(rv$u(),{
+      
+      updateTabsetPanel(session, "inTabset",
+                        selected = "p3")
+      hideTab(inputId = "inTabset",
+              target = "p2")
+      showTab(inputId = "inTabset", target = "p3")
+      
     })
   #
 
