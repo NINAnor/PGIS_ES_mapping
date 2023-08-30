@@ -67,7 +67,7 @@ lulc<-lulc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 lulc<-lulc$clip(bound_reg)
 
 
-acc_pat<-paste0(ee_get_assethome(), '/acc')
+acc_pat<-paste0(ee_get_assethome(), '/acc_old')
 acc<-ee$Image(acc_pat)
 acc<-acc$resample("bilinear")$reproject(crs= "EPSG:4326",scale=100)
 
@@ -153,18 +153,6 @@ mapselectUI<- function(id, label = "selector") {
     # are you able to map the ES?
     uiOutput(ns("map_poss")),
     br(),
-    # conditionalPanel(
-    #   condition = "input.map_poss == 'Yes'", ns = ns ,
-    #   # h5("where do you find good spots of ESx?"),
-    #   uiOutput(ns("es_quest_where")),
-    #   br(),
-    #   editModUI(ns("map_sel")),
-    #   br(),
-    #   # initial button to save the map
-    #   # actionButton(ns("check_poly"),"check polygons")
-    #   
-    #   
-    # ),
     # if ES not mappable
     conditionalPanel(
       condition = "input.map_poss == 'No'", ns = ns ,
@@ -172,7 +160,6 @@ mapselectUI<- function(id, label = "selector") {
         placeholder = 'Please select an option below',
         onInitialize = I('function() { this.setValue(""); }')))
       # actionButton(ns("submit2"),"save")
-      
     ),
 
     conditionalPanel(
@@ -196,8 +183,12 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
     id,
     function(input, output, session){
       ns<-session$ns
+      ## for the buttons
+      rv1<-reactiveValues(
+        u = reactive({})
+      )
       
-      prediction = 0
+      # prediction = 0
       esID<-rand_es_sel[order,]$esID
       output$title_es<-renderUI(h5(rand_es_sel[order,]$esNAME))
       output$descr_es<-renderText(rand_es_sel[order,]$esDESCR)
@@ -263,6 +254,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
       #   leafmap = map,
       #   id = "map_sel")
       
+      observeEvent(input$confirm,{
+        rv1$u <-reactive({1})
+      })
+      
       rv<-reactiveValues(
         edits = reactive({})
      )
@@ -293,11 +288,43 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           
             }#/if yes
         })#/map_poss 
+     
+     observeEvent(input$expert_map,{
+       if(input$expert_map !=""){
+         train_param<-list(
+           esID = esID,
+           userID = userID,
+           siteID = siteID,
+           mappingR1_UID = paste0(userID,"_",esID,"_",siteID),
+           imp_acc= as.integer(0),
+           imp_nat= as.integer(0),
+           imp_lulc = as.integer(0),
+           imp_own = as.integer(input$imp_own),
+           imp_other = as.integer(input$imp_other),
+           area = as.integer(0),
+           n_poly = as.integer(0),
+           blog = "NA",
+           mapping = "No",
+           expert_trust = input$expert_map,
+           mapping_order = as.integer(order),
+           extrap_RMSE = 0,
+           extrap_accIMP = 0,
+           extrap_lulcIMP = 0,
+           extrap_natIMP = 0
+         )
+         train_param<-as.data.frame(train_param)
+         # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
+         # removeUI(
+         #   selector = paste0("#",ns("expert_map"))
+         # )
+       }
+       
+       
+     })
       
-      
-      
+
       ## remove mapping question as soon as decided
-     observe({
+      observe({
        req(rv$edits)
        rectangles <- rv$edits()$finished
        n_poly<-nrow(as.data.frame(rectangles))
@@ -355,9 +382,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
        }
        
      })
-     
-    
-      
+
       observeEvent(input$map_poss,{
         if(input$map_poss !=""){
           removeUI(
@@ -474,7 +499,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             br(),
             leafletOutput(ns("gee_map")),
             br(),
-            uiOutput(ns("btn"))
+            uiOutput(ns("btn_cond"))
 
           )
         )
@@ -720,19 +745,19 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                                        'order_id', order,
                                        'delphi_round', 1)
           
-          start_time<-Sys.time()
-          task_img <- ee_image_to_asset(
-            image = prediction,
-            assetId = img_assetid,
-            overwrite = T,
-            region = geometry
-          )
-          
-          task_img$start()
+          # start_time<-Sys.time()
+          # task_img <- ee_image_to_asset(
+          #   image = prediction,
+          #   assetId = img_assetid,
+          #   overwrite = T,
+          #   region = geometry
+          # )
+          # 
+          # task_img$start()
           
           
           ############ prepare map
-          incProgress(amount = 0.1,message = "prepare interactive map")
+          incProgress(amount = 0.5,message = "prepare interactive map")
           Map$setCenter(10.38649, 63.40271,10)
           
           prediction<-Map$addLayer(
@@ -744,53 +769,25 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         return(prediction)
         
       })
-      
-     
 
-      output$gee_map <- renderLeaflet({
-        prediction()
-             })
-      # outputOptions(output, "gee_map", suspendWhenHidden = FALSE)
-      output$btn<-renderUI({
+      observe({
         req(prediction)
-        actionButton(ns("confirm"), "Next task", class='btn-primary')
+        output$gee_map <- renderLeaflet({
+          prediction()
+        })
+        # outputOptions(output, "gee_map", suspendWhenHidden = FALSE)
+        output$btn_cond<-renderUI({
+          req(prediction)
+          actionButton(ns("confirm2"), "Next task", class='btn-primary')
+        })
+        
+        
+      })#/observe
+      observeEvent(input$confirm2,{
+        rv1$u <-reactive({1})
       })
-      
-
-      ### store infos if mapping is not possible
-      observeEvent(input$expert_map,{
-        if(input$expert_map !=""){
-          train_param<-list(
-          esID = esID,
-          userID = userID,
-          siteID = siteID,
-          mappingR1_UID = paste0(userID,"_",esID,"_",siteID),
-          imp_acc= as.integer(0),
-          imp_nat= as.integer(0),
-          imp_lulc = as.integer(0),
-          imp_own = as.integer(input$imp_own),
-          imp_other = as.integer(input$imp_other),
-          area = as.integer(0),
-          n_poly = as.integer(0),
-          blog = "NA",
-          mapping = "No",
-          expert_trust = input$expert_map,
-          mapping_order = as.integer(order),
-          extrap_RMSE = 0,
-          extrap_accIMP = 0,
-          extrap_lulcIMP = 0,
-          extrap_natIMP = 0
-        )
-          train_param<-as.data.frame(train_param)
-          # insert_upload_job("rgee-381312", "data_base", "es_mappingR1", train_param)
-          # removeUI(
-          #   selector = paste0("#",ns("expert_map"))
-          # )
-        }
-
-
-      })
-      cond <- reactive({input$confirm})
+      # cond <- reactive({input$confirm})
+      cond <- reactive({rv1$u()})
       
       return(cond) 
     }
