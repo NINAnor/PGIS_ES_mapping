@@ -776,10 +776,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           prediction()
         })
         # outputOptions(output, "gee_map", suspendWhenHidden = FALSE)
-        output$btn_cond<-renderUI({
-          req(prediction)
-          actionButton(ns("confirm2"), "Next task", class='btn-primary')
-        })
+
         
         
       })#/observe

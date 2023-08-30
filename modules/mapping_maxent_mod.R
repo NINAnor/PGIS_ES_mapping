@@ -33,21 +33,6 @@ mapselectUI<- function(id, label = "selector") {
       # are you able to map the ES?
       uiOutput(ns("map_poss")),
       br(),
-      # conditionalPanel(
-      #   condition = "input.map_poss == 'Yes'", ns = ns ,
-      #   # h5("where do you find good spots of ESx?"),
-      #   uiOutput(ns("es_quest_where")),
-      #   # fluidRow(" -please draw & adjust inside the boundaries"),
-      #   br(),
-      #   # fluidRow(" -please do not overlap polygons"),
-      #   
-      #   editModUI(ns("map_sel")),
-      #   br(),
-      #   # initial button to save the map
-      #   actionButton(ns("savepoly"),"save polygons")
-      #   
-      #   
-      # ),
       # if ES not mappable
       conditionalPanel(
         condition = "input.map_poss == 'No'", ns = ns ,
@@ -58,7 +43,7 @@ mapselectUI<- function(id, label = "selector") {
         
       ),
       conditionalPanel(
-        condition = "input.expert_map != '' || input.submit > 0", ns=ns,
+        condition = "input.expert_map != ''", ns=ns,
         actionButton(ns("confirm"), "Next task", class='btn-primary')
       )
     )
@@ -78,6 +63,10 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
     id,
     function(input, output, session){
       ns<-session$ns
+      ## for the buttons
+      rv1<-reactiveValues(
+        u = reactive({})
+      )
       
       #render various texts for UI
       esID<-rand_es_sel[order,]$esID
@@ -140,16 +129,15 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
                        singleFeature = FALSE,
                        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))
       
+      
+      
+      observeEvent(input$confirm,{
+        rv1$u <-reactive({1})
+      })
       ### call the edit map module from the mapedit package
       rv<-reactiveValues(
         edits = reactive({})
       )
-      
-      # edits<-callModule(
-      #   module = editMod,
-      #   leafmap = map,
-      #   id = "map_sel")
-      # edits<-mapedit::editMap(map)
       
       observeEvent(input$map_poss,{
         if(input$map_poss == "Yes"){
@@ -158,8 +146,7 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
             module = editMod,
             leafmap = map,
             id = "map_sel")
-          # print(rv$edits())
-          
+
           insertUI(selector =paste0("#",ns("map_poss")),
                    where = "afterEnd",
                    ui=tagList(
@@ -344,7 +331,9 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
           where = "afterEnd",
           ui = tagList(
             textOutput(ns("res_text")),
-            leafletOutput(ns("gee_map"))
+            leafletOutput(ns("gee_map")),
+            br(),
+            uiOutput(ns("btn_cond"))
           )
         )
         
@@ -590,10 +579,18 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         
       })
       
-
-      output$gee_map <- renderLeaflet({
-        prediction()
-      })
+      observe({
+        req(prediction)
+        output$gee_map <- renderLeaflet({
+          prediction()
+        })
+        output$btn_cond<-renderUI({
+          req(prediction)
+          actionButton(ns("confirm2"), "Next task", class='btn-primary')
+        })
+        
+      })#/observe
+      
 
       ### store infos if mapping is not possible
       observeEvent(input$expert_map,{
@@ -625,8 +622,12 @@ mapselectServer<-function(id, sf_bound, comb, bands, rand_es_sel, order, userID,
         }
       })
       
+      #modify reactive value to trigger cond
+      observeEvent(input$confirm2,{
+        rv1$u <-reactive({1})
+      })
       # play back the value of the confirm button to be used in the main app
-      cond <- reactive({input$confirm})
+      cond <- reactive({rv1$u()})
       
       return(cond) 
       
