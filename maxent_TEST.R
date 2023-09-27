@@ -21,6 +21,7 @@ library(tidyverse)
 library(bigrquery)
 library(DBI)
 
+# "C:/Users/reto.spielhofer/AppData/Local/r-miniconda/envs/rgee/python.exe"
 
 img_path<-"C:/Users/reto.spielhofer/git/PGIS_ES_mapping/R1_dev/data/images"
 bq_auth(path = "C:/Users/reto.spielhofer/OneDrive - NINA/Documents/Projects/WENDY/rgee-381312-85272383f82d.json")
