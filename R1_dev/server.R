@@ -96,7 +96,7 @@ function(input, output, session) {
     } else {
       email = input$email}
     # generate log time
-    tlog<-Sys.time()
+    tlog<-as.character(Sys.time())
     
     user_conf<-data.frame(userMAIL = email, userID = UID_part, userTLOG = tlog)
     ### save user conf
